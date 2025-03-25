@@ -1,10 +1,17 @@
 #include "eyesMove.h"
 
-eyesMove::eyesMove()
+eyesMove::eyesMove(uint8_t upper_eyelid_pin, uint8_t lower_eyelid_pin, uint8_t eyeball_pin)
 {
-	upper_eyelid_servo.attach(UPPER_EYELID_PIN);
-	lower_eyelid_servo.attach(LOWER_EYELID_PIN);
-	eyeball_servo.attach(EYEBALL_PIN);
+	this->upper_eyelid_pin = upper_eyelid_pin;
+	this->lower_eyelid_pin = lower_eyelid_pin;
+	this->eyeball_pin = eyeball_pin;
+}
+
+void eyesMove::eyesMove_init()
+{
+	upper_eyelid_servo.attach(upper_eyelid_pin);
+	lower_eyelid_servo.attach(lower_eyelid_pin);
+	eyeball_servo.attach(eyeball_pin);
 }
 
 void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_angle, uint8_t eyeball_angle)
