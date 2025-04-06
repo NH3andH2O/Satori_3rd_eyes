@@ -64,9 +64,10 @@ private:
 public:
 
 	wit(uint8_t serialPort, uint8_t rxPin, uint8_t txPin, uint32_t baudRate);
-	int8_t wit_init();
-	witData wit_get_data();	//獲取數據
-	void wit_flush();	//清除數據
+	int8_t wit_init();			//初始化Wit模組
+	witData wit_get_data();		//獲取數據
+	void wit_flush();			//清除數據
+	uint8_t wit_serial_get();	//獲取Serial端口
 };
 
 #endif

@@ -167,3 +167,8 @@ void wit::wit_flush()
 	uint8_t temp[128];
 	this->hwSerial->readBytes(temp, 128);	//讀取數據
 }
+
+uint8_t wit::wit_serial_get()
+{
+	return this->serialPort;	//返回Serial端口
+}
