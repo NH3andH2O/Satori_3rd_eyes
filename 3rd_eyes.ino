@@ -1,81 +1,95 @@
 #include <ESP32Servo.h>
+#include <esp_task_wdt.h>
 #include "eyesMove.h"
+#include "wit.h"
 
-#define EYESLID_CONTROL_PIN A0	//眼皮控制引脚
-#define X_ANGLE_CONTROL_PIN A1	//X軸角度控制引脚
-#define Y_ANGLE_CONTROL_PIN A3	//Y軸角度控制引脚
-#define EYES_SHAKE_PIN A2	//眼睛震動控制引脚
+#define UPPER_EYELID_PIN 12	//上眼皮伺服馬達引脚
+#define LOWER_EYELID_PIN 13	//下眼皮伺服馬達引脚
+#define EYEBALL_PIN 14		//眼球伺服馬達引脚
 
-#define CENTRE_DEAD_ZONE 400 //中心死區半徑
-#define LOWER_DEAD_ZONE 50 //下死區半徑
-#define CENTER_VALUE 2048 //中心值
+eyesMove eyesmove(UPPER_EYELID_PIN, LOWER_EYELID_PIN, EYEBALL_PIN);
+wit witEyes(SERIAL1, 18, 8, 115200);	//wit眼睛模組
+wit witHead(SERIAL2, 39, 38, 115200);	//wit頭部模組
 
-eyesMove eyesmove;
-uint16_t eyelid_angle = 0;	//眼皮角度
-uint8_t eyes_shake_state = 0;	//眼睛震動狀態
+witData witEyes_data;	//wit眼睛數據結構體
+witData witHead_data;	//wit頭部數據結構體
+
+QueueHandle_t init_status_quene; //宣告佇列
+
+/* 任務參照 */
+TaskHandle_t taskWitEyesGetData_hamdle;	//獲取wit眼睛數據任務
+TaskHandle_t taskWitHeadGetData_hamdle;	//獲取wit頭部數據任務
+
+/* 獲取wit數據任務 */
+void taskWitGetData(void *arg)
+{
+	witData wit_data;	//wit數據結構體
+	wit *myWit = (wit *)arg;	//獲取wit數據
+
+	uint8_t serialProt = myWit->wit_serial_get();	//獲取Serial端口
+	String wit_name = (serialProt == SERIAL1) ? "witEyes" : "witHead";	//獲取Serial端口名稱
+
+	/* 初始化wit */
+	int8_t wit_status = myWit->wit_init();	//初始化wit眼睛模組
+	switch (wit_status)
+	{
+	case 0:
+		printf("%s init success\r\n", wit_name.c_str());		//打印初始化成功
+		break;
+	case WIT_INIT_ERROR:
+		printf("%s init error\r\n", wit_name.c_str());			//打印初始化錯誤
+		break;
+	case SERIAL_INIT_ERROR:
+		printf("%s serial init error\r\n", wit_name.c_str());	//打印Serial初始化錯誤
+		break;
+	default:
+		printf("%s init unknown error\r\n", wit_name.c_str());	//打印未知錯誤
+		break;
+	}
+	while (wit_status)	//失敗進入死循環
+	{
+		vTaskDelay(1000);
+	}
+
+	/* 清除緩存 */
+	myWit->wit_flush();
+
+	/* 獲取數據 */
+	while (1)
+	{
+		wit_data = myWit->wit_get_data();	//獲取數據
+		vTaskDelay(1);
+	}
+}
 
 void setup()
 {
-	eyesmove.eyesMove_servo(180, 55, 90);
-	analogSetAttenuation(ADC_11db);
+	Serial.begin(115200);	//初始化串口
+	vTaskDelay(2000);
+
+	Serial.println("wit init...");	//打印初始化狀態
+	xTaskCreate(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle);	//創建獲取數據任務
+	xTaskCreate(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle);	//創建獲取數據任務
 }
 
 void loop()
 {
-	eyelid_angle = analogRead(EYESLID_CONTROL_PIN);
-	int16_t x_angle = analogRead(X_ANGLE_CONTROL_PIN);
-	int16_t y_angle = analogRead(Y_ANGLE_CONTROL_PIN);
-
-	if(x_angle > CENTER_VALUE + CENTRE_DEAD_ZONE)
+	UBaseType_t taskWitEyesGetData_Stack = uxTaskGetStackHighWaterMark(taskWitEyesGetData_hamdle);	//獲取任務堆棧大小
+	UBaseType_t taskWitHeadGetData_Stack = uxTaskGetStackHighWaterMark(taskWitHeadGetData_hamdle);	//獲取任務堆棧大小
+	static UBaseType_t taskWitEyesGetData_Stack_highest = 0;
+	static UBaseType_t taskWitHeadGetData_Stack_highest = 0;
+	if (taskWitEyesGetData_Stack > taskWitEyesGetData_Stack_highest)
 	{
-		x_angle = map(x_angle, CENTER_VALUE + CENTRE_DEAD_ZONE, 4095, 0, -35);
+		taskWitEyesGetData_Stack_highest = taskWitEyesGetData_Stack;
 	}
-	else if (x_angle < CENTER_VALUE - CENTRE_DEAD_ZONE)
+	if (taskWitHeadGetData_Stack > taskWitHeadGetData_Stack_highest)
 	{
-		x_angle = map(x_angle, LOWER_DEAD_ZONE, CENTER_VALUE - CENTRE_DEAD_ZONE, 35, 0);
+		taskWitHeadGetData_Stack_highest = taskWitHeadGetData_Stack;
 	}
-	else if(x_angle <= LOWER_DEAD_ZONE)
+	if(millis() % 1000 == 0)	//每秒打印一次
 	{
-		x_angle = 35;
-	}
-	else
-	{
-		x_angle = 0;
-	}
-	
-	/*角度控制*/
-	if(y_angle > CENTER_VALUE + CENTRE_DEAD_ZONE)
-	{
-		y_angle = map(y_angle, CENTER_VALUE + CENTRE_DEAD_ZONE, 4095, 0, 50);
-	}
-	else if (y_angle < CENTER_VALUE - CENTRE_DEAD_ZONE)
-	{
-		y_angle = map(y_angle, LOWER_DEAD_ZONE, CENTER_VALUE - CENTRE_DEAD_ZONE, -50, 0);
-	}
-	else if(y_angle <= LOWER_DEAD_ZONE)
-	{
-		y_angle = -50;
-	}
-	else
-	{
-		y_angle = 0;
+		Serial.printf("taskWitEyesGetData stack: %u (highest: %u)\r\n", taskWitEyesGetData_Stack,taskWitEyesGetData_Stack_highest);	//打印任務狀態
+		Serial.printf("taskWitHeadGetData stack: %u (highest: %u)\r\n", taskWitHeadGetData_Stack,taskWitHeadGetData_Stack_highest);	//打印任務狀態
 	}
 
-	if(digitalRead(EYES_SHAKE_PIN) == LOW && eyes_shake_state == 0)
-	{
-		eyes_shake_state = 1;
-		x_angle = x_angle-2;
-	}
-	else if(digitalRead(EYES_SHAKE_PIN) == LOW && eyes_shake_state == 1)
-	{
-		eyes_shake_state = 0;
-		x_angle = x_angle+2;
-	}
-
-	if(eyelid_angle<200)
-	{
-		eyelid_angle=200;
-	}
-	eyelid_angle = map(eyelid_angle, 200, 4095, 0, 96);
-	eyesmove.eyesMove_angle(eyelid_angle, x_angle, y_angle);
 }
