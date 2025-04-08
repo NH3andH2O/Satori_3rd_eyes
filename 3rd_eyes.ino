@@ -14,11 +14,12 @@ wit witHead(SERIAL2, 39, 38, 115200);	//wit頭部模組
 witData witEyes_data;	//wit眼睛數據結構體
 witData witHead_data;	//wit頭部數據結構體
 
-QueueHandle_t init_status_quene; //宣告佇列
+QueueHandle_t wit_data_quene; //宣告佇列
 
 /* 任務參照 */
 TaskHandle_t taskWitEyesGetData_hamdle;	//獲取wit眼睛數據任務
 TaskHandle_t taskWitHeadGetData_hamdle;	//獲取wit頭部數據任務
+TaskHandle_t taskWitPProcessingData_hamdle;	//處理wit數據任務
 
 /* 獲取wit數據任務 */
 void taskWitGetData(void *arg)
@@ -26,8 +27,8 @@ void taskWitGetData(void *arg)
 	witData wit_data;	//wit數據結構體
 	wit *myWit = (wit *)arg;	//獲取wit數據
 
-	uint8_t serialProt = myWit->wit_serial_get();	//獲取Serial端口
-	String wit_name = (serialProt == SERIAL1) ? "witEyes" : "witHead";	//獲取Serial端口名稱
+	uint8_t serialPort = myWit->wit_serial_get();	//獲取Serial端口
+	String wit_name = (serialPort == SERIAL1) ? "witEyes" : "witHead";	//獲取Serial端口名稱
 
 	/* 初始化wit */
 	int8_t wit_status = myWit->wit_init();	//初始化wit眼睛模組
@@ -57,27 +58,211 @@ void taskWitGetData(void *arg)
 	/* 獲取數據 */
 	while (1)
 	{
-		wit_data = myWit->wit_get_data();	//獲取數據
+		wit_data = myWit->wit_get_data();			//獲取數據
+		xQueueSend(wit_data_quene, &wit_data, 0);	//將數據放入佇列
 		vTaskDelay(1);
+	}
+}
+
+void taskWitPProcessingData(void *arg)
+{
+	witData wit_data;						//wit數據結構體
+
+	witDataAngle witEyes_reference_angle;	//眼睛參考角度
+	witDataAngle witHead_reference_angle;	//頭部參考角度
+
+	witDataAngle witEyes_angle;			//眼睛角度
+	witDataAngle witHead_angle;			//頭部角度
+	witDataAngle wit_angle_diff;	//眼睛角度差值
+
+	uint8_t witEyes_angle_status = 0;	//眼睛角度狀態
+	uint8_t witHead_angle_status = 0;	//頭部角度狀態
+
+	uint8_t read_count = 0;	//讀取計數
+
+	/* 抛棄前10次數據 */
+	while (read_count < 10)
+	{
+		xQueueReceive(wit_data_quene, &wit_data, portMAX_DELAY);	//從佇列中獲取數據
+		read_count++;
+	}
+
+	while (1)
+	{
+		/* 數據獲取 */
+		xQueueReceive(wit_data_quene, &wit_data, portMAX_DELAY);	//從佇列中獲取數據
+		String wit_name = (wit_data.serialPort == SERIAL1) ? "witEyes" : "witHead";
+
+		/* 數據處理 */
+		switch(wit_data.status)	//數據狀態
+		{
+			case 0:	//數據正常
+				/* 眼睛數據處理 */
+				if(wit_data.serialPort == SERIAL1)	
+				{
+
+					/* 設置參考角度 */
+					if(witEyes_angle_status == 0)
+					{
+						witEyes_reference_angle.xangle = wit_data.xangle;	//設置參考角度
+						witEyes_reference_angle.yangle = wit_data.yangle;
+						witEyes_reference_angle.zangle = wit_data.zangle;
+						witEyes_angle_status = 1;							//設置參考角度狀態
+					}
+
+					/* 處理參考角度 */
+					witEyes_angle.xangle = wit_data.xangle - witEyes_reference_angle.xangle;	//處理參考角度
+					witEyes_angle.yangle = wit_data.yangle - witEyes_reference_angle.yangle;
+					witEyes_angle.zangle = wit_data.zangle - witEyes_reference_angle.zangle;
+
+					/* 處理角度環繞 */
+					if(witEyes_angle.xangle > 180)			//X角度環繞
+					{
+						witEyes_angle.xangle -= 360;
+					}
+					else if(witEyes_angle.xangle < -180)
+					{
+						witEyes_angle.xangle += 360;
+					}
+					if(witEyes_angle.yangle > 180)			//Y角度環繞
+					{
+						witEyes_angle.yangle -= 360;
+					}
+					else if(witEyes_angle.yangle < -180)
+					{
+						witEyes_angle.yangle += 360;
+					}
+					if(witEyes_angle.zangle > 180)			//Z角度環繞
+					{
+						witEyes_angle.zangle -= 360;
+					}
+					else if(witEyes_angle.zangle < -180)
+					{
+						witEyes_angle.zangle += 360;
+					}
+				}
+				/* 頭部數據處理 */
+				else if(wit_data.serialPort == SERIAL2)	
+				{
+
+					/* 設置參考角度 */
+					if(witHead_angle_status == 0)
+					{
+						witHead_reference_angle.xangle = wit_data.xangle;	//設置參考角度
+						witHead_reference_angle.yangle = wit_data.yangle;
+						witHead_reference_angle.zangle = wit_data.zangle;
+						witHead_angle_status = 1;							//設置參考角度狀態
+					}
+
+					/* 處理參考角度 */
+					witHead_angle.xangle = wit_data.xangle - witHead_reference_angle.xangle;	//處理參考角度
+					witHead_angle.yangle = wit_data.yangle - witHead_reference_angle.yangle;
+					witHead_angle.zangle = wit_data.zangle - witHead_reference_angle.zangle;
+
+					/* 處理角度環繞 */
+					if(witHead_angle.xangle > 180)			//X角度環繞
+					{
+						witHead_angle.xangle -= 360;
+					}
+					else if(witHead_angle.xangle < -180)
+					{
+						witHead_angle.xangle += 360;
+					}
+					if(witHead_angle.yangle > 180)			//Y角度環繞
+					{
+						witHead_angle.yangle -= 360;
+					}
+					else if(witHead_angle.yangle < -180)
+					{
+						witHead_angle.yangle += 360;
+					}
+					if(witHead_angle.zangle > 180)			//Z角度環繞
+					{
+						witHead_angle.zangle -= 360;
+					}
+					else if(witHead_angle.zangle < -180)
+					{
+						witHead_angle.zangle += 360;
+					}
+				}
+				break;
+			default:
+				break;
+		}
+		
+		/* 差角計算 */
+		if(witEyes_angle_status == 1 && witHead_angle_status == 1)	//參考角度設置完成
+		{
+			wit_angle_diff.xangle = witEyes_angle.xangle - witHead_angle.xangle;	//計算差角
+			wit_angle_diff.yangle = witEyes_angle.yangle - witHead_angle.yangle;
+			wit_angle_diff.zangle = witEyes_angle.zangle - witHead_angle.zangle;
+
+			/* 處理差角環繞 */
+			if(wit_angle_diff.xangle > 180)			//X角度環繞
+			{
+				wit_angle_diff.xangle -= 360;
+			}
+			else if(wit_angle_diff.xangle < -180)
+			{
+				wit_angle_diff.xangle += 360;
+			}
+			if(wit_angle_diff.yangle > 180)			//Y角度環繞
+			{
+				wit_angle_diff.yangle -= 360;
+			}
+			else if(wit_angle_diff.yangle < -180)
+			{
+				wit_angle_diff.yangle += 360;
+			}
+			if(wit_angle_diff.zangle > 180)			//Z角度環繞
+			{
+				wit_angle_diff.zangle -= 360;
+			}
+			else if(wit_angle_diff.zangle < -180)
+			{
+				wit_angle_diff.zangle += 360;
+			}
+
+			Serial.printf("wit_angle_diff: %.2f %.2f %.2f\r\n", wit_angle_diff.xangle, wit_angle_diff.yangle, wit_angle_diff.zangle);	//打印
+		}
 	}
 }
 
 void setup()
 {
-	Serial.begin(115200);	//初始化串口
-	vTaskDelay(2000);
+	Serial.begin(115200);
+	while (xTaskGetTickCount() < 2000)
+	{
+		;//等待2秒
+	}
+
+	/* 佇列建立 */
+	Serial.println("quene create...");	//打印佇列建立狀態
+	wit_data_quene = xQueueCreate(10, sizeof(witData));	//建立佇列，長度10，大小為witData結構體大小
+	if (wit_data_quene == NULL)	//佇列建立失敗
+	{
+		Serial.println("wit_data quene create error");
+		while (1)
+		{
+			vTaskDelay(1000);
+		}
+	}
+	Serial.println("wit_data quene create success");	//打印佇列建立成功狀態
 
 	Serial.println("wit init...");	//打印初始化狀態
 	xTaskCreate(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle);	//創建獲取數據任務
 	xTaskCreate(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle);	//創建獲取數據任務
+	xTaskCreate(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle);	//創建數據處理任務
 }
 
 void loop()
 {
 	UBaseType_t taskWitEyesGetData_Stack = uxTaskGetStackHighWaterMark(taskWitEyesGetData_hamdle);	//獲取任務堆棧大小
 	UBaseType_t taskWitHeadGetData_Stack = uxTaskGetStackHighWaterMark(taskWitHeadGetData_hamdle);	//獲取任務堆棧大小
+	UBaseType_t taskWitPProcessingData_Stack = uxTaskGetStackHighWaterMark(taskWitPProcessingData_hamdle);	//獲取任務堆棧大小
 	static UBaseType_t taskWitEyesGetData_Stack_highest = 0;
 	static UBaseType_t taskWitHeadGetData_Stack_highest = 0;
+	static UBaseType_t taskWitPProcessingData_Stack_highest = 0;
 	if (taskWitEyesGetData_Stack > taskWitEyesGetData_Stack_highest)
 	{
 		taskWitEyesGetData_Stack_highest = taskWitEyesGetData_Stack;
@@ -86,10 +271,15 @@ void loop()
 	{
 		taskWitHeadGetData_Stack_highest = taskWitHeadGetData_Stack;
 	}
-	if(millis() % 1000 == 0)	//每秒打印一次
+	if (taskWitPProcessingData_Stack > taskWitPProcessingData_Stack_highest)
+	{
+		taskWitPProcessingData_Stack_highest = taskWitPProcessingData_Stack;
+	}
+	if(xTaskGetTickCount() % 1000 == 0)	//每秒打印一次
 	{
 		Serial.printf("taskWitEyesGetData stack: %u (highest: %u)\r\n", taskWitEyesGetData_Stack,taskWitEyesGetData_Stack_highest);	//打印任務狀態
 		Serial.printf("taskWitHeadGetData stack: %u (highest: %u)\r\n", taskWitHeadGetData_Stack,taskWitHeadGetData_Stack_highest);	//打印任務狀態
+		Serial.printf("taskWitPProcessingData stack: %u (highest: %u)\r\n", taskWitPProcessingData_Stack,taskWitPProcessingData_Stack_highest);	//打印任務狀態
 	}
 
 }

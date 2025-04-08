@@ -17,10 +17,13 @@
 #define WIT_READING 1	//讀取中
 #define WIT_VERITY_ERROR 2	//驗證錯誤
 
+#define GRAVITATIONAL_ACCELERATION 9.80665	//重力加速度
+
 #include <Arduino.h>
 
 typedef struct 
 {
+	int8_t serialPort; 				//Serial端口
 	uint8_t status = WIT_NO_DATA;	//狀態
 	double xangle;					//角度
 	double yangle;
@@ -30,7 +33,7 @@ typedef struct
 	double yangular_speed;
 	double zangular_speed;
 	uint8_t angular_speed_status;
-	double xaacceleration;			//加速度
+	double xacceleration;			//加速度
 	double yacceleration;
 	double zacceleration;
 	uint8_t acceleration_status;
@@ -40,6 +43,13 @@ typedef struct
 	uint8_t magnetic_field_status;
 	double temperature;				//溫度
 } witData;
+
+typedef struct
+{
+	double xangle;					//角度
+	double yangle;
+	double zangle;
+} witDataAngle;
 
 class wit
 {
