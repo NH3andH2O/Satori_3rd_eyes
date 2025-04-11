@@ -1,5 +1,6 @@
 #include <ESP32Servo.h>
-#include <esp_task_wdt.h>
+#include <LovyanGFX.hpp>
+#include "gc9a01.h"
 #include "eyesMove.h"
 #include "wit.h"
 
@@ -7,9 +8,24 @@
 #define LOWER_EYELID_PIN 13	//下眼皮伺服馬達引脚
 #define EYEBALL_PIN 14		//眼球伺服馬達引脚
 
+#define witEyes_RX_PIN 18	//wit眼睛模組RX引脚
+#define witEyes_TX_PIN 8	//wit眼睛模組TX引脚
+#define witHead_RX_PIN 39	//wit頭部模組RX引脚
+#define witHead_TX_PIN 38	//wit頭部模組TX引脚
+
+#define GC9A01_BLK_PIN 5	//GC9A01背光引脚
+#define GC9A01_RST_PIN 15	//GC9A01重置引脚
+#define GC9A01_CS_PIN 6		//GC9A01片選引脚
+#define GC9A01_DC_PIN 7		//GC9A01數據/命令引脚
+#define GC9A01_SCL_PIN 17	//GC9A01時鐘引脚
+#define GC9A01_SDA_PIN 16	//GC9A01數據引脚
+
 eyesMove eyesmove(UPPER_EYELID_PIN, LOWER_EYELID_PIN, EYEBALL_PIN);
-wit witEyes(SERIAL1, 18, 8, 115200);	//wit眼睛模組
-wit witHead(SERIAL2, 39, 38, 115200);	//wit頭部模組
+
+wit witEyes(SERIAL1, witEyes_RX_PIN, witEyes_TX_PIN, 115200);	//wit眼睛模組
+wit witHead(SERIAL2, witHead_RX_PIN, witHead_TX_PIN, 115200);	//wit頭部模組
+
+GC9A01 gc9a01(GC9A01_SDA_PIN, GC9A01_SCL_PIN, GC9A01_CS_PIN, GC9A01_DC_PIN, GC9A01_RST_PIN, GC9A01_BLK_PIN);	//GC9A01實例
 
 witData witEyes_data;	//wit眼睛數據結構體
 witData witHead_data;	//wit頭部數據結構體
@@ -20,6 +36,7 @@ QueueHandle_t wit_data_quene; //宣告佇列
 TaskHandle_t taskWitEyesGetData_hamdle;	//獲取wit眼睛數據任務
 TaskHandle_t taskWitHeadGetData_hamdle;	//獲取wit頭部數據任務
 TaskHandle_t taskWitPProcessingData_hamdle;	//處理wit數據任務
+TaskHandle_t taskGC9A01_hamdle;	//GC9A01任務
 
 /* 獲取wit數據任務 */
 void taskWitGetData(void *arg)
@@ -64,6 +81,7 @@ void taskWitGetData(void *arg)
 	}
 }
 
+/* 處理角度差 */
 void taskWitPProcessingData(void *arg)
 {
 	witData wit_data;						//wit數據結構體
@@ -222,9 +240,32 @@ void taskWitPProcessingData(void *arg)
 			{
 				wit_angle_diff.zangle += 360;
 			}
-
-			Serial.printf("wit_angle_diff: %.2f %.2f %.2f\r\n", wit_angle_diff.xangle, wit_angle_diff.yangle, wit_angle_diff.zangle);	//打印
 		}
+	}
+}
+
+void taskGC9A01(void *arg)
+{
+	/* 初始化GC9A01 */
+	gc9a01.GC9A01_init();	//初始化GC9A01
+	gc9a01.GC9A01_setEyes_r(80);	//設置眼睛半徑
+	while (1)
+	{
+		for(int i = 0; i <= 5; i++)
+		{
+			gc9a01.GC9A01_setEyes_r(80 - 7 * i);	//設置眼睛半徑
+			gc9a01.GC9A01_update();
+			vTaskDelay(1);
+		}
+		vTaskDelay(3000);
+		for(int i = 5; i >= 0; i--)
+		{
+			gc9a01.GC9A01_setEyes_r(80 - 7 * i);	//設置眼睛半徑
+			gc9a01.GC9A01_update();
+			vTaskDelay(1);
+		}
+		gc9a01.GC9A01_update();	//更新GC9A01
+		vTaskDelay(3000);
 	}
 }
 
@@ -242,7 +283,7 @@ void setup()
 	if (wit_data_quene == NULL)	//佇列建立失敗
 	{
 		Serial.println("wit_data quene create error");
-		while (1)
+		while (2)
 		{
 			vTaskDelay(1000);
 		}
@@ -250,9 +291,10 @@ void setup()
 	Serial.println("wit_data quene create success");	//打印佇列建立成功狀態
 
 	Serial.println("wit init...");	//打印初始化狀態
-	xTaskCreate(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle);	//創建獲取數據任務
-	xTaskCreate(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle);	//創建獲取數據任務
-	xTaskCreate(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle);	//創建數據處理任務
+	xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle, 1);	//創建獲取數據任務
+	xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1);	//創建獲取數據任務
+	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1);	//創建數據處理任務
+	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 4096, NULL, 1, &taskGC9A01_hamdle, 0);	//創建GC9A01任務
 }
 
 void loop()
@@ -260,9 +302,13 @@ void loop()
 	UBaseType_t taskWitEyesGetData_Stack = uxTaskGetStackHighWaterMark(taskWitEyesGetData_hamdle);	//獲取任務堆棧大小
 	UBaseType_t taskWitHeadGetData_Stack = uxTaskGetStackHighWaterMark(taskWitHeadGetData_hamdle);	//獲取任務堆棧大小
 	UBaseType_t taskWitPProcessingData_Stack = uxTaskGetStackHighWaterMark(taskWitPProcessingData_hamdle);	//獲取任務堆棧大小
+	UBaseType_t taskGC9A01_Stack = uxTaskGetStackHighWaterMark(taskGC9A01_hamdle);	//獲取任務堆棧大小
+
 	static UBaseType_t taskWitEyesGetData_Stack_highest = 0;
 	static UBaseType_t taskWitHeadGetData_Stack_highest = 0;
 	static UBaseType_t taskWitPProcessingData_Stack_highest = 0;
+	static UBaseType_t taskGC9A01_Stack_highest = 0;
+
 	if (taskWitEyesGetData_Stack > taskWitEyesGetData_Stack_highest)
 	{
 		taskWitEyesGetData_Stack_highest = taskWitEyesGetData_Stack;
@@ -275,11 +321,16 @@ void loop()
 	{
 		taskWitPProcessingData_Stack_highest = taskWitPProcessingData_Stack;
 	}
+	if (taskGC9A01_Stack > taskGC9A01_Stack_highest)
+	{
+		taskGC9A01_Stack_highest = taskGC9A01_Stack;
+	}
+
 	if(xTaskGetTickCount() % 1000 == 0)	//每秒打印一次
 	{
 		Serial.printf("taskWitEyesGetData stack: %u (highest: %u)\r\n", taskWitEyesGetData_Stack,taskWitEyesGetData_Stack_highest);	//打印任務狀態
 		Serial.printf("taskWitHeadGetData stack: %u (highest: %u)\r\n", taskWitHeadGetData_Stack,taskWitHeadGetData_Stack_highest);	//打印任務狀態
 		Serial.printf("taskWitPProcessingData stack: %u (highest: %u)\r\n", taskWitPProcessingData_Stack,taskWitPProcessingData_Stack_highest);	//打印任務狀態
+		Serial.printf("taskGC9A01 stack: %u (highest: %u)\r\n", taskGC9A01_Stack,taskGC9A01_Stack_highest);	//打印任務狀態
 	}
-
 }

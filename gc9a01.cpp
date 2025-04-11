@@ -59,10 +59,34 @@ GC9A01::GC9A01(uint8_t MOSIPin, uint8_t SCLKPin, uint8_t CSPin, uint8_t DCPin, u
 void GC9A01::GC9A01_init()
 {
 	myLGFX.LGFX_GC9A01_config(this->MOSIPin, this->SCLKPin, this->CSPin, this->DCPin, this->RSTPin, this->BLPin);	
-	myLGFX.init();	//初始化
+	myLGFX.setBrightness(255);	//設置亮度
+	myLGFX.init();			//初始化
+
+	mySprite.setColorDepth(16);			//設置顏色深度
+	mySprite.createSprite(240, 240);
+
+	myLGFX.fillScreen(myLGFX.color565(0, 0, 0));
 }
 
-void GC9A01::fillScreen()
+void GC9A01::GC9A01_setEyes_r(uint8_t eyes_r)
 {
-	myLGFX.fillScreen(myLGFX.color565(0, 0, 0));	//清屏
+	this->eyes_r = eyes_r;	//設置眼睛半徑
+}
+
+void GC9A01::GC9A01_update()
+{
+	mySprite.fillScreen(myLGFX.color565(0, 0, 0));	//清屏
+
+	/* 控制光暈 */
+	for(int i = 120; i >= this->eyes_r; i--)
+	{
+		float ratio = float(i - this->eyes_r) / float(120 - this->eyes_r);	//正規化到 0~1
+		ratio = constrain(ratio, 0.0, 1.0); 	// 避免爆出界
+		ratio = pow(ratio, 2.5); 				// 控制「靠近邊緣時下降更快」
+
+		uint8_t red = (uint8_t)(255 * (1.0 - ratio));
+		mySprite.fillCircle(120, 120, i, myLGFX.color565(red, 0, 0));	//画光环
+	}
+	mySprite.fillCircle(120, 120, this->eyes_r, myLGFX.color565(0, 0, 0));	//畫眼睛
+	mySprite.pushSprite(&myLGFX, 0, 0);	//推送精靈
 }
