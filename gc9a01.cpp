@@ -78,15 +78,15 @@ void GC9A01::GC9A01_update()
 	mySprite.fillScreen(myLGFX.color565(0, 0, 0));	//清屏
 
 	/* 控制光暈 */
-	for(int i = 120; i >= this->eyes_r; i--)
+	for(int i = 100; i >= this->eyes_r; i--)
 	{
-		float ratio = float(i - this->eyes_r) / float(120 - this->eyes_r);	//正規化到 0~1
+		float ratio = float(i - this->eyes_r) / float(100 - this->eyes_r);	//正規化到 0~1
 		ratio = constrain(ratio, 0.0, 1.0); 	// 避免爆出界
 		ratio = pow(ratio, 2.5); 				// 控制「靠近邊緣時下降更快」
 
 		uint8_t red = (uint8_t)(255 * (1.0 - ratio));
-		mySprite.fillCircle(120, 120, i, myLGFX.color565(red, 0, 0));	//画光环
+		mySprite.fillCircle(120, 121, i, myLGFX.color565(red, 0, 0));	//画光环
 	}
-	mySprite.fillCircle(120, 120, this->eyes_r, myLGFX.color565(0, 0, 0));	//畫眼睛
+	mySprite.fillCircle(120, 121, this->eyes_r, myLGFX.color565(0, 0, 0));	//畫眼睛
 	mySprite.pushSprite(&myLGFX, 0, 0);	//推送精靈
 }

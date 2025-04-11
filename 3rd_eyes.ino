@@ -4,9 +4,9 @@
 #include "eyesMove.h"
 #include "wit.h"
 
-#define UPPER_EYELID_PIN 12	//上眼皮伺服馬達引脚
-#define LOWER_EYELID_PIN 13	//下眼皮伺服馬達引脚
-#define EYEBALL_PIN 14		//眼球伺服馬達引脚
+#define UPPER_EYELID_PIN 13	//上眼皮伺服馬達引脚
+#define LOWER_EYELID_PIN 14	//下眼皮伺服馬達引脚
+#define EYEBALL_PIN 21		//眼球伺服馬達引脚
 
 #define witEyes_RX_PIN 18	//wit眼睛模組RX引脚
 #define witEyes_TX_PIN 8	//wit眼睛模組TX引脚
