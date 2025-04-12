@@ -37,6 +37,7 @@ TaskHandle_t taskWitEyesGetData_hamdle;	//獲取wit眼睛數據任務
 TaskHandle_t taskWitHeadGetData_hamdle;	//獲取wit頭部數據任務
 TaskHandle_t taskWitPProcessingData_hamdle;	//處理wit數據任務
 TaskHandle_t taskGC9A01_hamdle;	//GC9A01任務
+TaskHandle_t taskEyesMove_hamdle;	//眼睛任務
 
 /* 獲取wit數據任務 */
 void taskWitGetData(void *arg)
@@ -248,24 +249,34 @@ void taskGC9A01(void *arg)
 {
 	/* 初始化GC9A01 */
 	gc9a01.GC9A01_init();	//初始化GC9A01
-	gc9a01.GC9A01_setEyes_r(80);	//設置眼睛半徑
+	gc9a01.GC9A01_setEyes_r(70);	//設置眼睛半徑
 	while (1)
 	{
 		for(int i = 0; i <= 5; i++)
 		{
-			gc9a01.GC9A01_setEyes_r(80 - 7 * i);	//設置眼睛半徑
+			gc9a01.GC9A01_setEyes_r(70 - 5 * i);	//設置眼睛半徑
 			gc9a01.GC9A01_update();
 			vTaskDelay(1);
 		}
 		vTaskDelay(3000);
 		for(int i = 5; i >= 0; i--)
 		{
-			gc9a01.GC9A01_setEyes_r(80 - 7 * i);	//設置眼睛半徑
+			gc9a01.GC9A01_setEyes_r(70 - 5 * i);	//設置眼睛半徑
 			gc9a01.GC9A01_update();
 			vTaskDelay(1);
 		}
 		gc9a01.GC9A01_update();	//更新GC9A01
 		vTaskDelay(3000);
+	}
+}
+
+void taskEyesMove(void *arg)
+{
+	/* 初始化眼睛 */
+	eyesmove.eyesMove_init();	//初始化眼睛
+	while (1)
+	{
+		vTaskDelay(1);
 	}
 }
 
@@ -295,6 +306,7 @@ void setup()
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1);	//創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1);	//創建數據處理任務
 	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 4096, NULL, 1, &taskGC9A01_hamdle, 0);	//創建GC9A01任務
+	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 0);	//創建眼睛任務
 }
 
 void loop()
@@ -303,11 +315,13 @@ void loop()
 	UBaseType_t taskWitHeadGetData_Stack = uxTaskGetStackHighWaterMark(taskWitHeadGetData_hamdle);	//獲取任務堆棧大小
 	UBaseType_t taskWitPProcessingData_Stack = uxTaskGetStackHighWaterMark(taskWitPProcessingData_hamdle);	//獲取任務堆棧大小
 	UBaseType_t taskGC9A01_Stack = uxTaskGetStackHighWaterMark(taskGC9A01_hamdle);	//獲取任務堆棧大小
+	UBaseType_t taskEyesMove_Stack = uxTaskGetStackHighWaterMark(taskEyesMove_hamdle);	//獲取任務堆棧大小
 
 	static UBaseType_t taskWitEyesGetData_Stack_highest = 0;
 	static UBaseType_t taskWitHeadGetData_Stack_highest = 0;
 	static UBaseType_t taskWitPProcessingData_Stack_highest = 0;
 	static UBaseType_t taskGC9A01_Stack_highest = 0;
+	static UBaseType_t taskEyesMove_Stack_highest = 0;
 
 	if (taskWitEyesGetData_Stack > taskWitEyesGetData_Stack_highest)
 	{
@@ -325,6 +339,10 @@ void loop()
 	{
 		taskGC9A01_Stack_highest = taskGC9A01_Stack;
 	}
+	if (taskEyesMove_Stack > taskEyesMove_Stack_highest)
+	{
+		taskEyesMove_Stack_highest = taskEyesMove_Stack;
+	}
 
 	if(xTaskGetTickCount() % 1000 == 0)	//每秒打印一次
 	{
@@ -332,5 +350,7 @@ void loop()
 		Serial.printf("taskWitHeadGetData stack: %u (highest: %u)\r\n", taskWitHeadGetData_Stack,taskWitHeadGetData_Stack_highest);	//打印任務狀態
 		Serial.printf("taskWitPProcessingData stack: %u (highest: %u)\r\n", taskWitPProcessingData_Stack,taskWitPProcessingData_Stack_highest);	//打印任務狀態
 		Serial.printf("taskGC9A01 stack: %u (highest: %u)\r\n", taskGC9A01_Stack,taskGC9A01_Stack_highest);	//打印任務狀態
+		Serial.printf("taskEyesMove stack: %u (highest: %u)\r\n", taskEyesMove_Stack,taskEyesMove_Stack_highest);	//打印任務狀態
+		Serial.println("=======================================");	//打印分隔線
 	}
 }
