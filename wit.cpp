@@ -52,8 +52,7 @@ witData wit::wit_get_data()
 	result.angle_status = WIT_READING;
 	result.angular_speed_status = WIT_READING;
 	result.acceleration_status = WIT_READING;
-	result.magnetic_field_status = WIT_READING;
-
+	result.quaternion_status = WIT_READING;
 	result.serialPort = this->serialPort;	//返回Serial端口
 	
 	/* 數據讀取 */
@@ -121,17 +120,18 @@ witData wit::wit_get_data()
 				}
 				i += 10;	//跳過數據
 				break;
-			case 0x54:				//磁場強度
+			case 0x59:				//四元數
 				if(data[i + 10] == (uint8_t)(data[i] + data[i + 1] + data[i + 2] + data[i + 3] + data[i + 4] + data[i + 5] + data[i + 6] + data[i + 7] + data[i + 8] + data[i + 9]))	//校驗和檢測
 				{
-					result.xmagnetic_field = (int16_t)((int16_t)(data[i + 3] << 8) | data[i + 2]) / (double)150;	//磁場強度計算
-					result.ymagnetic_field = (int16_t)((int16_t)(data[i + 5] << 8) | data[i + 4]) / (double)150;
-					result.zmagnetic_field = (int16_t)((int16_t)(data[i + 7] << 8) | data[i + 6]) / (double)150;
-					result.magnetic_field_status = 0;
+					result.quaternion[0] = (int16_t)((int16_t)(data[i + 3] << 8) | data[i + 2]) / (double)32768;	//四元數計算
+					result.quaternion[1] = (int16_t)((int16_t)(data[i + 5] << 8) | data[i + 4]) / (double)32768;
+					result.quaternion[2] = (int16_t)((int16_t)(data[i + 7] << 8) | data[i + 6]) / (double)32768;
+					result.quaternion[3] = (int16_t)((int16_t)(data[i + 9] << 8) | data[i + 8]) / (double)32768;
+					result.quaternion_status = 0;
 				}
 				else
 				{
-					result.magnetic_field_status = WIT_VERITY_ERROR;	//數據驗證錯誤
+					result.quaternion_status = WIT_VERITY_ERROR;	//數據驗證錯誤
 				}
 				i += 10;	//跳過數據
 				break;
@@ -140,9 +140,9 @@ witData wit::wit_get_data()
 			}
 
 			/* 數據狀態檢測 */
-			if(result.angle_status != WIT_READING && result.angular_speed_status != WIT_READING && result.acceleration_status != WIT_READING && result.magnetic_field_status != WIT_READING)	//所有數據都讀取完成
+			if(result.angle_status != WIT_READING && result.angular_speed_status != WIT_READING && result.acceleration_status != WIT_READING)	//所有數據都讀取完成
 			{
-				if(result.angle_status == 0 && result.angular_speed_status == 0 && result.acceleration_status == 0 && result.magnetic_field_status == 0)	//所有數據都正確
+				if(result.angle_status == 0 && result.angular_speed_status == 0 && result.acceleration_status == 0)	//所有數據都正確
 				{
 					result.status = 0;				//數據正常
 				}

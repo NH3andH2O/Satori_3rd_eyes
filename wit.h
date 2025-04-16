@@ -37,10 +37,8 @@ typedef struct
 	double yacceleration;
 	double zacceleration;
 	uint8_t acceleration_status;
-	double xmagnetic_field;			//磁場強度
-	double ymagnetic_field;
-	double zmagnetic_field;
-	uint8_t magnetic_field_status;
+	double quaternion[4];			//四元數，wxyz
+	uint8_t quaternion_status;
 	double temperature;				//溫度
 } witData;
 
