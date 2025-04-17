@@ -30,7 +30,8 @@ GC9A01 gc9a01(GC9A01_SDA_PIN, GC9A01_SCL_PIN, GC9A01_CS_PIN, GC9A01_DC_PIN, GC9A
 witData witEyes_data;	//wit眼睛數據結構體
 witData witHead_data;	//wit頭部數據結構體
 
-QueueHandle_t wit_data_quene; //宣告佇列
+QueueHandle_t wit_data_quene; //宣告wit原始佇列
+QueueHandle_t wit_data_diff_quene; //宣告wit差值佇列
 
 /* 任務參照 */
 TaskHandle_t taskWitEyesGetData_hamdle;	//獲取wit眼睛數據任務
@@ -241,10 +242,14 @@ void taskWitPProcessingData(void *arg)
 			{
 				wit_angle_diff.zangle += 360;
 			}
+
+			xQueueSend(wit_data_diff_quene, &wit_angle_diff, 0);	//將數據放入佇列
+
 		}
 	}
 }
 
+/* 畫眼睛 */
 void taskGC9A01(void *arg)
 {
 	/* 初始化GC9A01 */
@@ -270,13 +275,70 @@ void taskGC9A01(void *arg)
 	}
 }
 
+/* 眼睛移動 */
 void taskEyesMove(void *arg)
 {
+	witDataAngle witEyes_data;	//眼睛數據結構體
+	int8_t eyes_x = 0;
+	int8_t eyes_y = 0;
+
 	/* 初始化眼睛 */
 	eyesmove.eyesMove_init();	//初始化眼睛
 	while (1)
 	{
-		vTaskDelay(1);
+		if(xQueueReceive(wit_data_diff_quene, &witEyes_data, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
+		{
+
+			/* x角度範圍 */
+			if(witEyes_data.zangle < -15 && witEyes_data.zangle > 15)
+			{
+				eyes_x = 0;
+			}
+			else if(witEyes_data.zangle > 15 && witEyes_data.zangle < 60)
+			{
+				eyes_x = map(witEyes_data.zangle, 15, 60, 0, 35);
+			}
+			else if(witEyes_data.zangle < -15 && witEyes_data.zangle > -60)
+			{
+				eyes_x = map(witEyes_data.zangle, -15, -60, -0, -35);
+			}
+			else if(witEyes_data.zangle > 60)
+			{
+				eyes_x = 35;
+			}
+			else if(witEyes_data.zangle < -60)
+			{
+				eyes_x = -35;
+			}
+
+
+			/* y角度範圍 */
+			double *y_angle = (double *)(abs(witEyes_data.yangle) > abs(witEyes_data.xangle) ? &witEyes_data.yangle : &witEyes_data.xangle);	//獲取y角度
+			if(*y_angle < -10 && *y_angle > 10)
+			{
+				eyes_y = 0;
+			}
+			else if(*y_angle > 10 && *y_angle < 50)
+			{
+				eyes_y = map(*y_angle, 10, 50, 0, 50);
+			}
+			else if(*y_angle < -10 && *y_angle > -50)
+			{
+				eyes_y = map(*y_angle, -10, -50, 0, -50);
+			}
+			else if(*y_angle > 50)
+			{
+				eyes_y = 50;
+			}
+			else if(*y_angle < -50)
+			{
+				eyes_y = -50;
+			}
+
+
+
+			eyesmove.eyesMove_angle(60, eyes_x, eyes_y);	//設置眼睛角度
+		}
 	}
 }
 
@@ -290,8 +352,8 @@ void setup()
 
 	/* 佇列建立 */
 	Serial.println("quene create...");	//打印佇列建立狀態
-	wit_data_quene = xQueueCreate(10, sizeof(witData));	//建立佇列，長度10，大小為witData結構體大小
-	if (wit_data_quene == NULL)	//佇列建立失敗
+	wit_data_quene = xQueueCreate(10, sizeof(witData));				//建立佇列，長度10，大小為witData結構體大小
+	if (wit_data_quene == NULL)			//佇列建立失敗
 	{
 		Serial.println("wit_data quene create error");
 		while (2)
@@ -299,23 +361,32 @@ void setup()
 			vTaskDelay(1000);
 		}
 	}
-	Serial.println("wit_data quene create success");	//打印佇列建立成功狀態
+	wit_data_diff_quene = xQueueCreate(10, sizeof(witDataAngle));	//建立佇列，長度10，大小為witDataAngle結構體大小
+	if (wit_data_diff_quene == NULL)	//佇列建立失敗
+	{
+		Serial.println("wit_data_diff quene create error");
+		while (2)
+		{
+			vTaskDelay(1000);
+		}
+	}
+	Serial.println("quene create success");	//打印佇列建立成功狀態
 
 	Serial.println("wit init...");	//打印初始化狀態
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle, 1);	//創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1);	//創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1);	//創建數據處理任務
-	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 4096, NULL, 1, &taskGC9A01_hamdle, 0);	//創建GC9A01任務
-	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 0);	//創建眼睛任務
+	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 4096, NULL, 1, &taskGC9A01_hamdle, 0);		//創建GC9A01任務
+	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 0);	//創建眼睛移動任務
 }
 
 void loop()
 {
-	UBaseType_t taskWitEyesGetData_Stack = uxTaskGetStackHighWaterMark(taskWitEyesGetData_hamdle);	//獲取任務堆棧大小
-	UBaseType_t taskWitHeadGetData_Stack = uxTaskGetStackHighWaterMark(taskWitHeadGetData_hamdle);	//獲取任務堆棧大小
-	UBaseType_t taskWitPProcessingData_Stack = uxTaskGetStackHighWaterMark(taskWitPProcessingData_hamdle);	//獲取任務堆棧大小
-	UBaseType_t taskGC9A01_Stack = uxTaskGetStackHighWaterMark(taskGC9A01_hamdle);	//獲取任務堆棧大小
-	UBaseType_t taskEyesMove_Stack = uxTaskGetStackHighWaterMark(taskEyesMove_hamdle);	//獲取任務堆棧大小
+	UBaseType_t taskWitEyesGetData_Stack = uxTaskGetStackHighWaterMark(taskWitEyesGetData_hamdle);
+	UBaseType_t taskWitHeadGetData_Stack = uxTaskGetStackHighWaterMark(taskWitHeadGetData_hamdle);
+	UBaseType_t taskWitPProcessingData_Stack = uxTaskGetStackHighWaterMark(taskWitPProcessingData_hamdle);
+	UBaseType_t taskGC9A01_Stack = uxTaskGetStackHighWaterMark(taskGC9A01_hamdle);
+	UBaseType_t taskEyesMove_Stack = uxTaskGetStackHighWaterMark(taskEyesMove_hamdle);
 
 	static UBaseType_t taskWitEyesGetData_Stack_highest = 0;
 	static UBaseType_t taskWitHeadGetData_Stack_highest = 0;
