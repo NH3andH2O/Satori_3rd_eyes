@@ -123,10 +123,10 @@ witData wit::wit_get_data()
 			case 0x59:				//四元數
 				if(data[i + 10] == (uint8_t)(data[i] + data[i + 1] + data[i + 2] + data[i + 3] + data[i + 4] + data[i + 5] + data[i + 6] + data[i + 7] + data[i + 8] + data[i + 9]))	//校驗和檢測
 				{
-					result.quaternion[0] = (int16_t)((int16_t)(data[i + 3] << 8) | data[i + 2]) / (double)32768;	//四元數計算
-					result.quaternion[1] = (int16_t)((int16_t)(data[i + 5] << 8) | data[i + 4]) / (double)32768;
-					result.quaternion[2] = (int16_t)((int16_t)(data[i + 7] << 8) | data[i + 6]) / (double)32768;
-					result.quaternion[3] = (int16_t)((int16_t)(data[i + 9] << 8) | data[i + 8]) / (double)32768;
+					result.wquaternion = (int16_t)((int16_t)(data[i + 3] << 8) | data[i + 2]) / (double)32768;	//四元數計算
+					result.xquaternion = (int16_t)((int16_t)(data[i + 5] << 8) | data[i + 4]) / (double)32768;
+					result.yquaternion = (int16_t)((int16_t)(data[i + 7] << 8) | data[i + 6]) / (double)32768;
+					result.zquaternion = (int16_t)((int16_t)(data[i + 9] << 8) | data[i + 8]) / (double)32768;
 					result.quaternion_status = 0;
 				}
 				else

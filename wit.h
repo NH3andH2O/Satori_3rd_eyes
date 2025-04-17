@@ -37,7 +37,10 @@ typedef struct
 	double yacceleration;
 	double zacceleration;
 	uint8_t acceleration_status;
-	double quaternion[4];			//四元數，wxyz
+	double wquaternion;				//四元數
+	double xquaternion;
+	double yquaternion;
+	double zquaternion;
 	uint8_t quaternion_status;
 	double temperature;				//溫度
 } witData;
@@ -48,6 +51,14 @@ typedef struct
 	double yangle;
 	double zangle;
 } witDataAngle;
+
+typedef struct
+{
+	double wquaternion;				//四元數
+	double xquaternion;				
+	double yquaternion;
+	double zquaternion;
+} witDataQuaternion;
 
 class wit
 {
