@@ -3,6 +3,7 @@
 #include "gc9a01.h"
 #include "eyesMove.h"
 #include "wit.h"
+#include "IMUAngle.h"
 
 #define UPPER_EYELID_PIN 13	//上眼皮伺服馬達引脚
 #define LOWER_EYELID_PIN 14	//下眼皮伺服馬達引脚
@@ -88,15 +89,21 @@ void taskWitPProcessingData(void *arg)
 {
 	witData wit_data;						//wit數據結構體
 
-	witDataAngle witEyes_reference_angle;	//眼睛參考角度
-	witDataAngle witHead_reference_angle;	//頭部參考角度
+	witDataQuaternion witEyes_reference_quaternion;		//眼睛参考四元數
+	witDataQuaternion witHead_reference_quaternion;		//頭部参考四元數
+	witDataQuaternion *reference_quaternion = nullptr;	//參考四元數指標
 
-	witDataAngle witEyes_angle;			//眼睛角度
-	witDataAngle witHead_angle;			//頭部角度
-	witDataAngle wit_angle_diff;	//眼睛角度差值
+
+	witDataQuaternion witEyes_quaternion;			//眼睛四元數
+	witDataQuaternion witHead_quaternion;			//頭部四元數
+	witDataQuaternion *quaternion = nullptr;		//四元數指標
+
+	witDataQuaternion relative_quaternion;		//眼睛四元數差值
+	witDataAngle relative_angle;
 
 	uint8_t witEyes_angle_status = 0;	//眼睛角度狀態
 	uint8_t witHead_angle_status = 0;	//頭部角度狀態
+	uint8_t *angle_status = nullptr;	//角度狀態指標
 
 	uint8_t read_count = 0;	//讀取計數
 
@@ -117,93 +124,44 @@ void taskWitPProcessingData(void *arg)
 		switch(wit_data.status)	//數據狀態
 		{
 			case 0:	//數據正常
-				/* 眼睛數據處理 */
+
+				/* 眼睛 */
 				if(wit_data.serialPort == SERIAL1)	
 				{
-
-					/* 設置參考角度 */
-					if(witEyes_angle_status == 0)
-					{
-						witEyes_reference_angle.xangle = wit_data.xangle;	//設置參考角度
-						witEyes_reference_angle.yangle = wit_data.yangle;
-						witEyes_reference_angle.zangle = wit_data.zangle;
-						witEyes_angle_status = 1;							//設置參考角度狀態
-					}
-
-					/* 處理參考角度 */
-					witEyes_angle.xangle = wit_data.xangle - witEyes_reference_angle.xangle;	//處理參考角度
-					witEyes_angle.yangle = wit_data.yangle - witEyes_reference_angle.yangle;
-					witEyes_angle.zangle = wit_data.zangle - witEyes_reference_angle.zangle;
-
-					/* 處理角度環繞 */
-					if(witEyes_angle.xangle > 180)			//X角度環繞
-					{
-						witEyes_angle.xangle -= 360;
-					}
-					else if(witEyes_angle.xangle < -180)
-					{
-						witEyes_angle.xangle += 360;
-					}
-					if(witEyes_angle.yangle > 180)			//Y角度環繞
-					{
-						witEyes_angle.yangle -= 360;
-					}
-					else if(witEyes_angle.yangle < -180)
-					{
-						witEyes_angle.yangle += 360;
-					}
-					if(witEyes_angle.zangle > 180)			//Z角度環繞
-					{
-						witEyes_angle.zangle -= 360;
-					}
-					else if(witEyes_angle.zangle < -180)
-					{
-						witEyes_angle.zangle += 360;
-					}
+					reference_quaternion = &witEyes_reference_quaternion;	//設置參考四元數
+					quaternion = &witEyes_quaternion;						//設置四元數
+					angle_status = &witEyes_angle_status;					//設置角度狀態
 				}
-				/* 頭部數據處理 */
+
+				/* 頭部 */
 				else if(wit_data.serialPort == SERIAL2)	
 				{
+					reference_quaternion = &witHead_reference_quaternion;	//設置參考四元數
+					quaternion = &witHead_quaternion;						//設置四元數
+					angle_status = &witHead_angle_status;					//設置角度狀態
+				}
 
+				if(reference_quaternion && quaternion && angle_status)	//防止野指標
+				{
 					/* 設置參考角度 */
-					if(witHead_angle_status == 0)
+					if(*angle_status == 0)
 					{
-						witHead_reference_angle.xangle = wit_data.xangle;	//設置參考角度
-						witHead_reference_angle.yangle = wit_data.yangle;
-						witHead_reference_angle.zangle = wit_data.zangle;
-						witHead_angle_status = 1;							//設置參考角度狀態
+						reference_quaternion->wquaternion = wit_data.wquaternion;	//設置參考四元數
+						reference_quaternion->xquaternion = wit_data.xquaternion;
+						reference_quaternion->yquaternion = wit_data.yquaternion;
+						reference_quaternion->zquaternion = wit_data.zquaternion;
+						*angle_status = 1;											//設置角度狀態
 					}
 
 					/* 處理參考角度 */
-					witHead_angle.xangle = wit_data.xangle - witHead_reference_angle.xangle;	//處理參考角度
-					witHead_angle.yangle = wit_data.yangle - witHead_reference_angle.yangle;
-					witHead_angle.zangle = wit_data.zangle - witHead_reference_angle.zangle;
+					quaternion->wquaternion = wit_data.wquaternion;		//設置四元數
+					quaternion->xquaternion = wit_data.xquaternion;
+					quaternion->yquaternion = wit_data.yquaternion;
+					quaternion->zquaternion = wit_data.zquaternion;
 
-					/* 處理角度環繞 */
-					if(witHead_angle.xangle > 180)			//X角度環繞
-					{
-						witHead_angle.xangle -= 360;
-					}
-					else if(witHead_angle.xangle < -180)
-					{
-						witHead_angle.xangle += 360;
-					}
-					if(witHead_angle.yangle > 180)			//Y角度環繞
-					{
-						witHead_angle.yangle -= 360;
-					}
-					else if(witHead_angle.yangle < -180)
-					{
-						witHead_angle.yangle += 360;
-					}
-					if(witHead_angle.zangle > 180)			//Z角度環繞
-					{
-						witHead_angle.zangle -= 360;
-					}
-					else if(witHead_angle.zangle < -180)
-					{
-						witHead_angle.zangle += 360;
-					}
+					//Serial.printf("%s quaternion:%.2f %.2f %.2f %.2f\r\n", wit_name.c_str(), quaternion->wquaternion, quaternion->xquaternion, quaternion->yquaternion, quaternion->zquaternion);	//打印四元數
+
+					*quaternion = IMUAngle::quaternion_multiply(*quaternion, IMUAngle::quaternion_conjugate(*reference_quaternion));	//處理參考四元數
 				}
 				break;
 			default:
@@ -211,40 +169,12 @@ void taskWitPProcessingData(void *arg)
 		}
 		
 		/* 差角計算 */
-		if(witEyes_angle_status == 1 && witHead_angle_status == 1)	//參考角度設置完成
+		if(witEyes_angle_status == 1 && witHead_angle_status == 1)	//眼睛和頭部數據都獲取完成
 		{
-			wit_angle_diff.xangle = witEyes_angle.xangle - witHead_angle.xangle;	//計算差角
-			wit_angle_diff.yangle = witEyes_angle.yangle - witHead_angle.yangle;
-			wit_angle_diff.zangle = witEyes_angle.zangle - witHead_angle.zangle;
-
-			/* 處理差角環繞 */
-			if(wit_angle_diff.xangle > 180)			//X角度環繞
-			{
-				wit_angle_diff.xangle -= 360;
-			}
-			else if(wit_angle_diff.xangle < -180)
-			{
-				wit_angle_diff.xangle += 360;
-			}
-			if(wit_angle_diff.yangle > 180)			//Y角度環繞
-			{
-				wit_angle_diff.yangle -= 360;
-			}
-			else if(wit_angle_diff.yangle < -180)
-			{
-				wit_angle_diff.yangle += 360;
-			}
-			if(wit_angle_diff.zangle > 180)			//Z角度環繞
-			{
-				wit_angle_diff.zangle -= 360;
-			}
-			else if(wit_angle_diff.zangle < -180)
-			{
-				wit_angle_diff.zangle += 360;
-			}
-
-			xQueueSend(wit_data_diff_quene, &wit_angle_diff, 0);	//將數據放入佇列
-
+			relative_quaternion = IMUAngle::quaternion_multiply(witEyes_quaternion, IMUAngle::quaternion_conjugate(witHead_quaternion));	//計算眼睛和頭部的四元數差值
+			relative_angle = IMUAngle::quaternion_to_euler(relative_quaternion);	//計算眼睛和頭部的角度差值
+			
+			printf("angle:\t%.2f\t%.2f\t%.2f\r\n", relative_angle.xangle, relative_angle.yangle, relative_angle.zangle);	//打印角度差值
 		}
 	}
 }

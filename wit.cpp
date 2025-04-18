@@ -140,9 +140,9 @@ witData wit::wit_get_data()
 			}
 
 			/* 數據狀態檢測 */
-			if(result.angle_status != WIT_READING && result.angular_speed_status != WIT_READING && result.acceleration_status != WIT_READING)	//所有數據都讀取完成
+			if(result.angle_status != WIT_READING && result.angular_speed_status != WIT_READING && result.acceleration_status != WIT_READING && result.quaternion_status != WIT_READING)	//所有數據都讀取完成
 			{
-				if(result.angle_status == 0 && result.angular_speed_status == 0 && result.acceleration_status == 0)	//所有數據都正確
+				if(result.angle_status == 0 && result.angular_speed_status == 0 && result.acceleration_status == 0 && result.quaternion_status == 0)	//所有數據都正確
 				{
 					result.status = 0;				//數據正常
 				}
