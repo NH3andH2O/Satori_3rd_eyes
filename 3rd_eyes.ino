@@ -158,9 +158,6 @@ void taskWitPProcessingData(void *arg)
 					quaternion->xquaternion = wit_data.xquaternion;
 					quaternion->yquaternion = wit_data.yquaternion;
 					quaternion->zquaternion = wit_data.zquaternion;
-
-					//Serial.printf("%s quaternion:%.2f %.2f %.2f %.2f\r\n", wit_name.c_str(), quaternion->wquaternion, quaternion->xquaternion, quaternion->yquaternion, quaternion->zquaternion);	//打印四元數
-
 					*quaternion = IMUAngle::quaternion_multiply(*quaternion, IMUAngle::quaternion_conjugate(*reference_quaternion));	//處理參考四元數
 				}
 				break;
@@ -173,8 +170,6 @@ void taskWitPProcessingData(void *arg)
 		{
 			relative_quaternion = IMUAngle::quaternion_multiply(witEyes_quaternion, IMUAngle::quaternion_conjugate(witHead_quaternion));	//計算眼睛和頭部的四元數差值
 			relative_angle = IMUAngle::quaternion_to_euler(relative_quaternion);	//計算眼睛和頭部的角度差值
-			
-			printf("angle:\t%.2f\t%.2f\t%.2f\r\n", relative_angle.xangle, relative_angle.yangle, relative_angle.zangle);	//打印角度差值
 		}
 	}
 }
