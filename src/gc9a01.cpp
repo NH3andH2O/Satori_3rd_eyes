@@ -68,25 +68,75 @@ void GC9A01::GC9A01_init()
 	myLGFX.fillScreen(myLGFX.color565(0, 0, 0));
 }
 
-void GC9A01::GC9A01_setEyes_r(uint8_t eyes_r)
+void GC9A01::GC9A01_setEyes_r(uint8_t target_eyesR, double zeta = -1.0, double omega_n = -1.0)
 {
-	this->eyes_r = eyes_r;	//設置眼睛半徑
+	if(target_eyesR != this->target_eyesR && this->lastChange_eyesR >= lastChangeMax) 
+	{
+	this->lastUpdate_eyesR = xTaskGetTickCount();	//設置眼睛半徑更新時間
+	this->lastChange_eyesR = 0;						//設置眼睛半徑變化次數
+	} 
+	this->target_eyesR = target_eyesR;				//設置目標眼睛半徑
+	if(zeta != -1.0) 
+	{
+		this->zeta_eyesR = zeta;					//設置眼睛半徑阻尼比
+	}
+	if(omega_n != -1.0) 
+	{
+		this->omega_n_eyesR = omega_n;				//設置眼睛半徑自然頻率
+	}
 }
 
-void GC9A01::GC9A01_update()
+void GC9A01::GC9A01_setEyes_lightMax(uint8_t lightMax)
+{
+	this->lightMax = lightMax;	//設置眼睛光暈最大值
+}
+
+uint8_t GC9A01::GC9A01_update()
 {
 	mySprite.fillScreen(myLGFX.color565(0, 0, 0));	//清屏
 
-	/* 控制光暈 */
-	for(int i = 100; i >= this->eyes_r; i--)
+	/* 控制眼睛动态效果 */
+	if(this->lastChange_eyesR < lastChangeMax)
 	{
-		float ratio = float(i - this->eyes_r) / float(100 - this->eyes_r);	//正規化到 0~1
+		uint64_t now = xTaskGetTickCount();		//獲取當前時間
+		double dt = (now - this->lastUpdate_eyesR) / 1000.0;	//計算時間差
+		if(dt > 0.001)
+		{
+			this->lastUpdate_eyesR = now;	//更新時間
+			double acceleration = -2 * this->zeta_eyesR * this->omega_n_eyesR * this->dradius_eyesR - this->omega_n_eyesR * this->omega_n_eyesR * (this->eyesR - this->target_eyesR);
+			this->dradius_eyesR += acceleration * dt;
+			this->eyesR += this->dradius_eyesR * dt;
+			if((uint8_t)this->eyesR == (uint8_t)this->target_eyesR)	//如果眼睛半徑達到目標值
+			{
+				this->lastChange_eyesR++;	//增加變化次數
+			}
+			else
+			{
+				this->lastChange_eyesR = 0;	//重置變化次數
+			}
+		}
+	}
+
+	/* 控制光暈 */
+	for(int i = 100; i >= this->eyesR; i--)
+	{
+		float ratio = float(i - this->eyesR) / float(100 - this->eyesR);	//正規化到 0~1
 		ratio = constrain(ratio, 0.0, 1.0); 	// 避免爆出界
 		ratio = pow(ratio, 2.5); 				// 控制「靠近邊緣時下降更快」
 
-		uint8_t red = (uint8_t)(255 * (1.0 - ratio));
+		uint8_t red = (uint8_t)(this->lightMax * (1.0 - ratio));
 		mySprite.fillCircle(120, 121, i, myLGFX.color565(red, 0, 0));	//画光环
 	}
-	mySprite.fillCircle(120, 121, this->eyes_r, myLGFX.color565(0, 0, 0));	//畫眼睛
+	mySprite.fillCircle(120, 121, this->eyesR, myLGFX.color565(0, 0, 0));	//畫眼睛
 	mySprite.pushSprite(&myLGFX, 0, 0);	//推送精靈
+
+	/* 返回是否更新完成 */
+	if(lastChange_eyesR < lastChangeMax)	//如果眼睛半徑達到目標值
+	{
+		return 0;	//未完成
+	}
+	else
+	{
+		return 1;	//完成
+	}
 }
