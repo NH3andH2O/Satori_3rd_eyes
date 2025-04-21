@@ -86,9 +86,22 @@ void GC9A01::GC9A01_setEyes_r(uint8_t target_eyesR, double zeta = -1.0, double o
 	}
 }
 
-void GC9A01::GC9A01_setEyes_lightMax(uint8_t lightMax)
+void GC9A01::GC9A01_setEyes_lightMax(uint8_t lightMax, double zeta = -1.0, double omega_n = -1.0)
 {
-	this->lightMax = lightMax;	//設置眼睛光暈最大值
+	if(lightMax != this->target_lightMax && this->lastChange_lightMax >= lastChangeMax) 
+	{
+		this->lastUpdate_lightMax = xTaskGetTickCount();	//設置光暈更新時間
+		this->lastChange_lightMax = 0;						//設置光暈變化次數
+	} 
+	this->target_lightMax = lightMax;						//設置目標光暈最大值
+	if(zeta != -1.0) 
+	{
+		this->zeta_lightMax = zeta;							//設置光暈最大值阻尼比
+	}
+	if(omega_n != -1.0) 
+	{
+		this->omega_n_lightMax = omega_n;					//設置光暈最大值自然頻率
+	}
 }
 
 uint8_t GC9A01::GC9A01_update()
@@ -103,9 +116,9 @@ uint8_t GC9A01::GC9A01_update()
 		if(dt > 0.001)
 		{
 			this->lastUpdate_eyesR = now;	//更新時間
-			double acceleration = -2 * this->zeta_eyesR * this->omega_n_eyesR * this->dradius_eyesR - this->omega_n_eyesR * this->omega_n_eyesR * (this->eyesR - this->target_eyesR);
-			this->dradius_eyesR += acceleration * dt;
-			this->eyesR += this->dradius_eyesR * dt;
+			double acceleration = -2 * this->zeta_eyesR * this->omega_n_eyesR * this->deyesR - this->omega_n_eyesR * this->omega_n_eyesR * (this->eyesR - this->target_eyesR);
+			this->deyesR += acceleration * dt;
+			this->eyesR += this->deyesR * dt;
 			if((uint8_t)this->eyesR == (uint8_t)this->target_eyesR)	//如果眼睛半徑達到目標值
 			{
 				this->lastChange_eyesR++;	//增加變化次數
@@ -118,6 +131,28 @@ uint8_t GC9A01::GC9A01_update()
 	}
 
 	/* 控制光暈 */
+	if(this->lastChange_lightMax < lastChangeMax)
+	{
+		uint64_t now = xTaskGetTickCount();		//獲取當前時間
+		double dt = (now - this->lastUpdate_lightMax) / 1000.0;	//計算時間差
+		if(dt > 0.001)
+		{
+			this->lastUpdate_lightMax = now;	//更新時間
+			double acceleration = -2 * this->zeta_lightMax * this->omega_n_lightMax * this->dlightMax - this->omega_n_lightMax * this->omega_n_lightMax * (this->lightMax - this->target_lightMax);
+			this->dlightMax += acceleration * dt;
+			this->lightMax += this->dlightMax * dt;
+			if((uint8_t)this->lightMax == (uint8_t)this->target_lightMax)	//如果光暈達到目標值
+			{
+				this->lastChange_lightMax++;	//增加變化次數
+			}
+			else
+			{
+				this->lastChange_lightMax = 0;	//重置變化次數
+			}
+		}
+	}
+
+	/* 控制光暈 */
 	for(int i = 100; i >= this->eyesR; i--)
 	{
 		float ratio = float(i - this->eyesR) / float(100 - this->eyesR);	//正規化到 0~1
@@ -125,13 +160,13 @@ uint8_t GC9A01::GC9A01_update()
 		ratio = pow(ratio, 2.5); 				// 控制「靠近邊緣時下降更快」
 
 		uint8_t red = (uint8_t)(this->lightMax * (1.0 - ratio));
-		mySprite.fillCircle(120, 121, i, myLGFX.color565(red, 0, 0));	//画光环
+		mySprite.fillCircle(120, 124, i, myLGFX.color565(red, 0, 0));	//画光环
 	}
-	mySprite.fillCircle(120, 121, this->eyesR, myLGFX.color565(0, 0, 0));	//畫眼睛
+	mySprite.fillCircle(120, 124, this->eyesR, myLGFX.color565(0, 0, 0));	//畫眼睛
 	mySprite.pushSprite(&myLGFX, 0, 0);	//推送精靈
 
 	/* 返回是否更新完成 */
-	if(lastChange_eyesR < lastChangeMax)	//如果眼睛半徑達到目標值
+	if(this->lastChange_eyesR < this->lastChangeMax || this->lastChange_lightMax < this->lastChangeMax)	//如果沒達到目標值
 	{
 		return 0;	//未完成
 	}

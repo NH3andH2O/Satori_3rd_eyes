@@ -25,7 +25,7 @@ class GC9A01
 		const uint8_t lastChangeMax = 20;
 
 
-		LGFX_GC9A01 myLGFX;	//LGFX_GC9A01實例
+		LGFX_GC9A01 myLGFX;		//LGFX_GC9A01實例
 		LGFX_Sprite mySprite;	//LGFX_Sprite實例
 
 		/* 引脚變數 */
@@ -42,18 +42,24 @@ class GC9A01
 		double target_eyesR = 80;			//目标眼睛半徑
 		double zeta_eyesR = 1;				//眼睛半徑阻尼比
 		double omega_n_eyesR = 5;			//眼睛半徑自然頻率
-		double dradius_eyesR = 0;			//眼睛半徑變化量
+		double deyesR = 0;					//眼睛半徑變化量
 		u_int64_t lastUpdate_eyesR = 0;		//眼睛半徑更新時間
 
-
-		uint8_t lightMax = 255;	//光暈最大值
+		/* 亮度變數 */
+		double lightMax = 255;				//光暈最大值
+		uint8_t lastChange_lightMax = 20;	//光暈變化次數
+		double target_lightMax = 255;		//目标光暈最大值
+		double zeta_lightMax = 255;			//光暈最大值阻尼比
+		double omega_n_lightMax = 5;		//光暈最大值自然頻率
+		double dlightMax = 0;				//光暈最大值變化量
+		u_int64_t lastUpdate_lightMax = 0;	//光暈最大值更新時間
 
 	public:
 		GC9A01(uint8_t MOSIPin, uint8_t SCLKPin, uint8_t CSPin, uint8_t DCPin, uint8_t RSTPin, uint8_t BLPin);
-		void GC9A01_init();						//初始化
-		void GC9A01_setEyes_r(uint8_t target_eyes_r, double zeta, double omega_n);	//設置眼睛半徑
-		void GC9A01_setEyes_lightMax(uint8_t lightMax);			//設置眼睛光暈最大值
-		uint8_t GC9A01_update();					//更新
+		void GC9A01_init();																//初始化
+		void GC9A01_setEyes_r(uint8_t target_eyes_r, double zeta, double omega_n);		//設置眼睛半徑
+		void GC9A01_setEyes_lightMax(uint8_t lightMax, double zeta, double omega_n);	//設置眼睛光暈最大值
+		uint8_t GC9A01_update();														//更新
 };
 
 #endif
