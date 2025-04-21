@@ -184,8 +184,8 @@ void taskGC9A01(void *arg)
 	{
 		if(millis() % (u_int64_t)10000 > (u_int64_t)5000)
 		{
-			gc9a01.GC9A01_setEyes_r(80, 0.85, 5);	//設置眼睛半徑
-			gc9a01.GC9A01_setEyes_lightMax(160, 0.85, 5);	//設置光暈最大值
+			gc9a01.GC9A01_setEyes_r(80, 1, 5);	//設置眼睛半徑
+			gc9a01.GC9A01_setEyes_lightMax(160, 1, 5);	//設置光暈最大值
 		}
 		else
 		{
@@ -193,6 +193,10 @@ void taskGC9A01(void *arg)
 			gc9a01.GC9A01_setEyes_lightMax(250, 1, 20);	//設置光暈最大值
 		}
 		uint8_t is_GC9A01_update_dowm = gc9a01.GC9A01_update();	//更新GC9A01
+		if(is_GC9A01_update_dowm)
+		{
+			printf("GC9A01 update success\r\n");	//打印GC9A01更新成功
+		}
 	}
 }
 

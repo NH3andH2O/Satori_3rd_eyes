@@ -37,22 +37,22 @@ class GC9A01
 		uint8_t BLPin;
 
 		/* 眼睛變數 */
-		double eyesR = 80;					//眼睛半徑
-		uint8_t lastChange_eyesR = 20;		//目標眼睛半徑
-		double target_eyesR = 80;			//目标眼睛半徑
-		double zeta_eyesR = 1;				//眼睛半徑阻尼比
-		double omega_n_eyesR = 5;			//眼睛半徑自然頻率
-		double deyesR = 0;					//眼睛半徑變化量
-		u_int64_t lastUpdate_eyesR = 0;		//眼睛半徑更新時間
+		double eyesR = 80;							//眼睛半徑
+		uint8_t lastChange_eyesR = lastChangeMax;	//目標眼睛半徑
+		double target_eyesR = 80;					//目标眼睛半徑
+		double zeta_eyesR = 1;						//眼睛半徑阻尼比
+		double omega_n_eyesR = 5;					//眼睛半徑自然頻率
+		double deyesR = 0;							//眼睛半徑變化量
+		u_int64_t lastUpdate_eyesR = 0;				//眼睛半徑更新時間
 
 		/* 亮度變數 */
-		double lightMax = 255;				//光暈最大值
-		uint8_t lastChange_lightMax = 20;	//光暈變化次數
-		double target_lightMax = 255;		//目标光暈最大值
-		double zeta_lightMax = 255;			//光暈最大值阻尼比
-		double omega_n_lightMax = 5;		//光暈最大值自然頻率
-		double dlightMax = 0;				//光暈最大值變化量
-		u_int64_t lastUpdate_lightMax = 0;	//光暈最大值更新時間
+		double lightMax = 255;							//光暈最大值
+		uint8_t lastChange_lightMax = lastChangeMax;	//光暈變化次數
+		double target_lightMax = 255;					//目标光暈最大值
+		double zeta_lightMax = 255;						//光暈最大值阻尼比
+		double omega_n_lightMax = 5;					//光暈最大值自然頻率
+		double dlightMax = 0;							//光暈最大值變化量
+		u_int64_t lastUpdate_lightMax = 0;				//光暈最大值更新時間
 
 	public:
 		GC9A01(uint8_t MOSIPin, uint8_t SCLKPin, uint8_t CSPin, uint8_t DCPin, uint8_t RSTPin, uint8_t BLPin);

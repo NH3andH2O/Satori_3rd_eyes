@@ -119,7 +119,7 @@ uint8_t GC9A01::GC9A01_update()
 			double acceleration = -2 * this->zeta_eyesR * this->omega_n_eyesR * this->deyesR - this->omega_n_eyesR * this->omega_n_eyesR * (this->eyesR - this->target_eyesR);
 			this->deyesR += acceleration * dt;
 			this->eyesR += this->deyesR * dt;
-			if((uint8_t)this->eyesR == (uint8_t)this->target_eyesR)	//如果眼睛半徑達到目標值
+			if((uint8_t)round(this->eyesR) == (uint8_t)round(this->target_eyesR))	//如果眼睛半徑達到目標值
 			{
 				this->lastChange_eyesR++;	//增加變化次數
 			}
@@ -141,7 +141,7 @@ uint8_t GC9A01::GC9A01_update()
 			double acceleration = -2 * this->zeta_lightMax * this->omega_n_lightMax * this->dlightMax - this->omega_n_lightMax * this->omega_n_lightMax * (this->lightMax - this->target_lightMax);
 			this->dlightMax += acceleration * dt;
 			this->lightMax += this->dlightMax * dt;
-			if((uint8_t)this->lightMax == (uint8_t)this->target_lightMax)	//如果光暈達到目標值
+			if((uint8_t)round(this->lightMax) == (uint8_t)round(this->target_lightMax))	//如果光暈達到目標值
 			{
 				this->lastChange_lightMax++;	//增加變化次數
 			}
@@ -153,16 +153,16 @@ uint8_t GC9A01::GC9A01_update()
 	}
 
 	/* 控制光暈 */
-	for(int i = 100; i >= this->eyesR; i--)
+	for(int i = 100; i >= round(this->eyesR); i--)
 	{
-		float ratio = float(i - this->eyesR) / float(100 - this->eyesR);	//正規化到 0~1
+		float ratio = float(i - round(this->eyesR)) / float(100 - round(this->eyesR));	//正規化到 0~1
 		ratio = constrain(ratio, 0.0, 1.0); 	// 避免爆出界
 		ratio = pow(ratio, 2.5); 				// 控制「靠近邊緣時下降更快」
 
-		uint8_t red = (uint8_t)(this->lightMax * (1.0 - ratio));
+		uint8_t red = (uint8_t)(round(this->lightMax) * (1.0 - ratio));
 		mySprite.fillCircle(120, 124, i, myLGFX.color565(red, 0, 0));	//画光环
 	}
-	mySprite.fillCircle(120, 124, this->eyesR, myLGFX.color565(0, 0, 0));	//畫眼睛
+	mySprite.fillCircle(120, 124, round(this->eyesR), myLGFX.color565(0, 0, 0));	//畫眼睛
 	mySprite.pushSprite(&myLGFX, 0, 0);	//推送精靈
 
 	/* 返回是否更新完成 */
