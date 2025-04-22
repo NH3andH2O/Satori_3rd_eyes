@@ -21,6 +21,16 @@
 #define GC9A01_SCL_PIN 17	//GC9A01時鐘引脚
 #define GC9A01_SDA_PIN 16	//GC9A01數據引脚
 
+typedef struct
+{
+	uint8_t R;
+	double zetaR;
+	double omega_nR;
+	uint8_t lightMax;
+	double zetaLightMax;
+	double omega_nLightMax;
+} GC9A01_data;	//GC9A01數據結構體
+
 eyesMove eyesmove(UPPER_EYELID_PIN, LOWER_EYELID_PIN, EYEBALL_PIN);
 
 wit witEyes(SERIAL1, witEyes_RX_PIN, witEyes_TX_PIN, 115200);	//wit眼睛模組
@@ -33,6 +43,7 @@ witData witHead_data;	//wit頭部數據結構體
 
 QueueHandle_t wit_data_quene; //宣告wit原始佇列
 QueueHandle_t wit_data_diff_quene; //宣告wit差值佇列
+QueueHandle_t gc9a01_data_quene; //宣告GC9A01佇列
 
 /* 任務參照 */
 TaskHandle_t taskWitEyesGetData_hamdle;	//獲取wit眼睛數據任務
@@ -180,25 +191,34 @@ void taskGC9A01(void *arg)
 	/* 初始化GC9A01 */
 	gc9a01.GC9A01_init();	//初始化GC9A01
 	gc9a01.GC9A01_setEyes_r(80, 1, 10);	//設置眼睛半徑
+	uint8_t is_GC9A01_update_finish = 0;	//GC9A01更新狀態
 	while (1)
 	{
-		if(millis() % (u_int64_t)10000 > (u_int64_t)5000)
+
+		/* 獲取GC9A01數據 */
+		GC9A01_data gc9a01_data;
+
+		if(is_GC9A01_update_finish)	//如果更新完成
 		{
-			gc9a01.GC9A01_setEyes_r(80, 1, 5);	//設置眼睛半徑
-			gc9a01.GC9A01_setEyes_lightMax(160, 1, 5);	//設置光暈最大值
+			
+			if(xQueueReceive(gc9a01_data_quene, &gc9a01_data, portMAX_DELAY) == pdTRUE)
+			{
+				gc9a01.GC9A01_setEyes_r(gc9a01_data.R, gc9a01_data.zetaR, gc9a01_data.omega_nR);								//設置眼睛半徑
+				gc9a01.GC9A01_setEyes_lightMax(gc9a01_data.lightMax, gc9a01_data.zetaLightMax, gc9a01_data.omega_nLightMax);	//設置光暈最大值
+			}
 		}
-		else
+		else						//沒有完成更新
 		{
-			gc9a01.GC9A01_setEyes_r(40, 1, 20);	//設置眼睛半徑
-			gc9a01.GC9A01_setEyes_lightMax(250, 1, 20);	//設置光暈最大值
+			if(xQueueReceive(gc9a01_data_quene, &gc9a01_data, 0) == pdTRUE)	
+			{
+				gc9a01.GC9A01_setEyes_r(gc9a01_data.R, gc9a01_data.zetaR, gc9a01_data.omega_nR);								//設置眼睛半徑
+				gc9a01.GC9A01_setEyes_lightMax(gc9a01_data.lightMax, gc9a01_data.zetaLightMax, gc9a01_data.omega_nLightMax);	//設置光暈最大值
+			}
 		}
-		uint8_t is_GC9A01_update_dowm = gc9a01.GC9A01_update();	//更新GC9A01
-		if(is_GC9A01_update_dowm)
-		{
-			printf("GC9A01 update success\r\n");	//打印GC9A01更新成功
-		}
+		is_GC9A01_update_finish = gc9a01.GC9A01_update();	//更新GC9A01
 	}
 }
+
 
 /* 眼睛移動 */
 void taskEyesMove(void *arg)
@@ -295,6 +315,15 @@ void setup()
 			vTaskDelay(1000);
 		}
 	}
+	gc9a01_data_quene = xQueueCreate(10, sizeof(GC9A01_data));	//建立佇列，長度10，大小為GC9A01_data結構體大小
+	if (gc9a01_data_quene == NULL)	//佇列建立失敗
+	{
+		Serial.println("gc9a01_data quene create error");
+		while (2)
+		{
+			vTaskDelay(1000);
+		}
+	}
 	Serial.println("quene create success");	//打印佇列建立成功狀態
 
 	Serial.println("wit init...");	//打印初始化狀態
@@ -307,46 +336,5 @@ void setup()
 
 void loop()
 {
-	UBaseType_t taskWitEyesGetData_Stack = uxTaskGetStackHighWaterMark(taskWitEyesGetData_hamdle);
-	UBaseType_t taskWitHeadGetData_Stack = uxTaskGetStackHighWaterMark(taskWitHeadGetData_hamdle);
-	UBaseType_t taskWitPProcessingData_Stack = uxTaskGetStackHighWaterMark(taskWitPProcessingData_hamdle);
-	UBaseType_t taskGC9A01_Stack = uxTaskGetStackHighWaterMark(taskGC9A01_hamdle);
-	UBaseType_t taskEyesMove_Stack = uxTaskGetStackHighWaterMark(taskEyesMove_hamdle);
-
-	static UBaseType_t taskWitEyesGetData_Stack_highest = 0;
-	static UBaseType_t taskWitHeadGetData_Stack_highest = 0;
-	static UBaseType_t taskWitPProcessingData_Stack_highest = 0;
-	static UBaseType_t taskGC9A01_Stack_highest = 0;
-	static UBaseType_t taskEyesMove_Stack_highest = 0;
-
-	if (taskWitEyesGetData_Stack > taskWitEyesGetData_Stack_highest)
-	{
-		taskWitEyesGetData_Stack_highest = taskWitEyesGetData_Stack;
-	}
-	if (taskWitHeadGetData_Stack > taskWitHeadGetData_Stack_highest)
-	{
-		taskWitHeadGetData_Stack_highest = taskWitHeadGetData_Stack;
-	}
-	if (taskWitPProcessingData_Stack > taskWitPProcessingData_Stack_highest)
-	{
-		taskWitPProcessingData_Stack_highest = taskWitPProcessingData_Stack;
-	}
-	if (taskGC9A01_Stack > taskGC9A01_Stack_highest)
-	{
-		taskGC9A01_Stack_highest = taskGC9A01_Stack;
-	}
-	if (taskEyesMove_Stack > taskEyesMove_Stack_highest)
-	{
-		taskEyesMove_Stack_highest = taskEyesMove_Stack;
-	}
-
-	if(xTaskGetTickCount() % 1000 == 0)	//每秒打印一次
-	{
-		Serial.printf("taskWitEyesGetData stack: %u (highest: %u)\r\n", taskWitEyesGetData_Stack,taskWitEyesGetData_Stack_highest);	//打印任務狀態
-		Serial.printf("taskWitHeadGetData stack: %u (highest: %u)\r\n", taskWitHeadGetData_Stack,taskWitHeadGetData_Stack_highest);	//打印任務狀態
-		Serial.printf("taskWitPProcessingData stack: %u (highest: %u)\r\n", taskWitPProcessingData_Stack,taskWitPProcessingData_Stack_highest);	//打印任務狀態
-		Serial.printf("taskGC9A01 stack: %u (highest: %u)\r\n", taskGC9A01_Stack,taskGC9A01_Stack_highest);	//打印任務狀態
-		Serial.printf("taskEyesMove stack: %u (highest: %u)\r\n", taskEyesMove_Stack,taskEyesMove_Stack_highest);	//打印任務狀態
-		Serial.println("=======================================");	//打印分隔線
-	}
+	vTaskDelay(1000);
 }
