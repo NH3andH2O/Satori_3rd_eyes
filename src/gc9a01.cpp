@@ -128,9 +128,23 @@ uint8_t GC9A01::GC9A01_update()
 				this->lastChange_eyesR = 0;	//重置變化次數
 			}
 		}
+
+		/* 設置眼睛防撞墻 */
+		if(this->eyesR < 0)
+		{
+			this->int_eyesR = 0;
+		}
+		else if(this->eyesR > this->maxEyesR)
+		{
+			this->int_eyesR = this->maxEyesR;
+		}
+		else
+		{
+			this->int_eyesR = round(this->eyesR);
+		}
 	}
 
-	/* 控制光暈 */
+	/* 控制光暈動態效果 */
 	if(this->lastChange_lightMax < lastChangeMax)
 	{
 		uint64_t now = xTaskGetTickCount();		//獲取當前時間
@@ -150,19 +164,33 @@ uint8_t GC9A01::GC9A01_update()
 				this->lastChange_lightMax = 0;	//重置變化次數
 			}
 		}
+
+		/* 設置光暈防撞墻 */
+		if(this->lightMax < 0)
+		{
+			this->int_lightMax = 0;
+		}
+		else if(this->lightMax > 255)
+		{
+			this->int_lightMax = 255;
+		}
+		else
+		{
+			this->int_lightMax = round(this->lightMax);
+		}
 	}
 
 	/* 控制光暈 */
-	for(int i = 100; i >= round(this->eyesR); i--)
+	for(int i = this->maxEyesR; i >= this->int_eyesR; i--)
 	{
-		float ratio = float(i - round(this->eyesR)) / float(100 - round(this->eyesR));	//正規化到 0~1
+		float ratio = float(i - this->int_eyesR) / float(this->maxEyesR - this->int_eyesR);	//正規化到 0~1
 		ratio = constrain(ratio, 0.0, 1.0); 	// 避免爆出界
 		ratio = pow(ratio, 2.5); 				// 控制「靠近邊緣時下降更快」
 
-		uint8_t red = (uint8_t)(round(this->lightMax) * (1.0 - ratio));
+		uint8_t red = (uint8_t)(this->int_lightMax * (1.0 - ratio));
 		mySprite.fillCircle(120, 124, i, myLGFX.color565(red, 0, 0));	//画光环
 	}
-	mySprite.fillCircle(120, 124, round(this->eyesR), myLGFX.color565(0, 0, 0));	//畫眼睛
+	mySprite.fillCircle(120, 124, this->int_eyesR, myLGFX.color565(0, 0, 0));	//畫眼睛
 	mySprite.pushSprite(&myLGFX, 0, 0);	//推送精靈
 
 	/* 返回是否更新完成 */
@@ -179,7 +207,7 @@ uint8_t GC9A01::GC9A01_update()
 GC9A01GetData GC9A01::GC9A01_get_data()
 {
 	GC9A01GetData gc9a01_data;	//GC9A01數據結構體
-	gc9a01_data.R = round(this->eyesR);	//獲取眼睛半徑
-	gc9a01_data.lightMax = round(this->lightMax);	//獲取光暈最大值
+	gc9a01_data.R = this->int_eyesR;	//獲取眼睛半徑
+	gc9a01_data.lightMax = this->int_lightMax;	//獲取光暈最大值
 	return gc9a01_data;	//返回GC9A01數據結構體
 }

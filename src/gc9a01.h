@@ -29,7 +29,7 @@ class GC9A01
 	private:
 
 		const uint8_t lastChangeMax = 20;
-
+		const uint8_t maxEyesR = 100;	//眼睛半徑最大值
 
 		LGFX_GC9A01 myLGFX;		//LGFX_GC9A01實例
 		LGFX_Sprite mySprite;	//LGFX_Sprite實例
@@ -43,6 +43,7 @@ class GC9A01
 		uint8_t BLPin;
 
 		/* 眼睛變數 */
+		uint8_t int_eyesR = 80;						//眼睛半徑(整數化)
 		double eyesR = 80;							//眼睛半徑
 		uint8_t lastChange_eyesR = lastChangeMax;	//目標眼睛半徑
 		double target_eyesR = 80;					//目标眼睛半徑
@@ -52,6 +53,7 @@ class GC9A01
 		u_int64_t lastUpdate_eyesR = 0;				//眼睛半徑更新時間
 
 		/* 亮度變數 */
+		uint8_t int_lightMax = 255;						//光暈最大值(整數化)
 		double lightMax = 255;							//光暈最大值
 		uint8_t lastChange_lightMax = lastChangeMax;	//光暈變化次數
 		double target_lightMax = 255;					//目标光暈最大值
