@@ -175,3 +175,11 @@ uint8_t GC9A01::GC9A01_update()
 		return 1;	//完成
 	}
 }
+
+GC9A01GetData GC9A01::GC9A01_get_data()
+{
+	GC9A01GetData gc9a01_data;	//GC9A01數據結構體
+	gc9a01_data.R = round(this->eyesR);	//獲取眼睛半徑
+	gc9a01_data.lightMax = round(this->lightMax);	//獲取光暈最大值
+	return gc9a01_data;	//返回GC9A01數據結構體
+}

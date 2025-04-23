@@ -4,6 +4,12 @@
 #include <Arduino.h>
 #include <LovyanGFX.hpp>
 
+typedef struct
+{
+	uint8_t R;			//眼睛半徑
+	uint8_t lightMax;	//光暈最大值
+} GC9A01GetData;
+
 class LGFX_GC9A01 : public lgfx::LGFX_Device
 {
 	private:
@@ -59,6 +65,7 @@ class GC9A01
 		void GC9A01_init();																//初始化
 		void GC9A01_setEyes_r(uint8_t target_eyes_r, double zeta, double omega_n);		//設置眼睛半徑
 		void GC9A01_setEyes_lightMax(uint8_t lightMax, double zeta, double omega_n);	//設置眼睛光暈最大值
+		GC9A01GetData GC9A01_get_data();												//獲取眼睛數據
 		uint8_t GC9A01_update();														//更新
 };
 
