@@ -20,7 +20,7 @@ void eyesMove::eyesMove_init()
 
 void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_angle, uint8_t eyeball_angle)
 {
-	/*角度輸入超限更正*/
+	/* 角度輸入超限更正 */
 	if(upper_eyelid_angle < 100)
 	{
 	upper_eyelid_angle = 100;
@@ -29,9 +29,9 @@ void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_a
 	{
 		upper_eyelid_angle = 180;
 	}
-	if(lower_eyelid_angle < 55)
+	if(lower_eyelid_angle < 15)
 	{
-		lower_eyelid_angle = 55;
+		lower_eyelid_angle = 35;
 	}
 	else if(lower_eyelid_angle > 115)
 	{
@@ -52,7 +52,7 @@ void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_a
 
 void eyesMove::eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle)
 {
-	/*角度輸入超限更正*/
+	/* 角度輸入超限更正 */
 	if(eyelid_angle < 0)
 	{
 		eyelid_angle = 0;
@@ -105,7 +105,7 @@ void eyesMove::eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angl
 		upper_eyelid_angle = 48;
 	}
 
-	lower_eyelid_angle =map(lower_eyelid_angle, 0, -48, 55, 115);
+	lower_eyelid_angle =map(lower_eyelid_angle, 0, -48, 35, 115);
 	upper_eyelid_angle =map(upper_eyelid_angle, 0, 48, 180, 100);
 
 	upper_eyelid_servo.write(upper_eyelid_angle);

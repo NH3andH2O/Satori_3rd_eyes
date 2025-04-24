@@ -42,7 +42,7 @@ witData witEyes_data;	//wit眼睛數據結構體
 witData witHead_data;	//wit頭部數據結構體
 
 QueueHandle_t wit_data_quene; //宣告wit原始佇列
-QueueHandle_t wit_data_diff_quene; //宣告wit差值佇列
+QueueHandle_t wit_data_relative_angle_quene; //宣告wit差值佇列
 QueueHandle_t gc9a01_data_quene; //宣告GC9A01佇列
 
 /* 任務參照 */
@@ -181,6 +181,7 @@ void taskWitPProcessingData(void *arg)
 		{
 			relative_quaternion = IMUAngle::quaternion_multiply(witEyes_quaternion, IMUAngle::quaternion_conjugate(witHead_quaternion));	//計算眼睛和頭部的四元數差值
 			relative_angle = IMUAngle::quaternion_to_euler(relative_quaternion);	//計算眼睛和頭部的角度差值
+			xQueueSend(wit_data_relative_angle_quene, &relative_angle, 0);	//從佇列中獲取數據
 		}
 	}
 }
@@ -219,7 +220,6 @@ void taskGC9A01(void *arg)
 	}
 }
 
-
 /* 眼睛移動 */
 void taskEyesMove(void *arg)
 {
@@ -231,7 +231,7 @@ void taskEyesMove(void *arg)
 	eyesmove.eyesMove_init();	//初始化眼睛
 	while (1)
 	{
-		if(xQueueReceive(wit_data_diff_quene, &witEyes_data, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
+		if(xQueueReceive(wit_data_relative_angle_quene, &witEyes_data, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
 		{
 
 			/* x角度範圍 */
@@ -241,19 +241,19 @@ void taskEyesMove(void *arg)
 			}
 			else if(witEyes_data.zangle > 15 && witEyes_data.zangle < 60)
 			{
-				eyes_x = map(witEyes_data.zangle, 15, 60, 0, 35);
+				eyes_x = map(witEyes_data.zangle, 15, 60, -0, -35);
 			}
 			else if(witEyes_data.zangle < -15 && witEyes_data.zangle > -60)
 			{
-				eyes_x = map(witEyes_data.zangle, -15, -60, -0, -35);
+				eyes_x = map(witEyes_data.zangle, -15, -60, 0, 35);
 			}
 			else if(witEyes_data.zangle > 60)
 			{
-				eyes_x = 35;
+				eyes_x = -35;
 			}
 			else if(witEyes_data.zangle < -60)
 			{
-				eyes_x = -35;
+				eyes_x = 35;
 			}
 
 
@@ -306,8 +306,8 @@ void setup()
 			vTaskDelay(1000);
 		}
 	}
-	wit_data_diff_quene = xQueueCreate(10, sizeof(witDataAngle));	//建立佇列，長度10，大小為witDataAngle結構體大小
-	if (wit_data_diff_quene == NULL)	//佇列建立失敗
+	wit_data_relative_angle_quene = xQueueCreate(10, sizeof(witDataAngle));	//建立佇列，長度10，大小為witDataAngle結構體大小
+	if (wit_data_relative_angle_quene == NULL)	//佇列建立失敗
 	{
 		Serial.println("wit_data_diff quene create error");
 		while (2)
