@@ -109,8 +109,16 @@ void taskWitPProcessingData(void *arg)
 	witDataQuaternion witHead_quaternion;			//頭部四元數
 	witDataQuaternion *quaternion = nullptr;		//四元數指標
 
+	witDataQuaternion witEyes_acceleration_quaternion;	//眼睛加速度四元數
+	witDataQuaternion witHead_acceleration_quaternion;	//頭部加速度四元數
+	witDataQuaternion *acceleration_quaternion = nullptr;	//加速度四元數指標
+
 	witDataQuaternion relative_quaternion;		//眼睛四元數差值
 	witDataAngle relative_angle;
+
+	witDataAcceleration witEyes_acceleration;	//眼睛加速度
+	witDataAcceleration witHead_acceleration;	//頭部加速度
+	witDataAcceleration *acceleration = nullptr;	//加速度指標
 
 	uint8_t witEyes_angle_status = 0;	//眼睛角度狀態
 	uint8_t witHead_angle_status = 0;	//頭部角度狀態
@@ -139,20 +147,24 @@ void taskWitPProcessingData(void *arg)
 				/* 眼睛 */
 				if(wit_data.serialPort == SERIAL1)	
 				{
-					reference_quaternion = &witEyes_reference_quaternion;	//設置參考四元數
-					quaternion = &witEyes_quaternion;						//設置四元數
-					angle_status = &witEyes_angle_status;					//設置角度狀態
+					reference_quaternion = &witEyes_reference_quaternion;		//設置參考四元數
+					quaternion = &witEyes_quaternion;							//設置四元數
+					angle_status = &witEyes_angle_status;						//設置角度狀態
+					acceleration_quaternion = &witEyes_acceleration_quaternion;	//設置加速度四元數
+					acceleration = &witEyes_acceleration;						//設置加速度
 				}
 
 				/* 頭部 */
 				else if(wit_data.serialPort == SERIAL2)	
 				{
-					reference_quaternion = &witHead_reference_quaternion;	//設置參考四元數
-					quaternion = &witHead_quaternion;						//設置四元數
-					angle_status = &witHead_angle_status;					//設置角度狀態
+					reference_quaternion = &witHead_reference_quaternion;		//設置參考四元數
+					quaternion = &witHead_quaternion;							//設置四元數
+					angle_status = &witHead_angle_status;						//設置角度狀態
+					acceleration_quaternion = &witHead_acceleration_quaternion;	//設置加速度四元數
+					acceleration = &witHead_acceleration;						//設置加速度
 				}
 
-				if(reference_quaternion && quaternion && angle_status)	//防止野指標
+				if(reference_quaternion && quaternion && angle_status && acceleration && acceleration_quaternion)	//防止野指標
 				{
 					/* 設置參考角度 */
 					if(*angle_status == 0)
@@ -169,7 +181,19 @@ void taskWitPProcessingData(void *arg)
 					quaternion->xquaternion = wit_data.xquaternion;
 					quaternion->yquaternion = wit_data.yquaternion;
 					quaternion->zquaternion = wit_data.zquaternion;
+
 					*quaternion = IMUAngle::quaternion_multiply(*quaternion, IMUAngle::quaternion_conjugate(*reference_quaternion));	//處理參考四元數
+
+					/* 處理加速度 */
+					acceleration_quaternion->wquaternion = 0;						//設置加速度四元數
+					acceleration_quaternion->xquaternion = wit_data.xacceleration;
+					acceleration_quaternion->yquaternion = wit_data.yacceleration;
+					acceleration_quaternion->zquaternion = wit_data.zacceleration;
+
+					witDataQuaternion acceleration_world_quaternion = IMUAngle::quaternion_multiply(IMUAngle::quaternion_multiply(*reference_quaternion, *acceleration_quaternion),IMUAngle::quaternion_conjugate(*reference_quaternion));	//計算加速度四元數
+					acceleration->xacceleration = acceleration_world_quaternion.xquaternion;	//設置加速度
+					acceleration->yacceleration = acceleration_world_quaternion.yquaternion;
+					acceleration->zacceleration = acceleration_world_quaternion.zquaternion;
 				}
 				break;
 			default:

@@ -60,6 +60,13 @@ typedef struct
 	double zquaternion;
 } witDataQuaternion;
 
+typedef struct
+{
+	double xacceleration;			//加速度
+	double yacceleration;
+	double zacceleration;
+} witDataAcceleration;
+
 class wit
 {
 private:
