@@ -23,6 +23,14 @@
 
 typedef struct
 {
+	witDataAngle relative_angle;	//角度差
+	witDataAcceleration witEyes_acceleration;	//眼睛加速度
+	witDataAcceleration witHead_acceleration;	//頭部加速度
+} witPProcessingData;	//wit處理數據結構體
+
+
+typedef struct
+{
 	uint8_t R;
 	double zetaR;
 	double omega_nR;
@@ -99,6 +107,7 @@ void taskWitGetData(void *arg)
 void taskWitPProcessingData(void *arg)
 {
 	witData wit_data;						//wit數據結構體
+	witPProcessingData result;				//處理數據結構體結果
 
 	witDataQuaternion witEyes_reference_quaternion;		//眼睛参考四元數
 	witDataQuaternion witHead_reference_quaternion;		//頭部参考四元數
@@ -205,7 +214,12 @@ void taskWitPProcessingData(void *arg)
 		{
 			relative_quaternion = IMUAngle::quaternion_multiply(witEyes_quaternion, IMUAngle::quaternion_conjugate(witHead_quaternion));	//計算眼睛和頭部的四元數差值
 			relative_angle = IMUAngle::quaternion_to_euler(relative_quaternion);	//計算眼睛和頭部的角度差值
-			xQueueSend(wit_data_relative_angle_quene, &relative_angle, 0);	//從佇列中獲取數據
+
+			/* 數據推送 */
+			result.relative_angle = relative_angle;	//設置角度差
+			result.witEyes_acceleration = witEyes_acceleration;	//設置眼睛加速度
+			result.witHead_acceleration = witHead_acceleration;	//設置頭部加速度
+			xQueueSend(wit_data_relative_angle_quene, &result, 0);	//從佇列中獲取數據
 		}
 	}
 }
@@ -247,7 +261,7 @@ void taskGC9A01(void *arg)
 /* 眼睛移動 */
 void taskEyesMove(void *arg)
 {
-	witDataAngle witEyes_data;	//眼睛數據結構體
+	witPProcessingData wit_data_get;	//眼睛數據結構體
 	int8_t eyes_x = 0;
 	int8_t eyes_y = 0;
 
@@ -255,34 +269,34 @@ void taskEyesMove(void *arg)
 	eyesmove.eyesMove_init();	//初始化眼睛
 	while (1)
 	{
-		if(xQueueReceive(wit_data_relative_angle_quene, &witEyes_data, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
+		if(xQueueReceive(wit_data_relative_angle_quene, &wit_data_get, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
 		{
 
 			/* x角度範圍 */
-			if(witEyes_data.zangle < -15 && witEyes_data.zangle > 15)
+			if(wit_data_get.relative_angle.zangle < -15 && wit_data_get.relative_angle.zangle > 15)
 			{
 				eyes_x = 0;
 			}
-			else if(witEyes_data.zangle > 15 && witEyes_data.zangle < 60)
+			else if(wit_data_get.relative_angle.zangle > 15 && wit_data_get.relative_angle.zangle < 60)
 			{
-				eyes_x = map(witEyes_data.zangle, 15, 60, -0, -35);
+				eyes_x = map(wit_data_get.relative_angle.zangle, 15, 60, -0, -35);
 			}
-			else if(witEyes_data.zangle < -15 && witEyes_data.zangle > -60)
+			else if(wit_data_get.relative_angle.zangle < -15 && wit_data_get.relative_angle.zangle > -60)
 			{
-				eyes_x = map(witEyes_data.zangle, -15, -60, 0, 35);
+				eyes_x = map(wit_data_get.relative_angle.zangle, -15, -60, 0, 35);
 			}
-			else if(witEyes_data.zangle > 60)
+			else if(wit_data_get.relative_angle.zangle > 60)
 			{
 				eyes_x = -35;
 			}
-			else if(witEyes_data.zangle < -60)
+			else if(wit_data_get.relative_angle.zangle < -60)
 			{
 				eyes_x = 35;
 			}
 
 
 			/* y角度範圍 */
-			double *y_angle = (double *)(abs(witEyes_data.yangle) > abs(witEyes_data.xangle) ? &witEyes_data.yangle : &witEyes_data.xangle);	//獲取y角度
+			double *y_angle = (double *)(abs(wit_data_get.relative_angle.yangle) > abs(wit_data_get.relative_angle.xangle) ? &wit_data_get.relative_angle.yangle : &wit_data_get.relative_angle.xangle);	//獲取y角度
 			if(*y_angle < -10 && *y_angle > 10)
 			{
 				eyes_y = 0;
@@ -330,7 +344,7 @@ void setup()
 			vTaskDelay(1000);
 		}
 	}
-	wit_data_relative_angle_quene = xQueueCreate(10, sizeof(witDataAngle));	//建立佇列，長度10，大小為witDataAngle結構體大小
+	wit_data_relative_angle_quene = xQueueCreate(10, sizeof(witPProcessingData));	//建立佇列，長度10，大小為witDataAngle結構體大小
 	if (wit_data_relative_angle_quene == NULL)	//佇列建立失敗
 	{
 		Serial.println("wit_data_diff quene create error");
