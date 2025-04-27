@@ -25,17 +25,17 @@ void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_a
 	{
 	upper_eyelid_angle = 100;
 	}
-	else if(upper_eyelid_angle > 180)
+	else if(upper_eyelid_angle > 175)
 	{
-		upper_eyelid_angle = 180;
+		upper_eyelid_angle = 175;
 	}
-	if(lower_eyelid_angle < 15)
+	if(lower_eyelid_angle < 35)
 	{
 		lower_eyelid_angle = 35;
 	}
-	else if(lower_eyelid_angle > 115)
+	else if(lower_eyelid_angle > 90)
 	{
-		lower_eyelid_angle = 115;
+		lower_eyelid_angle = 90;
 	}
 	if(eyeball_angle < 55)
 	{
@@ -52,64 +52,42 @@ void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_a
 
 void eyesMove::eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle)
 {
-	/* 角度輸入超限更正 */
+	/* 眼睛張開輸入超限更正 */
 	if(eyelid_angle < 0)
 	{
 		eyelid_angle = 0;
 	}
-	else if(eyelid_angle > 96)
+	else if(eyelid_angle > 75)
 	{
-		eyelid_angle = 96;
+		eyelid_angle = 75;
 	}
-	if(x_angle < -35)
+	
+	/* y輸入超限更正 */
+	if(eyelid_angle <= 37 && abs(y_angle) > eyelid_angle)
 	{
-		x_angle = -35;
+		y_angle = (y_angle > 0) ? eyelid_angle : -eyelid_angle;
 	}
-	else if(x_angle > 35)
+	else if(eyelid_angle > 37 && abs(y_angle) > abs(eyelid_angle - 75))
 	{
-		x_angle = 35;
-	}
-	if(y_angle < -50)
-	{
-		y_angle = -50;
-	}
-	else if(y_angle > 50)
-	{
-		y_angle = 50;
+		y_angle = (y_angle > 0) ? abs(eyelid_angle - 75) : -abs(eyelid_angle - 75);
 	}
 
-	uint8_t upper_eyelid_angle;
-	int8_t lower_eyelid_angle;
-	int8_t eyeball_angle = map(x_angle, -35, 35, 55, 125);
-
-	if(eyelid_angle <= 48)
+	/* x輸入超限更正 */
+	if(x_angle < -55)
 	{
-		y_angle = map(y_angle, 50, -50, eyelid_angle/2, -eyelid_angle/2);
+		x_angle = -55;
 	}
-	else
+	else if(x_angle > 55)
 	{
-		y_angle = map(y_angle, 50, -50, (96-eyelid_angle)/2, (-96+eyelid_angle)/2);
-	}
-	lower_eyelid_angle = y_angle - eyelid_angle/2;
-	upper_eyelid_angle = y_angle + eyelid_angle/2;
-
-	lower_eyelid_angle = y_angle - eyelid_angle/2;
-	upper_eyelid_angle = y_angle + eyelid_angle/2;
-
-	if (lower_eyelid_angle < -48)
-	{
-		lower_eyelid_angle = -48;
-	}
-	if (upper_eyelid_angle > 48)
-	{
-		upper_eyelid_angle = 48;
+		x_angle = 55;
 	}
 
-	lower_eyelid_angle =map(lower_eyelid_angle, 0, -48, 35, 115);
-	upper_eyelid_angle =map(upper_eyelid_angle, 0, 48, 180, 100);
+	/* 眼皮輸出角度确定 */
+	uint8_t upper_eyelid_angle = 175 - eyelid_angle - y_angle;						//上眼皮角度
+	uint8_t lower_eyelid_angle = 35 + eyelid_angle - map(y_angle, 0, 75, 0, 55);	//下眼皮角度
+	uint8_t eyeball_angle = 90 + x_angle;											//眼球角度
 
-	upper_eyelid_servo.write(upper_eyelid_angle);
-	lower_eyelid_servo.write(lower_eyelid_angle);
-	eyeball_servo.write(eyeball_angle);
+	/* 眼皮輸出 */
+	eyesMove_servo(upper_eyelid_angle, lower_eyelid_angle, eyeball_angle);	//設置眼皮角度
 
 }
