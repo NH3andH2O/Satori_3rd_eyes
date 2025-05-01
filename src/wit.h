@@ -69,31 +69,31 @@ typedef struct
 
 class wit
 {
-private:
+	private:
 
-	/* 協議 */
-	const uint8_t WIT_UNLOCK[5] = {0XFF, 0XAA, 0X69, 0X88, 0XB5,};	//解鎖協議
+		/* 協議 */
+		const uint8_t WIT_UNLOCK[5] = {0XFF, 0XAA, 0X69, 0X88, 0XB5,};	//解鎖協議
 
-	/* 計時器 */
-	const uint16_t initTimeout = 10000;	//初始化超時時間
-	const uint16_t dataTimeout = 10;	//數據超時時間
+		/* 計時器 */
+		const uint16_t initTimeout = 10000;	//初始化超時時間
+		const uint16_t dataTimeout = 10;	//數據超時時間
 
-	/* 參數變數 */
-	uint8_t serialPort;
-	uint8_t rxPin;
-	uint8_t txPin;
-	uint32_t baudRate;
+		/* 參數變數 */
+		uint8_t serialPort;
+		uint8_t rxPin;
+		uint8_t txPin;
+		uint32_t baudRate;
 
-	/* Serial端口指標 */
-	HardwareSerial* hwSerial = NULL;
+		/* Serial端口指標 */
+		HardwareSerial* hwSerial = NULL;
 
-public:
+	public:
 
-	wit(uint8_t serialPort, uint8_t rxPin, uint8_t txPin, uint32_t baudRate);
-	int8_t wit_init();			//初始化Wit模組
-	witData wit_get_data();		//獲取數據
-	void wit_flush();			//清除數據
-	uint8_t wit_serial_get();	//獲取Serial端口
+		wit(uint8_t serialPort, uint8_t rxPin, uint8_t txPin, uint32_t baudRate);
+		int8_t wit_init();			//初始化Wit模組
+		witData wit_get_data();		//獲取數據
+		void wit_flush();			//清除數據
+		uint8_t wit_serial_get();	//獲取Serial端口
 };
 
 #endif
