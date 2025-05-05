@@ -220,6 +220,7 @@ void taskWitPProcessingData(void *arg)
 			result.witEyes_acceleration = witEyes_acceleration;	//設置眼睛加速度
 			result.witHead_acceleration = witHead_acceleration;	//設置頭部加速度
 			xQueueSend(wit_data_relative_angle_quene, &result, 0);	//從佇列中獲取數據
+			//Serial.printf("witEyes:%f\r\n", result.relative_angle.zangle);	//打印眼睛四元數
 		}
 	}
 }
@@ -267,61 +268,25 @@ void taskEyesMove(void *arg)
 
 	/* 初始化眼睛 */
 	eyesmove.eyesMove_init();	//初始化眼睛
+	eyesmove.eyesMove_angle_pid(4.0, 0.2, 0.25);
 	while (1)
 	{
 		if(xQueueReceive(wit_data_relative_angle_quene, &wit_data_get, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
 		{
 
 			/* x角度範圍 */
-			if(wit_data_get.relative_angle.zangle < -15 && wit_data_get.relative_angle.zangle > 15)
-			{
-				eyes_x = 0;
-			}
-			else if(wit_data_get.relative_angle.zangle > 15 && wit_data_get.relative_angle.zangle < 60)
-			{
-				eyes_x = map(wit_data_get.relative_angle.zangle, 15, 60, -0, -35);
-			}
-			else if(wit_data_get.relative_angle.zangle < -15 && wit_data_get.relative_angle.zangle > -60)
-			{
-				eyes_x = map(wit_data_get.relative_angle.zangle, -15, -60, 0, 35);
-			}
-			else if(wit_data_get.relative_angle.zangle > 60)
-			{
-				eyes_x = -35;
-			}
-			else if(wit_data_get.relative_angle.zangle < -60)
-			{
-				eyes_x = 35;
-			}
+			eyes_x = map(constrain(wit_data_get.relative_angle.zangle, -60, 60), 60, -60, 55, -55);	//將z角度映射到-55到55之間
 
 
 			/* y角度範圍 */
 			double *y_angle = (double *)(abs(wit_data_get.relative_angle.yangle) > abs(wit_data_get.relative_angle.xangle) ? &wit_data_get.relative_angle.yangle : &wit_data_get.relative_angle.xangle);	//獲取y角度
-			if(*y_angle < -10 && *y_angle > 10)
-			{
-				eyes_y = 0;
-			}
-			else if(*y_angle > 10 && *y_angle < 50)
-			{
-				eyes_y = map(*y_angle, 10, 50, 0, 50);
-			}
-			else if(*y_angle < -10 && *y_angle > -50)
-			{
-				eyes_y = map(*y_angle, -10, -50, 0, -50);
-			}
-			else if(*y_angle > 50)
-			{
-				eyes_y = 50;
-			}
-			else if(*y_angle < -50)
-			{
-				eyes_y = -50;
-			}
+			eyes_y = map(constrain(*y_angle, -30, 30), 30, -30, 20, -20);	//將y角度映射到-80到80之間
 
-
-
-			eyesmove.eyesMove_angle(60, eyes_x, eyes_y);	//設置眼睛角度
+			/* 設置眼睛角度 */
+			eyesmove.eyesMove_angle_set(45, eyes_x, eyes_y);	//設置眼睛角度
 		}
+		eyesmove.eyesMove_update();	//更新眼睛
+		vTaskDelay(1);
 	}
 }
 
