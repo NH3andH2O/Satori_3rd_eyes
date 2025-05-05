@@ -13,9 +13,11 @@ void eyesMove::eyesMove_init()
 	lower_eyelid_servo.attach(lower_eyelid_pin);
 	eyeball_servo.attach(eyeball_pin);
 
-	upper_eyelid_servo.write(110);
-	lower_eyelid_servo.write(95);
-	eyeball_servo.write(90);
+	pid_eyelid_angle.set_pid(Kp, Ki, Kd);	//設置眼睛張開角度pid
+	pid_x_angle.set_pid(Kp, Ki, Kd);		//設置x角度pid
+	pid_y_angle.set_pid(Kp, Ki, Kd);		//設置y角度pid
+
+	eyesMove_angle(0, 0, 0);	//設置眼睛角度
 }
 
 void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_angle, uint8_t eyeball_angle)
@@ -93,4 +95,66 @@ void eyesMove::eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angl
 	/* 眼皮輸出 */
 	eyesMove_servo(upper_eyelid_angle, lower_eyelid_angle, eyeball_angle);	//設置眼皮角度
 
+}
+
+void eyesMove::eyesMove_angle_set(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle)
+{
+	this->target_eyelid_angle = eyelid_angle;	//設置眼睛張開角度
+	this->target_x_angle = x_angle;				//設置x角度
+	this->target_y_angle = y_angle;				//設置y角度
+}
+
+void eyesMove::eyesMove_angle_pid(double kp, double ki, double kd)
+{
+	/* 更新pid */
+	this->Kp = kp;	//設置比例增益
+	this->Ki = ki;	//設置積分增益
+	this->Kd = kd;	//設置微分增益
+
+	/* 重置pid */
+	this->pid_eyelid_angle.reset();	//重置眼睛張開角度pid
+	this->pid_x_angle.reset();		//重置x角度pid
+	this->pid_y_angle.reset();		//重置y角度pid
+
+	/* 更新時間 */
+	this->lastUpdate = xTaskGetTickCount();
+
+	/* 設置pid */
+	this->pid_eyelid_angle.set_pid(this->Kp, this->Ki, this->Kd);	//設置眼睛張開角度pid
+	this->pid_x_angle.set_pid(this->Kp, this->Ki, this->Kd);		//設置x角度pid
+	this->pid_y_angle.set_pid(this->Kp, this->Ki, this->Kd);		//設置y角度pid
+
+
+}
+
+void eyesMove::eyesMove_update()
+{
+	/* 獲取時間差 */
+	u_int64_t now = xTaskGetTickCount();			//當前時間
+	double dt = (now - this->lastUpdate) / 1000.0;	//時間差
+	if(dt >= 0.02)
+	{
+		this->lastUpdate = now;						//更新時間
+
+		/* 时间过久重置pid */
+		if(dt > 0.4)
+		{
+			this->pid_eyelid_angle.reset();
+			this->pid_x_angle.reset();
+			this->pid_y_angle.reset();
+		}
+
+		/* 更新角度 */
+		this->eyelid_angle = this->pid_eyelid_angle.compute(this->target_eyelid_angle, this->eyelid_angle, dt);	//計算眼睛張開角度pid
+		this->x_angle = this->pid_x_angle.compute(this->target_x_angle, this->x_angle, dt);	//計算x角度pid
+		this->y_angle = this->pid_y_angle.compute(this->target_y_angle, this->y_angle, dt);	//計算y角度pi
+
+		/* 檢查角度墻 */
+		this->eyelid_angle_int = round(constrain(this->eyelid_angle,(double)0, (double)80));	//眼睛張開角度整數化
+		this->x_angle_int = round(constrain(this->x_angle, (double)-55, (double)55));			//x角度整數化
+		this->y_angle_int = round(constrain(this->y_angle, (double)-80, (double)80));			//y角度整數化
+
+		/* 設置眼睛角度 */
+		this->eyesMove_angle(this->eyelid_angle_int, this->x_angle_int, this->y_angle_int);	//設置眼睛角度
+	}
 }
