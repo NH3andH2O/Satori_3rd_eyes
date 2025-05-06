@@ -130,18 +130,7 @@ uint8_t GC9A01::GC9A01_update()
 		}
 
 		/* 設置眼睛防撞墻 */
-		if(this->eyesR < 0)
-		{
-			this->int_eyesR = 0;
-		}
-		else if(this->eyesR > this->maxEyesR)
-		{
-			this->int_eyesR = this->maxEyesR;
-		}
-		else
-		{
-			this->int_eyesR = round(this->eyesR);
-		}
+		this->int_eyesR = round(constrain(this->eyesR, (double)0, (double)this->maxEyesR));	//眼睛半徑整數化
 	}
 
 	/* 控制光暈動態效果 */
@@ -166,18 +155,7 @@ uint8_t GC9A01::GC9A01_update()
 		}
 
 		/* 設置光暈防撞墻 */
-		if(this->lightMax < 0)
-		{
-			this->int_lightMax = 0;
-		}
-		else if(this->lightMax > 255)
-		{
-			this->int_lightMax = 255;
-		}
-		else
-		{
-			this->int_lightMax = round(this->lightMax);
-		}
+		this->int_lightMax = round(constrain(this->lightMax, (double)0, (double)255));	//光暈最大值整數化
 	}
 
 	/* 控制光暈 */
