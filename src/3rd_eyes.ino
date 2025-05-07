@@ -21,13 +21,16 @@
 #define GC9A01_SCL_PIN 17	//GC9A01時鐘引脚
 #define GC9A01_SDA_PIN 16	//GC9A01數據引脚
 
+/* 函數宣告 */
+void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType);	//佇列創建
+
+/* 結構體定義 */
 typedef struct
 {
 	witDataAngle relative_angle;	//角度差
 	witDataAcceleration witEyes_acceleration;	//眼睛加速度
 	witDataAcceleration witHead_acceleration;	//頭部加速度
 } witPProcessingData;	//wit處理數據結構體
-
 
 typedef struct
 {
@@ -39,6 +42,14 @@ typedef struct
 	double omega_nLightMax;
 } GC9A01_data;	//GC9A01數據結構體
 
+typedef struct
+{
+	uint8_t eyelid_angle;	//眼睛張開角度
+	uint8_t x_angle;		//x角度
+	uint8_t y_angle;		//y角度
+} eyesMove_data;	//眼睛數據結構體
+
+/* 結構體宣告 */
 eyesMove eyesmove(UPPER_EYELID_PIN, LOWER_EYELID_PIN, EYEBALL_PIN);
 
 wit witEyes(SERIAL1, witEyes_RX_PIN, witEyes_TX_PIN, 115200);	//wit眼睛模組
@@ -49,21 +60,23 @@ GC9A01 gc9a01(GC9A01_SDA_PIN, GC9A01_SCL_PIN, GC9A01_CS_PIN, GC9A01_DC_PIN, GC9A
 witData witEyes_data;	//wit眼睛數據結構體
 witData witHead_data;	//wit頭部數據結構體
 
-QueueHandle_t wit_data_quene; //宣告wit原始佇列
-QueueHandle_t wit_data_relative_angle_quene; //宣告wit差值佇列
-QueueHandle_t gc9a01_data_quene; //宣告GC9A01佇列
+/* 佇列宣告 */
+QueueHandle_t wit_data_quene; 					//宣告wit原始佇列
+QueueHandle_t wit_data_relative_angle_quene;	//宣告wit差值佇列
+QueueHandle_t eyesmove_data_quene;				//宣告眼睛數據佇列
+QueueHandle_t gc9a01_data_quene;				//宣告GC9A01佇列
 
 /* 任務參照 */
-TaskHandle_t taskWitEyesGetData_hamdle;	//獲取wit眼睛數據任務
-TaskHandle_t taskWitHeadGetData_hamdle;	//獲取wit頭部數據任務
+TaskHandle_t taskWitEyesGetData_hamdle;		//獲取wit眼睛數據任務
+TaskHandle_t taskWitHeadGetData_hamdle;		//獲取wit頭部數據任務
 TaskHandle_t taskWitPProcessingData_hamdle;	//處理wit數據任務
-TaskHandle_t taskGC9A01_hamdle;	//GC9A01任務
-TaskHandle_t taskEyesMove_hamdle;	//眼睛任務
+TaskHandle_t taskGC9A01_hamdle;				//GC9A01任務
+TaskHandle_t taskEyesMove_hamdle;			//眼睛任務
 
 /* 獲取wit數據任務 */
 void taskWitGetData(void *arg)
 {
-	witData wit_data;	//wit數據結構體
+	witData wit_data;			//wit數據結構體
 	wit *myWit = (wit *)arg;	//獲取wit數據
 
 	uint8_t serialPort = myWit->wit_serial_get();	//獲取Serial端口
@@ -220,7 +233,6 @@ void taskWitPProcessingData(void *arg)
 			result.witEyes_acceleration = witEyes_acceleration;	//設置眼睛加速度
 			result.witHead_acceleration = witHead_acceleration;	//設置頭部加速度
 			xQueueSend(wit_data_relative_angle_quene, &result, 0);	//從佇列中獲取數據
-			//Serial.printf("witEyes:%f\r\n", result.relative_angle.zangle);	//打印眼睛四元數
 		}
 	}
 }
@@ -277,7 +289,6 @@ void taskEyesMove(void *arg)
 			/* x角度範圍 */
 			eyes_x = map(constrain(wit_data_get.relative_angle.zangle, -60, 60), 60, -60, 55, -55);	//將z角度映射到-55到55之間
 
-
 			/* y角度範圍 */
 			double *y_angle = (double *)(abs(wit_data_get.relative_angle.yangle) > abs(wit_data_get.relative_angle.xangle) ? &wit_data_get.relative_angle.yangle : &wit_data_get.relative_angle.xangle);	//獲取y角度
 			eyes_y = map(constrain(*y_angle, -30, 30), 30, -30, 20, -20);	//將y角度映射到-80到80之間
@@ -300,36 +311,17 @@ void setup()
 
 	/* 佇列建立 */
 	Serial.println("quene create...");	//打印佇列建立狀態
-	wit_data_quene = xQueueCreate(10, sizeof(witData));				//建立佇列，長度10，大小為witData結構體大小
-	if (wit_data_quene == NULL)			//佇列建立失敗
-	{
-		Serial.println("wit_data quene create error");
-		while (2)
-		{
-			vTaskDelay(1000);
-		}
-	}
-	wit_data_relative_angle_quene = xQueueCreate(10, sizeof(witPProcessingData));	//建立佇列，長度10，大小為witDataAngle結構體大小
-	if (wit_data_relative_angle_quene == NULL)	//佇列建立失敗
-	{
-		Serial.println("wit_data_diff quene create error");
-		while (2)
-		{
-			vTaskDelay(1000);
-		}
-	}
-	gc9a01_data_quene = xQueueCreate(10, sizeof(GC9A01_data));	//建立佇列，長度10，大小為GC9A01_data結構體大小
-	if (gc9a01_data_quene == NULL)	//佇列建立失敗
-	{
-		Serial.println("gc9a01_data quene create error");
-		while (2)
-		{
-			vTaskDelay(1000);
-		}
-	}
+
+	queueCreate(&wit_data_quene, 10, sizeof(witData));								//witData結構體佇列
+	queueCreate(&wit_data_relative_angle_quene, 10, sizeof(witPProcessingData));	//witPProcessingData結構體佇列
+	queueCreate(&eyesmove_data_quene, 10, sizeof(eyesMove_data));					//eyesMove_data結構體佇列
+	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));						//GC9A01_data結構體佇列
+
 	Serial.println("quene create success");	//打印佇列建立成功狀態
 
 	Serial.println("wit init...");	//打印初始化狀態
+
+	/* 任務建立 */
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle, 1);	//創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1);	//創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1);	//創建數據處理任務
@@ -340,4 +332,20 @@ void setup()
 void loop()
 {
 	vTaskDelay(1000);
+}
+
+void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
+{
+	/* 佇列建立 */
+	*quene = xQueueCreate(queneSize, queneType);
+
+	/* 佇列建立失敗 */
+	if (*quene == NULL)	
+	{
+		Serial.println("quene create error");
+		while (2)
+		{
+			vTaskDelay(1000);
+		}
+	}
 }
