@@ -19,7 +19,7 @@ void LGFX_GC9A01::LGFX_GC9A01_config(uint8_t MOSIPin, uint8_t SCLKPin, uint8_t C
 	bus_config.pin_mosi = MOSIPin;		//設置MOSI引脚
 	bus_config.pin_miso = -1;			//設置MISO引脚
 	bus_config.dma_channel = 1;			//設置DMA通道
-	bus.config(bus_config);	//設置SPI總線配置
+	bus.config(bus_config);				//設置SPI總線配置
 
 	panel_config.pin_cs = CSPin;		//設置CS引脚
 	panel_config.pin_rst = RSTPin;		//設置RST引脚
@@ -58,14 +58,14 @@ GC9A01::GC9A01(uint8_t MOSIPin, uint8_t SCLKPin, uint8_t CSPin, uint8_t DCPin, u
 
 void GC9A01::GC9A01_init()
 {
-	myLGFX.LGFX_GC9A01_config(this->MOSIPin, this->SCLKPin, this->CSPin, this->DCPin, this->RSTPin, this->BLPin);	
-	myLGFX.setBrightness(255);	//設置亮度
-	myLGFX.init();			//初始化
+	this->myLGFX.LGFX_GC9A01_config(this->MOSIPin, this->SCLKPin, this->CSPin, this->DCPin, this->RSTPin, this->BLPin);	
+	this->myLGFX.setBrightness(255);	//設置亮度
+	this->myLGFX.init();				//初始化
 
-	mySprite.setColorDepth(16);			//設置顏色深度
-	mySprite.createSprite(240, 240);
+	this->mySprite.setColorDepth(16);			//設置顏色深度
+	this->mySprite.createSprite(240, 240);
 
-	myLGFX.fillScreen(myLGFX.color565(0, 0, 0));
+	this->myLGFX.fillScreen(this->myLGFX.color565(0, 0, 0));
 }
 
 void GC9A01::GC9A01_setEyes_r(uint8_t target_eyesR, double zeta = -1.0, double omega_n = -1.0)
@@ -106,12 +106,12 @@ void GC9A01::GC9A01_setEyes_lightMax(uint8_t lightMax, double zeta = -1.0, doubl
 
 uint8_t GC9A01::GC9A01_update()
 {
-	mySprite.fillScreen(myLGFX.color565(0, 0, 0));	//清屏
+	this->mySprite.fillScreen(this->myLGFX.color565(0, 0, 0));	//清屏
 
 	/* 控制眼睛动态效果 */
 	if(this->lastChange_eyesR < lastChangeMax)
 	{
-		uint64_t now = xTaskGetTickCount();		//獲取當前時間
+		uint64_t now = xTaskGetTickCount();						//獲取當前時間
 		double dt = (now - this->lastUpdate_eyesR) / 1000.0;	//計算時間差
 		if(dt > 0.001)
 		{
@@ -166,10 +166,10 @@ uint8_t GC9A01::GC9A01_update()
 		ratio = pow(ratio, 2.5); 				// 控制「靠近邊緣時下降更快」
 
 		uint8_t red = (uint8_t)(this->int_lightMax * (1.0 - ratio));
-		mySprite.fillCircle(120, 124, i, myLGFX.color565(red, 0, 0));	//画光环
+		this->mySprite.fillCircle(120, 124, i, this->myLGFX.color565(red, 0, 0));	//画光环
 	}
-	mySprite.fillCircle(120, 124, this->int_eyesR, myLGFX.color565(0, 0, 0));	//畫眼睛
-	mySprite.pushSprite(&myLGFX, 0, 0);	//推送精靈
+	this->mySprite.fillCircle(120, 124, this->int_eyesR, this->myLGFX.color565(0, 0, 0));	//畫眼睛
+	this->mySprite.pushSprite(&this->myLGFX, 0, 0);	//推送
 
 	/* 返回是否更新完成 */
 	if(this->lastChange_eyesR < this->lastChangeMax || this->lastChange_lightMax < this->lastChangeMax)	//如果沒達到目標值
@@ -184,8 +184,8 @@ uint8_t GC9A01::GC9A01_update()
 
 GC9A01GetData GC9A01::GC9A01_get_data()
 {
-	GC9A01GetData gc9a01_data;	//GC9A01數據結構體
-	gc9a01_data.R = this->int_eyesR;	//獲取眼睛半徑
+	GC9A01GetData gc9a01_data;					//GC9A01數據結構體
+	gc9a01_data.R = this->int_eyesR;			//獲取眼睛半徑
 	gc9a01_data.lightMax = this->int_lightMax;	//獲取光暈最大值
-	return gc9a01_data;	//返回GC9A01數據結構體
+	return gc9a01_data;							//返回GC9A01數據結構體
 }

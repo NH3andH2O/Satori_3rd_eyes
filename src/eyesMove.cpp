@@ -24,76 +24,41 @@ void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_a
 {
 
 	/* 角度輸入超限更正 */
-	if(upper_eyelid_angle < UPPER_EYELID_ANGLE_MIN)
-	{
-	upper_eyelid_angle = UPPER_EYELID_ANGLE_MIN;
-	}
-	else if(upper_eyelid_angle > UPPER_EYELID_ANGLE_MAX)
-	{
-		upper_eyelid_angle = UPPER_EYELID_ANGLE_MAX;
-	}
-	if(lower_eyelid_angle < LOWER_EYELID_ANGLE_MIN)
-	{
-		lower_eyelid_angle = LOWER_EYELID_ANGLE_MIN;
-	}
-	else if(lower_eyelid_angle > LOWER_EYELID_ANGLE_MAX)
-	{
-		lower_eyelid_angle = LOWER_EYELID_ANGLE_MAX;
-	}
-	if(eyeball_angle < EYEBALL_ANGLE_MIN)
-	{
-		eyeball_angle = EYEBALL_ANGLE_MIN;
-	}
-	else if(eyeball_angle > EYEBALL_ANGLE_MAX)
-	{
-		eyeball_angle = EYEBALL_ANGLE_MAX;
-	}
+	upper_eyelid_angle = constrain(upper_eyelid_angle, this->UPPER_EYELID_ANGLE_MIN, this->UPPER_EYELID_ANGLE_MAX);	//上眼皮角度
+	lower_eyelid_angle = constrain(lower_eyelid_angle, this->LOWER_EYELID_ANGLE_MIN, this->LOWER_EYELID_ANGLE_MAX);	//下眼皮角度
+	eyeball_angle = constrain(eyeball_angle, this->EYEBALL_ANGLE_MIN, this->EYEBALL_ANGLE_MAX);						//眼球角度
 
 	/* 眼皮輸出 */
-	upper_eyelid_servo.write(upper_eyelid_angle);
-	lower_eyelid_servo.write(lower_eyelid_angle);
-	eyeball_servo.write(eyeball_angle);
+	this->upper_eyelid_servo.write(upper_eyelid_angle);
+	this->lower_eyelid_servo.write(lower_eyelid_angle);
+	this->eyeball_servo.write(eyeball_angle);
 }
 
 void eyesMove::eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle)
 {
 	/* 眼睛張開輸入超限更正 */
-	if(eyelid_angle < 0)
-	{
-		eyelid_angle = 0;
-	}
-	else if(eyelid_angle > 80)
-	{
-		eyelid_angle = 80;
-	}
+	eyelid_angle = constrain(eyelid_angle, 0, 80);	//眼睛張開角度
 	
 	/* y輸入超限更正 */
-	if(eyelid_angle <= 80 && abs(y_angle) > eyelid_angle)
+	if(eyelid_angle <= 40 && abs(y_angle) > eyelid_angle)
 	{
 		y_angle = (y_angle > 0) ? eyelid_angle : -eyelid_angle;
 	}
-	else if(eyelid_angle > 80 && abs(y_angle) > abs(eyelid_angle - 80))
+	else if(eyelid_angle > 40 && abs(y_angle) > abs(eyelid_angle - 80))
 	{
 		y_angle = (y_angle > 0) ? abs(eyelid_angle - 80) : -abs(eyelid_angle - 80);
 	}
 
 	/* x輸入超限更正 */
-	if(x_angle < -55)
-	{
-		x_angle = -55;
-	}
-	else if(x_angle > 55)
-	{
-		x_angle = 55;
-	}
+	x_angle = constrain(x_angle, -55, 55);	//x角度
 
 	/* 眼皮輸出角度确定 */
-	uint8_t upper_eyelid_angle = UPPER_EYELID_ANGLE_MAX - eyelid_angle - map(y_angle, 0, 80, 0, UPPER_EYELID_ANGLE_MAX - UPPER_EYELID_ANGLE_MIN);	//上眼皮角度
-	uint8_t lower_eyelid_angle = LOWER_EYELID_ANGLE_MIN + eyelid_angle - map(y_angle, 0, 80, 0, LOWER_EYELID_ANGLE_MAX - LOWER_EYELID_ANGLE_MIN);	//下眼皮角度
-	uint8_t eyeball_angle = (EYEBALL_ANGLE_MAX + EYEBALL_ANGLE_MIN) / 2 + x_angle;											//眼球角度
+	uint8_t upper_eyelid_angle = this->UPPER_EYELID_ANGLE_MAX - eyelid_angle - map(y_angle, 0, 80, 0, this->UPPER_EYELID_ANGLE_MAX - this->UPPER_EYELID_ANGLE_MIN);	//上眼皮角度
+	uint8_t lower_eyelid_angle = this->LOWER_EYELID_ANGLE_MIN + eyelid_angle - map(y_angle, 0, 80, 0, this->LOWER_EYELID_ANGLE_MAX - this->LOWER_EYELID_ANGLE_MIN);	//下眼皮角度
+	uint8_t eyeball_angle = (this->EYEBALL_ANGLE_MAX + this->EYEBALL_ANGLE_MIN) / 2 + x_angle;																		//眼球角度
 
 	/* 眼皮輸出 */
-	eyesMove_servo(upper_eyelid_angle, lower_eyelid_angle, eyeball_angle);	//設置眼皮角度
+	this->eyesMove_servo(upper_eyelid_angle, lower_eyelid_angle, eyeball_angle);	//設置眼皮角度
 
 }
 
@@ -146,8 +111,8 @@ void eyesMove::eyesMove_update()
 
 		/* 更新角度 */
 		this->eyelid_angle = this->pid_eyelid_angle.compute(this->target_eyelid_angle, this->eyelid_angle, dt);	//計算眼睛張開角度pid
-		this->x_angle = this->pid_x_angle.compute(this->target_x_angle, this->x_angle, dt);	//計算x角度pid
-		this->y_angle = this->pid_y_angle.compute(this->target_y_angle, this->y_angle, dt);	//計算y角度pi
+		this->x_angle = this->pid_x_angle.compute(this->target_x_angle, this->x_angle, dt);						//計算x角度pid
+		this->y_angle = this->pid_y_angle.compute(this->target_y_angle, this->y_angle, dt);						//計算y角度pi
 
 		/* 檢查角度墻 */
 		this->eyelid_angle_int = round(constrain(this->eyelid_angle,(double)0, (double)80));	//眼睛張開角度整數化
