@@ -274,29 +274,32 @@ void taskGC9A01(void *arg)
 /* 眼睛移動 */
 void taskEyesMove(void *arg)
 {
-	witPProcessingData wit_data_get;	//眼睛數據結構體
+	eyesMove_data data_get;	//眼睛數據結構體
 	int8_t eyes_x = 0;
 	int8_t eyes_y = 0;
+	uint8_t is_eyesmove_update_finish = 0;	//眼睛更新狀態
 
 	/* 初始化眼睛 */
 	eyesmove.eyesMove_init();	//初始化眼睛
 	eyesmove.eyesMove_angle_pid(4.0, 0.2, 0.25);
 	while (1)
 	{
-		if(xQueueReceive(wit_data_relative_angle_quene, &wit_data_get, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
+		/* 获取数据 */
+		if(is_eyesmove_update_finish)	//如果更新完成
 		{
-
-			/* x角度範圍 */
-			eyes_x = map(constrain(wit_data_get.relative_angle.zangle, -60, 60), 60, -60, 55, -55);	//將z角度映射到-55到55之間
-
-			/* y角度範圍 */
-			double *y_angle = (double *)(abs(wit_data_get.relative_angle.yangle) > abs(wit_data_get.relative_angle.xangle) ? &wit_data_get.relative_angle.yangle : &wit_data_get.relative_angle.xangle);	//獲取y角度
-			eyes_y = map(constrain(*y_angle, -30, 30), 30, -30, 20, -20);	//將y角度映射到-80到80之間
-
-			/* 設置眼睛角度 */
-			eyesmove.eyesMove_angle_set(45, eyes_x, eyes_y);	//設置眼睛角度
+			if(xQueueReceive(eyesmove_data_quene, &data_get, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
+			{
+				eyesmove.eyesMove_angle_set(data_get.eyelid_angle, data_get.x_angle, data_get.y_angle);	//設置眼睛角度
+			}
 		}
-		eyesmove.eyesMove_update();	//更新眼睛
+		else							//沒有完成更新
+		{
+			if(xQueueReceive(eyesmove_data_quene, &data_get, 0) == pdTRUE)	//從佇列中獲取數據
+			{
+				eyesmove.eyesMove_angle_set(45, data_get.x_angle, data_get.y_angle);	//設置眼睛角度
+			}
+		}
+		is_eyesmove_update_finish = eyesmove.eyesMove_update();	//更新眼睛
 		vTaskDelay(1);
 	}
 }

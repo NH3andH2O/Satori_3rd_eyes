@@ -7,6 +7,8 @@
 class eyesMove
 {
 	private:
+		/* 眼睛移動參數 */
+		const uint16_t LASTCHANGEMAX = 500;
 
 		/* 伺服馬達限位 */
 		const uint8_t UPPER_EYELID_ANGLE_MAX = 175;	//上眼皮最大角度
@@ -45,6 +47,11 @@ class eyesMove
 		/* 時間相關 */
 		u_int64_t lastUpdate = 0;			//上次更新時間
 		u_int64_t target_lastUpdate = 0;	//目標上次更新時間
+		u_int64_t lastChange = 0;			//上次變化時間
+
+		/* 更新相關 */
+		u_int8_t isUpdate = 1;				//更新狀態
+
 
 		void eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle);
 		void eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_angle, uint8_t eyeball_angle);
@@ -57,7 +64,7 @@ class eyesMove
 
 		void eyesMove_angle_set(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle);
 		void eyesMove_angle_pid(double kp, double ki, double kd);
-		void eyesMove_update();
+		uint8_t eyesMove_update();
 
 		//初始化眼睛
 		void eyesMove_init();
