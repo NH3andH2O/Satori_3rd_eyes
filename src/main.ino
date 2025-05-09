@@ -45,8 +45,8 @@ typedef struct
 typedef struct
 {
 	uint8_t eyelid_angle;	//眼睛張開角度
-	uint8_t x_angle;		//x角度
-	uint8_t y_angle;		//y角度
+	int8_t x_angle;		//x角度
+	int8_t y_angle;		//y角度
 } eyesMove_data;	//眼睛數據結構體
 
 /* 結構體宣告 */
@@ -70,6 +70,7 @@ QueueHandle_t gc9a01_data_quene;				//宣告GC9A01佇列
 TaskHandle_t taskWitEyesGetData_hamdle;		//獲取wit眼睛數據任務
 TaskHandle_t taskWitHeadGetData_hamdle;		//獲取wit頭部數據任務
 TaskHandle_t taskWitPProcessingData_hamdle;	//處理wit數據任務
+TaskHandle_t taskGyroscopeTracking_hamdle;			//陀螺儀跟蹤任務
 TaskHandle_t taskGC9A01_hamdle;				//GC9A01任務
 TaskHandle_t taskEyesMove_hamdle;			//眼睛任務
 
@@ -229,13 +230,44 @@ void taskWitPProcessingData(void *arg)
 			relative_angle = IMUAngle::quaternion_to_euler(relative_quaternion);	//計算眼睛和頭部的角度差值
 
 			/* 數據推送 */
-			result.relative_angle = relative_angle;	//設置角度差
-			result.witEyes_acceleration = witEyes_acceleration;	//設置眼睛加速度
-			result.witHead_acceleration = witHead_acceleration;	//設置頭部加速度
+			result.relative_angle = relative_angle;					//設置角度差
+			result.witEyes_acceleration = witEyes_acceleration;		//設置眼睛加速度
+			result.witHead_acceleration = witHead_acceleration;		//設置頭部加速度
 			xQueueSend(wit_data_relative_angle_quene, &result, 0);	//從佇列中獲取數據
 		}
 	}
 }
+
+/* 陀螺儀跟蹤模式 */
+void taskGyroscopeTracking(void *arg)
+{
+	witPProcessingData data_get;	//數據接收
+	eyesMove_data angle_data_send;	//角度數據發送
+
+	double eyes_x = 0;				//x角度
+	double eyes_y = 0;				//y角度
+	while (1)
+	{
+		if(xQueueReceive(wit_data_relative_angle_quene, &data_get, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
+		{
+			/* x角度範圍 */
+			eyes_x = map(constrain(data_get.relative_angle.zangle, -60, 60), 60, -60, 55, -55);	//將z角度映射到-55到55之間
+
+			/* y角度範圍 */
+			double *y_angle = (double *)(abs(data_get.relative_angle.yangle) > abs(data_get.relative_angle.xangle) ? &data_get.relative_angle.yangle : &data_get.relative_angle.xangle);	//獲取y角度
+			eyes_y = map(constrain(*y_angle, -30, 30), 30, -30, 25, -25);	//將y角度映射到-80到80之間
+
+			/* 傳遞眼睛角度 */
+			angle_data_send.x_angle = round((int8_t)eyes_x);	//設置x角度
+			angle_data_send.y_angle = round((int8_t)eyes_y);	//設置y角度
+			angle_data_send.eyelid_angle = 45;					//設置眼睛張開角度
+			Serial.printf("x_angle: %d, y_angle: %d\r\n", angle_data_send.x_angle, angle_data_send.y_angle);	//打印眼睛角度
+			xQueueSend(eyesmove_data_quene, &angle_data_send, 0);	//傳遞x角度
+		}
+		vTaskDelay(1);
+	}
+}
+
 
 /* 畫眼睛 */
 void taskGC9A01(void *arg)
@@ -244,15 +276,13 @@ void taskGC9A01(void *arg)
 	gc9a01.GC9A01_init();	//初始化GC9A01
 	gc9a01.GC9A01_setEyes_r(80, 1, 10);	//設置眼睛半徑
 	uint8_t is_GC9A01_update_finish = 0;	//GC9A01更新狀態
+	GC9A01_data gc9a01_data;
 	while (1)
 	{
-
 		/* 獲取GC9A01數據 */
-		GC9A01_data gc9a01_data;
 
 		if(is_GC9A01_update_finish)	//如果更新完成
 		{
-			
 			if(xQueueReceive(gc9a01_data_quene, &gc9a01_data, portMAX_DELAY) == pdTRUE)
 			{
 				gc9a01.GC9A01_setEyes_r(gc9a01_data.R, gc9a01_data.zetaR, gc9a01_data.omega_nR);								//設置眼睛半徑
@@ -330,6 +360,8 @@ void setup()
 	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1);	//創建數據處理任務
 	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 0);		//創建GC9A01任務
 	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 0);	//創建眼睛移動任務
+	xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle, 1);	//創建陀螺儀跟蹤任務
+	
 }
 
 void loop()
