@@ -254,8 +254,7 @@ void taskGyroscopeTracking(void *arg)
 			eyes_x = map(constrain(data_get.relative_angle.zangle, -60, 60), 60, -60, 55, -55);	//將z角度映射到-55到55之間
 
 			/* y角度範圍 */
-			double *y_angle = (double *)(abs(data_get.relative_angle.yangle) > abs(data_get.relative_angle.xangle) ? &data_get.relative_angle.yangle : &data_get.relative_angle.xangle);	//獲取y角度
-			eyes_y = map(constrain(*y_angle, -30, 30), 30, -30, 25, -25);	//將y角度映射到-80到80之間
+			eyes_y = map(constrain(data_get.relative_angle.yangle, -30, 30), 30, -30, 25, -25);	//將y角度映射到-80到80之間
 
 			/* 傳遞眼睛角度 */
 			angle_data_send.x_angle = round((int8_t)eyes_x);	//設置x角度
