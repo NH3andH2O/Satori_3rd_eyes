@@ -62,6 +62,13 @@ typedef struct
 
 typedef struct
 {
+	double xangular_speed;			//角速度
+	double yangular_speed;
+	double zangular_speed;
+} witDataAngularSpeed;
+
+typedef struct
+{
 	double xacceleration;			//加速度
 	double yacceleration;
 	double zacceleration;

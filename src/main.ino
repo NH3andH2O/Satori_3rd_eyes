@@ -27,7 +27,8 @@ void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType);	//
 /* 結構體定義 */
 typedef struct
 {
-	witDataAngle relative_angle;	//角度差
+	witDataAngle relative_angle;				//角度差
+	witDataAngularSpeed relative_angularSpeed;	//角速度差
 	witDataAcceleration witEyes_acceleration;	//眼睛加速度
 	witDataAcceleration witHead_acceleration;	//頭部加速度
 } witPProcessingData;	//wit處理數據結構體
@@ -120,27 +121,35 @@ void taskWitGetData(void *arg)
 /* 處理角度差 */
 void taskWitPProcessingData(void *arg)
 {
-	witData wit_data;						//wit數據結構體
-	witPProcessingData result;				//處理數據結構體結果
+	witData wit_data;			//wit數據結構體
+	witPProcessingData result;	//處理數據結構體結果
 
 	witDataQuaternion witEyes_reference_quaternion;		//眼睛参考四元數
 	witDataQuaternion witHead_reference_quaternion;		//頭部参考四元數
 	witDataQuaternion *reference_quaternion = nullptr;	//參考四元數指標
 
+	witDataQuaternion witEyes_quaternion;		//眼睛四元數
+	witDataQuaternion witHead_quaternion;		//頭部四元數
+	witDataQuaternion *quaternion = nullptr;	//四元數指標
 
-	witDataQuaternion witEyes_quaternion;			//眼睛四元數
-	witDataQuaternion witHead_quaternion;			//頭部四元數
-	witDataQuaternion *quaternion = nullptr;		//四元數指標
+	witDataQuaternion witEyes_angularSpeed_quaternion;			//眼睛角速度四元數
+	witDataQuaternion witHead_angularSpeed_quaternion;			//頭部角速度四元數
+	witDataQuaternion witEyes_angularSpeed_world_quaternion;	//眼睛相對於世界坐標系的四元數
+	witDataQuaternion witHead_angularSpeed_world_quaternion;	//頭部相對於世界坐標系的四元數
+	witDataQuaternion *angularSpeed_quaternion = nullptr;		//角速度四元數指標
+	witDataQuaternion *angularSpeed_world_quaternion = nullptr;	//角速度相對於世界坐標系的四元數
 
-	witDataQuaternion witEyes_acceleration_quaternion;	//眼睛加速度四元數
-	witDataQuaternion witHead_acceleration_quaternion;	//頭部加速度四元數
+	witDataQuaternion witEyes_acceleration_quaternion;		//眼睛加速度四元數
+	witDataQuaternion witHead_acceleration_quaternion;		//頭部加速度四元數
 	witDataQuaternion *acceleration_quaternion = nullptr;	//加速度四元數指標
 
-	witDataQuaternion relative_quaternion;		//眼睛四元數差值
-	witDataAngle relative_angle;
+	witDataQuaternion relative_quaternion;				//眼睛四元數差值
 
-	witDataAcceleration witEyes_acceleration;	//眼睛加速度
-	witDataAcceleration witHead_acceleration;	//頭部加速度
+	witDataAngle relative_angle;				//眼睛角度差值
+	witDataAngularSpeed relative_angularSpeed;	//眼睛角速度差值
+
+	witDataAcceleration witEyes_acceleration;		//眼睛加速度
+	witDataAcceleration witHead_acceleration;		//頭部加速度
 	witDataAcceleration *acceleration = nullptr;	//加速度指標
 
 	uint8_t witEyes_angle_status = 0;	//眼睛角度狀態
@@ -170,24 +179,28 @@ void taskWitPProcessingData(void *arg)
 				/* 眼睛 */
 				if(wit_data.serialPort == SERIAL1)	
 				{
-					reference_quaternion = &witEyes_reference_quaternion;		//設置參考四元數
-					quaternion = &witEyes_quaternion;							//設置四元數
-					angle_status = &witEyes_angle_status;						//設置角度狀態
-					acceleration_quaternion = &witEyes_acceleration_quaternion;	//設置加速度四元數
-					acceleration = &witEyes_acceleration;						//設置加速度
+					reference_quaternion = &witEyes_reference_quaternion;					//設置參考四元數
+					quaternion = &witEyes_quaternion;										//設置四元數
+					angularSpeed_quaternion = &witEyes_angularSpeed_quaternion;				//設置角速度四元數
+					acceleration_quaternion = &witEyes_acceleration_quaternion;				//設置加速度四元數
+					angularSpeed_world_quaternion = &witEyes_angularSpeed_world_quaternion;	//設置角速度相對於世界坐標系的四元數
+					acceleration = &witEyes_acceleration;									//設置加速度
+					angle_status = &witEyes_angle_status;									//設置角度狀態
 				}
 
 				/* 頭部 */
 				else if(wit_data.serialPort == SERIAL2)	
 				{
-					reference_quaternion = &witHead_reference_quaternion;		//設置參考四元數
-					quaternion = &witHead_quaternion;							//設置四元數
-					angle_status = &witHead_angle_status;						//設置角度狀態
-					acceleration_quaternion = &witHead_acceleration_quaternion;	//設置加速度四元數
-					acceleration = &witHead_acceleration;						//設置加速度
+					reference_quaternion = &witHead_reference_quaternion;					//設置參考四元數
+					quaternion = &witHead_quaternion;										//設置四元數
+					angularSpeed_quaternion = &witHead_angularSpeed_quaternion;				//設置角速度四元數
+					acceleration_quaternion = &witHead_acceleration_quaternion;				//設置加速度四元數
+					angularSpeed_world_quaternion = &witHead_angularSpeed_world_quaternion;	//設置角速度相對於世界坐標系的四元數
+					acceleration = &witHead_acceleration;									//設置加速度
+					angle_status = &witHead_angle_status;									//設置角度狀態
 				}
 
-				if(reference_quaternion && quaternion && angle_status && acceleration && acceleration_quaternion)	//防止野指標
+				if(reference_quaternion && quaternion && angle_status && acceleration && acceleration_quaternion && angularSpeed_quaternion && angularSpeed_world_quaternion)	//防止野指標
 				{
 					/* 設置參考角度 */
 					if(*angle_status == 0)
@@ -206,6 +219,14 @@ void taskWitPProcessingData(void *arg)
 					quaternion->zquaternion = wit_data.zquaternion;
 
 					*quaternion = IMUAngle::quaternion_multiply(*quaternion, IMUAngle::quaternion_conjugate(*reference_quaternion));	//處理參考四元數
+
+					/* 處理角速度 */
+					angularSpeed_quaternion->wquaternion = 0;						//設置角速度四元數
+					angularSpeed_quaternion->xquaternion = wit_data.xangular_speed;
+					angularSpeed_quaternion->yquaternion = wit_data.yangular_speed;
+					angularSpeed_quaternion->zquaternion = wit_data.zangular_speed;
+
+					*angularSpeed_world_quaternion = IMUAngle::quaternion_multiply(IMUAngle::quaternion_multiply(*reference_quaternion, *angularSpeed_quaternion),IMUAngle::quaternion_conjugate(*reference_quaternion));	//計算角速度四元數
 
 					/* 處理加速度 */
 					acceleration_quaternion->wquaternion = 0;						//設置加速度四元數
@@ -226,8 +247,15 @@ void taskWitPProcessingData(void *arg)
 		/* 差角計算 */
 		if(witEyes_angle_status == 1 && witHead_angle_status == 1)	//眼睛和頭部數據都獲取完成
 		{
+			/* 角度差 */
 			relative_quaternion = IMUAngle::quaternion_multiply(witEyes_quaternion, IMUAngle::quaternion_conjugate(witHead_quaternion));	//計算眼睛和頭部的四元數差值
 			relative_angle = IMUAngle::quaternion_to_euler(relative_quaternion);	//計算眼睛和頭部的角度差值
+
+			/* 角速度差 */
+			relative_angularSpeed.xangular_speed = witEyes_angularSpeed_quaternion.xquaternion - witHead_angularSpeed_quaternion.xquaternion;	//計算眼睛和頭部的角速度差值
+			relative_angularSpeed.yangular_speed = witEyes_angularSpeed_quaternion.yquaternion - witHead_angularSpeed_quaternion.yquaternion;
+			relative_angularSpeed.zangular_speed = witEyes_angularSpeed_quaternion.zquaternion - witHead_angularSpeed_quaternion.zquaternion;	//計算眼睛和頭部的角速度差值
+			printf("relative_angularSpeed: %f, %f, %f\r\n", relative_angularSpeed.xangular_speed, relative_angularSpeed.yangular_speed, relative_angularSpeed.zangular_speed);	//打印角速度差值
 
 			/* 數據推送 */
 			result.relative_angle = relative_angle;					//設置角度差
@@ -359,7 +387,7 @@ void setup()
 	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1);	//創建數據處理任務
 	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 0);		//創建GC9A01任務
 	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 0);	//創建眼睛移動任務
-	xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle, 1);	//創建陀螺儀跟蹤任務
+	//xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle, 1);	//創建陀螺儀跟蹤任務
 	
 }
 
