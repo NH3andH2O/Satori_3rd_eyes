@@ -255,10 +255,10 @@ void taskWitPProcessingData(void *arg)
 			relative_angularSpeed.xangular_speed = witEyes_angularSpeed_quaternion.xquaternion - witHead_angularSpeed_quaternion.xquaternion;	//計算眼睛和頭部的角速度差值
 			relative_angularSpeed.yangular_speed = witEyes_angularSpeed_quaternion.yquaternion - witHead_angularSpeed_quaternion.yquaternion;
 			relative_angularSpeed.zangular_speed = witEyes_angularSpeed_quaternion.zquaternion - witHead_angularSpeed_quaternion.zquaternion;	//計算眼睛和頭部的角速度差值
-			printf("relative_angularSpeed: %f, %f, %f\r\n", relative_angularSpeed.xangular_speed, relative_angularSpeed.yangular_speed, relative_angularSpeed.zangular_speed);	//打印角速度差值
 
 			/* 數據推送 */
 			result.relative_angle = relative_angle;					//設置角度差
+			result.relative_angularSpeed = relative_angularSpeed;	//設置角速度差
 			result.witEyes_acceleration = witEyes_acceleration;		//設置眼睛加速度
 			result.witHead_acceleration = witHead_acceleration;		//設置頭部加速度
 			xQueueSend(wit_data_relative_angle_quene, &result, 0);	//從佇列中獲取數據
@@ -271,9 +271,14 @@ void taskGyroscopeTracking(void *arg)
 {
 	witPProcessingData data_get;	//數據接收
 	eyesMove_data angle_data_send;	//角度數據發送
+	GC9A01_data gc9a01_data;	//GC9A01數據結構體
+
 
 	double eyes_x = 0;				//x角度
 	double eyes_y = 0;				//y角度
+	double calculate_angularSpeed;	//角速度絕對值
+
+	uint64_t last_move_time[2] = {0, 0};	//上次移動時間
 	while (1)
 	{
 		if(xQueueReceive(wit_data_relative_angle_quene, &data_get, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
@@ -288,8 +293,51 @@ void taskGyroscopeTracking(void *arg)
 			angle_data_send.x_angle = round((int8_t)eyes_x);	//設置x角度
 			angle_data_send.y_angle = round((int8_t)eyes_y);	//設置y角度
 			angle_data_send.eyelid_angle = 45;					//設置眼睛張開角度
-			Serial.printf("x_angle: %d, y_angle: %d\r\n", angle_data_send.x_angle, angle_data_send.y_angle);	//打印眼睛角度
 			xQueueSend(eyesmove_data_quene, &angle_data_send, 0);	//傳遞x角度
+
+			/* 獲取角速度 */ 
+			calculate_angularSpeed = sqrt(pow(data_get.relative_angularSpeed.xangular_speed, 2) + pow(data_get.relative_angularSpeed.yangular_speed, 2) + pow(data_get.relative_angularSpeed.zangular_speed, 2));	//計算角速度
+			if(calculate_angularSpeed > 80)	//如果角速度大於給定值
+			{
+				last_move_time[1] = xTaskGetTickCount();
+				last_move_time[0] = xTaskGetTickCount();
+			}
+			if(calculate_angularSpeed > 40)	
+			{
+				last_move_time[0] = xTaskGetTickCount();
+			}
+		}
+
+		/* GC9A01數據傳遞 */
+		if(xTaskGetTickCount() - last_move_time[1] < 200)
+		{
+			gc9a01_data.R = 65;								//設置GC9A01半徑
+			gc9a01_data.zetaR = 0.9;						//設置GC9A01阻尼比
+			gc9a01_data.omega_nR = 20;						//設置GC9A01自然頻率
+			gc9a01_data.lightMax = 250;						//設置GC9A01光暈最大值
+			gc9a01_data.zetaLightMax = 0.9;					//設置GC9A01光暈阻尼比
+			gc9a01_data.omega_nLightMax = 20;				//設置GC9A01光暈自然頻率
+			xQueueSend(gc9a01_data_quene, &gc9a01_data, 0);	//傳遞GC9A01數據
+		}
+		else if(xTaskGetTickCount() - last_move_time[1] > 200 && xTaskGetTickCount() - last_move_time[0] < 200)
+		{
+			gc9a01_data.R = 73;								//設置GC9A01半徑
+			gc9a01_data.zetaR = 0.9;						//設置GC9A01阻尼比
+			gc9a01_data.omega_nR = 10;						//設置GC9A01自然頻率
+			gc9a01_data.lightMax = 200;						//設置GC9A01光暈最大值
+			gc9a01_data.zetaLightMax = 0.9;					//設置GC9A01光暈阻尼比
+			gc9a01_data.omega_nLightMax = 10;				//設置GC9A01光暈自然頻率
+			xQueueSend(gc9a01_data_quene, &gc9a01_data, 0);	//傳遞GC9A01數據
+		}
+		else
+		{
+			gc9a01_data.R = 80;								//設置GC9A01半徑
+			gc9a01_data.zetaR = 1;							//設置GC9A01阻尼比
+			gc9a01_data.omega_nR = 5;						//設置GC9A01自然頻率
+			gc9a01_data.lightMax = 150;						//設置GC9A01光暈最大值
+			gc9a01_data.zetaLightMax = 1;					//設置GC9A01光暈阻尼比
+			gc9a01_data.omega_nLightMax = 5;				//設置GC9A01光暈自然頻率
+			xQueueSend(gc9a01_data_quene, &gc9a01_data, 0);	//傳遞GC9A01數據
 		}
 		vTaskDelay(1);
 	}
@@ -387,7 +435,7 @@ void setup()
 	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1);	//創建數據處理任務
 	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 0);		//創建GC9A01任務
 	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 0);	//創建眼睛移動任務
-	//xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle, 1);	//創建陀螺儀跟蹤任務
+	xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle, 1);	//創建陀螺儀跟蹤任務
 	
 }
 
