@@ -72,13 +72,9 @@ void GC9A01::GC9A01_setEyes_r(uint8_t target_eyesR, double zeta = -1.0, double o
 {
 	if(target_eyesR != this->target_eyesR && this->lastChange_eyesR >= LASTCHANGEMAX) 
 	{
-	this->lastUpdate_eyesR = xTaskGetTickCount();	//設置眼睛半徑更新時間
-	this->lastChange_eyesR = xTaskGetTickCount();	//設置眼睛半徑變化次數
-	this->isUpdate_eyesR = 1;						//設置眼睛更新狀態
-	} 
-	else
-	{
-		this->isUpdate_eyesR = 0;					//設置眼睛更新狀態
+		this->lastUpdate_eyesR = xTaskGetTickCount();	//設置眼睛半徑更新時間
+		this->lastChange_eyesR = xTaskGetTickCount();
+		this->isUpdate_eyesR = 1;						//設置眼睛更新狀態
 	} 
 	this->target_eyesR = target_eyesR;				//設置目標眼睛半徑
 	if(zeta != -1.0) 
@@ -96,7 +92,7 @@ void GC9A01::GC9A01_setEyes_lightMax(uint8_t lightMax, double zeta = -1.0, doubl
 	if(lightMax != this->target_lightMax && this->lastChange_lightMax >= LASTCHANGEMAX) 
 	{
 		this->lastUpdate_lightMax = xTaskGetTickCount();	//設置光暈更新時間
-		this->lastChange_lightMax = xTaskGetTickCount();	//設置光暈變化次數
+		this->lastChange_lightMax = xTaskGetTickCount();
 		this->isUpdate_lightMax = 1;						//設置光暈更新狀態
 	} 
 	this->target_lightMax = lightMax;						//設置目標光暈最大值
