@@ -284,10 +284,10 @@ void taskGyroscopeTracking(void *arg)
 		if(xQueueReceive(wit_data_relative_angle_quene, &data_get, portMAX_DELAY) == pdTRUE)	//從佇列中獲取數據
 		{
 			/* x角度範圍 */
-			eyes_x = map(constrain(data_get.relative_angle.zangle, -60, 60), 60, -60, 55, -55);	//將z角度映射到-55到55之間
+			eyes_x = map(constrain(data_get.relative_angle.zangle, -60, 60), 60, -60, 55, -55);	//z角度映射
 
 			/* y角度範圍 */
-			eyes_y = map(constrain(data_get.relative_angle.yangle, -30, 30), 30, -30, 25, -25);	//將y角度映射到-80到80之間
+			eyes_y = map(constrain(data_get.relative_angle.yangle, -30, 30), 30, -30, 35, -35);	//y角度映射
 
 			/* 傳遞眼睛角度 */
 			angle_data_send.x_angle = round((int8_t)eyes_x);	//設置x角度

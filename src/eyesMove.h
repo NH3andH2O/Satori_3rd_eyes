@@ -13,7 +13,7 @@ class eyesMove
 		/* 伺服馬達限位 */
 		const uint8_t UPPER_EYELID_ANGLE_MAX = 175;	//上眼皮最大角度
 		const uint8_t UPPER_EYELID_ANGLE_MIN = 100;	//上眼皮最小角度
-		const uint8_t LOWER_EYELID_ANGLE_MAX = 90;	//下眼皮最大角度
+		const uint8_t LOWER_EYELID_ANGLE_MAX = 110;	//下眼皮最大角度
 		const uint8_t LOWER_EYELID_ANGLE_MIN = 35;	//下眼皮最小角度
 		const uint8_t EYEBALL_ANGLE_MAX = 125;		//眼球最大角度
 		const uint8_t EYEBALL_ANGLE_MIN = 55;		//眼球最小角度
