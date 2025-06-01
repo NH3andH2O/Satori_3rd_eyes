@@ -1,0 +1,39 @@
+3D Model License Summary
+=========================
+
+This folder contains two 3D models with different licensing terms. Please read carefully before use.
+
+------------------------------------------------------------
+1. heart_shaped
+------------------------------------------------------------
+- Author: NH3andH2O
+- License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+- License URL: https://creativecommons.org/licenses/by/4.0/
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material for any purpose, even commercially
+
+Under the following terms:
+- Attribution — You must give appropriate credit to the original author (NH3andH2O), provide a link to the license, and indicate if changes were made.
+
+------------------------------------------------------------
+2. 3rd_eyes
+------------------------------------------------------------
+- Original Author: 牧鈴華SUZUKA
+- License: Custom permission (non-open license)
+
+This model is published in this repository with the permission of the original creator, 牧鈴華SUZUKA.
+
+Important notes:
+- The copyright remains with the original author.
+- This model is **not released under an open source or Creative Commons license**.
+- **You may not redistribute, modify, or use this model for commercial purposes** without prior written permission from 牧鈴華SUZUKA.
+
+Please contact the original author directly for additional usage permissions.
+
+------------------------------------------------------------
+Scope
+------------------------------------------------------------
+- This license file applies **only to the 3D models in the `3d_model/` folder** of this repository.
+- For code or other content, please refer to the top-level LICENSE file of the repository.
