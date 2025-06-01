@@ -1,0 +1,29 @@
+Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License (CC BY-NC-SA 3.0)
+
+This folder contains two hardware design files. Both are licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License (CC BY-NC-SA 3.0), with different origins:
+
+1. "3rd_eyes"
+   - This hardware design is a modified version of a board originally created by R饼锐度不够.
+   - Original source: (https://oshwhub.com/flanker-e/jue-zhi-tong-esp32)
+   - This derivative work retains the same CC BY-NC-SA 3.0 license.
+   - Please attribute the original author "R饼锐度不够" when using or redistributing this file.
+
+2. "GC9A01"
+   - This is an original hardware design created by NH3andH2O.
+   - Licensed directly under CC BY-NC-SA 3.0.
+   - Please attribute the author "NH3andH2O" when using or redistributing this file.
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material
+
+Under the following terms:
+- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+- NonCommercial — You may not use the material for commercial purposes.
+- ShareAlike — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+
+Full license text available at:
+https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode
+
+This license applies only to the hardware design files in the `pcd/` folder.  
+For any software or source code in this repository, refer to the main LICENSE file.
