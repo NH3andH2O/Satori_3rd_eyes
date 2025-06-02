@@ -1,6 +1,6 @@
 # 机械觉之瞳pcd
 
-## 设计参考
+## 其他作者
 
 `3rd_eyes` 修改自 “R饼锐度不够”（[项目地址](https://oshwhub.com/flanker-e/jue-zhi-tong-esp32)）
 

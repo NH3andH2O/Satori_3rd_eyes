@@ -1,6 +1,6 @@
 # 机械觉之瞳模型
 
-## 模型引用
+## 其他作者
 
 -   **3rd_eyes:** by 牧鈴華SUZUKA，（[项目地址](https://www.bilibili.com/video/BV1rN1gYJE3K)）
 
