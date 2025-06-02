@@ -1,3 +1,17 @@
+// Copyright 2025 NH3andH2O
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <ESP32Servo.h>
 #include <LovyanGFX.hpp>
 #include "gc9a01.h"
@@ -46,9 +60,9 @@ typedef struct
 typedef struct
 {
 	uint8_t eyelid_angle;	//眼睛張開角度
-	int8_t x_angle;		//x角度
-	int8_t y_angle;		//y角度
-} eyesMove_data;	//眼睛數據結構體
+	int8_t x_angle;			//x角度
+	int8_t y_angle;			//y角度
+} eyesMove_data;			//眼睛數據結構體
 
 /* 結構體宣告 */
 eyesMove eyesmove(UPPER_EYELID_PIN, LOWER_EYELID_PIN, EYEBALL_PIN);
@@ -71,7 +85,7 @@ QueueHandle_t gc9a01_data_quene;				//宣告GC9A01佇列
 TaskHandle_t taskWitEyesGetData_hamdle;		//獲取wit眼睛數據任務
 TaskHandle_t taskWitHeadGetData_hamdle;		//獲取wit頭部數據任務
 TaskHandle_t taskWitPProcessingData_hamdle;	//處理wit數據任務
-TaskHandle_t taskGyroscopeTracking_hamdle;			//陀螺儀跟蹤任務
+TaskHandle_t taskGyroscopeTracking_hamdle;	//陀螺儀跟蹤任務
 TaskHandle_t taskGC9A01_hamdle;				//GC9A01任務
 TaskHandle_t taskEyesMove_hamdle;			//眼睛任務
 
@@ -271,7 +285,7 @@ void taskGyroscopeTracking(void *arg)
 {
 	witPProcessingData data_get;	//數據接收
 	eyesMove_data angle_data_send;	//角度數據發送
-	GC9A01_data gc9a01_data;	//GC9A01數據結構體
+	GC9A01_data gc9a01_data;		//GC9A01數據結構體
 
 
 	double eyes_x = 0;				//x角度
@@ -290,9 +304,9 @@ void taskGyroscopeTracking(void *arg)
 			eyes_y = map(constrain(data_get.relative_angle.yangle, -30, 30), 30, -30, 35, -35);	//y角度映射
 
 			/* 傳遞眼睛角度 */
-			angle_data_send.x_angle = round((int8_t)eyes_x);	//設置x角度
-			angle_data_send.y_angle = round((int8_t)eyes_y);	//設置y角度
-			angle_data_send.eyelid_angle = 45;					//設置眼睛張開角度
+			angle_data_send.x_angle = round((int8_t)eyes_x);		//設置x角度
+			angle_data_send.y_angle = round((int8_t)eyes_y);		//設置y角度
+			angle_data_send.eyelid_angle = 45;						//設置眼睛張開角度
 			xQueueSend(eyesmove_data_quene, &angle_data_send, 0);	//傳遞x角度
 
 			/* 獲取角速度 */ 
