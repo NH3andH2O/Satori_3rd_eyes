@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define VERSION "1.0.0"
+#define VERSION "1.0.1"
 
 #include <ESP32Servo.h>
 #include <LovyanGFX.hpp>
