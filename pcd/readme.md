@@ -16,11 +16,17 @@
 
 &emsp;&emsp;&emsp;&emsp;- 5v 转 3.3v 电感修改（_4.7uH_ -> _3.9uH_）
 
+## 在线查看
+https://oshwhub.com/nh3_h2o/satori_3rd_eyes
+
+> [!WARNING]
+> 在线查看为Altium Designer转成嘉立创EDA而来，供方便查看使用，并没有经过检查，如要打板，请使用gerber文件打板！！
+
 ## 使用方法
 
 把`3rd_eyes_GERBER.zip`和`GC9A01_GERBER.zip`直接发送给板厂
 
-板厂制作完成后，根据`3rd_eyes_BOM.csv`和`GC9A01_BOM.csv`,将零件焊接到板子上
+板厂制作完成后，根据`3rd_eyes_BOM.csv`和`GC9A01_BOM.csv`，将零件焊接到板子上
 
 ## 注意事项
 
@@ -61,4 +67,4 @@
 
 ### 屏幕连接
 
-屏幕选择GC9A01裸屏，然后焊接到`GC9A01`pcd上的`U1`，<span style="color:yellow;">注意正反！</span>
+屏幕选择GC9A01裸屏，然后焊接到`GC9A01`pcd上的`U1`，**注意正反！**
