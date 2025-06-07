@@ -16,10 +16,10 @@ https://www.bilibili.com/video/BV1CK7mzvE3U
 
 ## 项目架构
 
--   3d_model：存放3d模型的地方
--   pcd：存放pcd的地方
--   src：项目代码
--   tools：工具，用于调试设备中的传感器
+-   `3d_model`：存放3d模型的地方
+-   `pcd`：存放pcd的地方
+-   `arduino`：项目硬件代码
+-   `tools`：工具，用于调试设备中的传感器
 
 ## 使用方法
 
