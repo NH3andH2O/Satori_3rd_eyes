@@ -1,0 +1,25 @@
+{
+	"name": "vue",
+	"private": true,
+	"version": "1.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vue-tsc -b && vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"vue": "^3.5.13"
+	},
+	"devDependencies": {
+		"@vitejs/plugin-vue": "^5.2.3",
+		"@vue/tsconfig": "^0.7.0",
+		"typescript": "~5.8.3",
+		"vite": "^6.3.5",
+		"vue-tsc": "^2.2.8",
+		"element-plus": "^2.10.0",
+		"unplugin-vue-components": "^28.7.0",
+		"unplugin-auto-import": "^19.3.0",
+		"vue-i18n": "^11.1.5"
+	}
+}

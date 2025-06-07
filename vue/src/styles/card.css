@@ -1,0 +1,39 @@
+.title {
+	color: rgb(74, 250, 177);
+}
+
+.content {
+	display: flex;
+	align-items: center;
+	color: rgba(255, 255, 255, 0.842);
+	margin: 1px 20px;
+	gap: 6px;
+}
+
+.button{
+	justify-content: flex-end;
+}
+
+.slide-toggle-enter-active, .slide-toggle-leave-active {
+	transition: max-height 0.3s, opacity 0.3s;
+	overflow: hidden;
+}
+.slide-toggle-enter-from, .slide-toggle-leave-to {
+	max-height: 0;
+	opacity: 1;
+}
+.slide-toggle-enter-to, .slide-toggle-leave-from {
+	max-height: 1000px; /* 根據實際內容調整，確保足夠大 */
+	opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+	.title {
+		color: rgb(35, 218, 142);
+	}
+
+	.content {
+		color: rgb(255, 255, 255);
+	}
+}
+
