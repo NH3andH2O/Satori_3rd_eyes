@@ -16,10 +16,21 @@
 
 #include <ESP32Servo.h>
 #include <LovyanGFX.hpp>
+#include <Preferences.h>
+#include <WiFi.h>
+#include <ESPAsyncWebServer.h>
+#include <FS.h>
+#include <FFat.h>
+#include <ESPmDNS.h>
+#include <ArduinoJson.h>
 #include "gc9a01.h"
 #include "eyesMove.h"
 #include "wit.h"
 #include "IMUAngle.h"
+
+/* wifi SoftAP 名稱密碼 */
+#define SSID "3rd-Eyes"		//wifi SoftAP名稱 
+#define PASSWORD "aaaaaaab" // wifi SoftAP密碼 
 
 #define UPPER_EYELID_PIN 13	//上眼皮伺服馬達引脚
 #define LOWER_EYELID_PIN 14	//下眼皮伺服馬達引脚
@@ -39,6 +50,7 @@
 
 /* 函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType);	//佇列創建
+void listFiles(const char * dirname);	//遍歷目錄檔案
 
 /* 結構體定義 */
 typedef struct
@@ -74,6 +86,11 @@ wit witHead(SERIAL2, witHead_RX_PIN, witHead_TX_PIN, 115200);	//wit頭部模組
 
 GC9A01 gc9a01(GC9A01_SDA_PIN, GC9A01_SCL_PIN, GC9A01_CS_PIN, GC9A01_DC_PIN, GC9A01_RST_PIN, GC9A01_BLK_PIN);	//GC9A01實例
 
+Preferences prefs;	//偏好設置實例
+
+AsyncWebServer server(80);	//Web服務器
+AsyncWebSocket ws("/ws");	//WebSocket服務器
+
 witData witEyes_data;	//wit眼睛數據結構體
 witData witHead_data;	//wit頭部數據結構體
 
@@ -82,6 +99,7 @@ QueueHandle_t wit_data_quene; 					//宣告wit原始佇列
 QueueHandle_t wit_data_relative_angle_quene;	//宣告wit差值佇列
 QueueHandle_t eyesmove_data_quene;				//宣告眼睛數據佇列
 QueueHandle_t gc9a01_data_quene;				//宣告GC9A01佇列
+QueueHandle_t wifiUpdate_data_quene;			//宣告WiFi更新佇列
 
 /* 任務參照 */
 TaskHandle_t taskWitEyesGetData_hamdle;		//獲取wit眼睛數據任務
@@ -90,6 +108,189 @@ TaskHandle_t taskWitPProcessingData_hamdle;	//處理wit數據任務
 TaskHandle_t taskGyroscopeTracking_hamdle;	//陀螺儀跟蹤任務
 TaskHandle_t taskGC9A01_hamdle;				//GC9A01任務
 TaskHandle_t taskEyesMove_hamdle;			//眼睛任務
+TaskHandle_t taskWebServer_hamdle;			//Web服務器任務
+TaskHandle_t taskNetwork_hamdle;			//網絡任務
+
+/** 網站相關函數 **/
+void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+	JsonDocument doc_get;
+	switch (type) {
+		case WS_EVT_CONNECT:
+		{
+			Serial.printf("WebSocket client connected: %u\n", client->id());
+
+			/* 發送當前WiFi配置 */
+			{
+				StaticJsonDocument<256> wifi_doc;
+				wifi_doc["type"] = "wifi_config";
+				JsonObject payload = wifi_doc.createNestedObject("payload");
+				payload["iswifi"] = prefs.getBool("iswifi", false);
+				payload["wifi_ssid"] = prefs.getString("wifi_ssid", "");
+				payload["wifi_password"] = prefs.getString("wifi_password", "");
+
+				String jsonStr;
+				serializeJson(wifi_doc, jsonStr);
+
+				/* 發送給該 client */ 
+				client->text(jsonStr);
+			}
+
+			break;
+		}
+		case WS_EVT_DISCONNECT:
+		{
+			Serial.printf("WebSocket client disconnected: %u\n", client->id());
+			break;
+		}
+		case WS_EVT_DATA:
+		{
+			Serial.printf("WebSocket data received from client %u: %.*s\n", client->id(), len, data);
+
+			/* 解析json數據 */
+			DeserializationError error = deserializeJson(doc_get, data);
+			if (error) {
+				Serial.printf("Failed to parse JSON: %s\n", error.c_str());
+			}
+
+			const char* datatype = doc_get["type"];
+
+			/* 處理數據 */
+			if(strcmp(datatype,"set_wifi_config") == 0)
+			{
+				/* 處理WiFi配置數據 */
+				const char* ssid = doc_get["payload"]["wifi_ssid"] | "";
+				const char* password = doc_get["payload"]["wifi_password"] | "";
+				u_int8_t iswifi = doc_get["payload"]["iswifi"] | false;
+				prefs.putString("wifi_ssid", ssid);
+				prefs.putString("wifi_password", password);
+				prefs.putBool("iswifi", iswifi);
+				uint8_t is_wifiUpdate = 1;	//WiFi更新標誌
+				xQueueSend(wifiUpdate_data_quene, &is_wifiUpdate, 0);	//發送WiFi更新信號
+			}
+
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+
+/** 任務相關函數 **/
+/* 網絡相關任務 */
+void taskNetwork(void * pvParameters) {
+	uint8_t is_wifiUpdate = 1;	//WiFi更新標誌
+	uint8_t wifi_old_status = 0;	//舊的WiFi連接狀態
+
+	/* WiFi初始化 */
+	WiFi.mode(WIFI_AP_STA);
+	if(!WiFi.softAP(SSID, PASSWORD))
+	{
+		Serial.println("Failed to start SoftAP");
+		vTaskDelete(NULL);
+		return;
+	}
+	Serial.println("SoftAP Started");
+	Serial.print("IP Address: ");
+	Serial.println(WiFi.softAPIP());
+
+	/* 伺服器任務創建 */
+	xTaskCreatePinnedToCore(taskWebServer, "taskWebServer", 4096, NULL, 1, &taskWebServer_hamdle, 0);	//創建網絡任務
+
+	while (1)
+	{
+
+		/* wifi更新 */
+		if(is_wifiUpdate)	//如果WiFi需要更新
+		{
+			is_wifiUpdate = 0;	//重置WiFi更新標誌
+			if(prefs.getBool("iswifi",false) && prefs.getString("wifi_ssid", "").length() > 0 && prefs.getString("wifi_password", "").length() > 0)
+			{
+				Serial.println("Updating WiFi connection...");
+				/* 斷開當前wifi */
+				if(WiFi.status() == WL_CONNECTED)	//如果WiFi已經連接
+				{
+					WiFi.disconnect();	//斷開WiFi連接
+				}
+
+				/* 連接新的wifi */
+				WiFi.begin(prefs.getString("wifi_ssid", "").c_str(), prefs.getString("wifi_password", "").c_str());	//連接WiFi
+				uint64_t startTime = xTaskGetTickCount();	//記錄開始時間
+				while (WiFi.status() != WL_CONNECTED)	//等待WiFi連接
+				{
+					if (xTaskGetTickCount() - startTime > 10000)	//如果超過10秒未連接
+					{
+						Serial.println("WiFi connection timed out");
+						break;
+					}
+					vTaskDelay(100);	//延遲100毫秒
+				}
+				/* WiFi連接成功 */
+
+			}
+			else
+			{
+				/* 啓動SoftAP */
+				WiFi.disconnect();	//斷開WiFi連接
+			}
+		}
+		xQueueReceive(wifiUpdate_data_quene, &is_wifiUpdate, 1000);	//等待WiFi更新信號
+
+		/* 檢查WiFi狀態 */
+		if(WiFi.status() != wifi_old_status)
+		{
+			if(WiFi.status() == WL_CONNECTED)	//如果WiFi連接成功
+			{
+				Serial.println("WiFi connected successfully");
+				Serial.print("IP Address: ");
+				Serial.println(WiFi.localIP());	//打印IP地址
+			}
+			else if(wifi_old_status == WL_CONNECTED)
+			{
+				Serial.println("WiFi disconnected");
+			}
+			wifi_old_status = WiFi.status();	//更新舊的WiFi狀態
+		}
+	}
+}
+
+/* 伺服器相關任務 */
+void taskWebServer(void * pvParameters) {
+
+	/* FFat啓動 */
+	if (!FFat.begin(true))
+	{
+		Serial.println("FFat failed to start!");
+		vTaskDelete(NULL);
+	}
+	Serial.println("FFat file system started");
+	listFiles("/");
+
+	/* mDNS啓動 */
+	if (!MDNS.begin("3rdeyes"))
+	{
+		Serial.println("mDNS failed to start!");
+		vTaskDelete(NULL);
+	}
+	Serial.println("mDNS started: http://3rdeyes.local");
+
+	/* WebSocket服務器 */
+	ws.onEvent(onSocketEvent);	//設置WebSocket事件處理函數
+
+	/* 設置Web服務器路由 */
+	server.addHandler(&ws);	//將WebSocket服務器添加到Web服務器
+	server.serveStatic("/", FFat, "/www/").setDefaultFile("index.html");
+
+	/* 伺服器啓動 */
+	server.begin();
+	Serial.println("HTTP server started");
+	while (1)
+	{
+		ws.cleanupClients();
+		vTaskDelay(1000);
+	}
+}
 
 /* 獲取wit數據任務 */
 void taskWitGetData(void *arg)
@@ -396,8 +597,6 @@ void taskGC9A01(void *arg)
 void taskEyesMove(void *arg)
 {
 	eyesMove_data data_get;	//眼睛數據結構體
-	int8_t eyes_x = 0;
-	int8_t eyes_y = 0;
 	uint8_t is_eyesmove_update_finish = 0;	//眼睛更新狀態
 
 	/* 初始化眼睛 */
@@ -428,6 +627,7 @@ void taskEyesMove(void *arg)
 void setup()
 {
 	Serial.begin(115200);
+	prefs.begin("preferences", false);
 	while (xTaskGetTickCount() < 2000)
 	{
 		;//等待2秒
@@ -440,17 +640,19 @@ void setup()
 	queueCreate(&wit_data_relative_angle_quene, 10, sizeof(witPProcessingData));	//witPProcessingData結構體佇列
 	queueCreate(&eyesmove_data_quene, 10, sizeof(eyesMove_data));					//eyesMove_data結構體佇列
 	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));						//GC9A01_data結構體佇列
+	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));						//WiFi更新佇列
 
 	Serial.println("quene create success");	//打印佇列建立成功狀態
 
 	Serial.println("wit init...");	//打印初始化狀態
 
 	/* 任務建立 */
+	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 4096, NULL, 1, &taskNetwork_hamdle, 0);	//創建網絡任務
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle, 1);	//創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1);	//創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1);	//創建數據處理任務
 	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 0);		//創建GC9A01任務
-	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 0);	//創建眼睛移動任務
+	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 1);	//創建眼睛移動任務
 	xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle, 1);	//創建陀螺儀跟蹤任務
 	
 }
@@ -473,5 +675,35 @@ void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
 		{
 			vTaskDelay(1000);
 		}
+	}
+}
+
+void listFiles(const char * dirname) {
+	File root = FFat.open(dirname);	// 打開檔案
+	if (!root) {
+		Serial.println("Failed to open directory");
+		return;
+	}
+
+	if (!root.isDirectory()) {
+		Serial.println("Not a directory");
+		return;
+	}
+
+	Serial.println("Listing files:");
+
+	/* 遍歷檔案 */
+	File file = root.openNextFile();
+	while (file) {
+		if (file.isDirectory()) {
+			Serial.print("[DIR] ");
+			Serial.println(file.name());
+		} else {
+			Serial.print("[FILE] ");
+			Serial.print(file.name());
+			Serial.print(" - ");
+			Serial.println(file.size());
+		}
+		file = root.openNextFile();
 	}
 }
