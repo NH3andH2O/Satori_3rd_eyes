@@ -20,6 +20,8 @@
 		"element-plus": "^2.10.0",
 		"unplugin-vue-components": "^28.7.0",
 		"unplugin-auto-import": "^19.3.0",
-		"vue-i18n": "^11.1.5"
+		"vue-i18n": "^11.1.5",
+		"pinia": "^3.0.3",
+		"@types/node": "^22.15.30"
 	}
 }
