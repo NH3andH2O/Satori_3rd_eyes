@@ -23,12 +23,12 @@ watchEffect(() => {
 			</div>
 		</el-col>
 		<el-col :sx="24" :md="8">
-			<div class="grid-content semi-transparent" >
+			<div class="grid-content semi-transparent">
 				<advancedset />
 			</div>
 		</el-col>
 		<el-col :sx="24" :md="8">
-			<div class="grid-content semi-transparent" >
+			<div class="grid-content semi-transparent">
 				<wifiset />
 			</div>
 		</el-col>

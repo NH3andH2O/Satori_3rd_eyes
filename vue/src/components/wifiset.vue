@@ -22,8 +22,8 @@ const wifi = useWifiSettings()
 			</div>
 			<div class="content">
 				<p>{{ $t('wifi_password') }}</p>
-				<el-input v-model="wifi.config.value.wifi_password" type="password" placeholder="Password" style="width: auto"
-					clearable />
+				<el-input v-model="wifi.config.value.wifi_password" type="password" placeholder="Password"
+					style="width: auto" clearable />
 			</div>
 		</div>
 	</transition>
