@@ -1,0 +1,35 @@
+BasedOnStyle: LLVM
+Standard:Cpp17
+
+# 缩进
+UseTab: Always
+IndentWidth: 4
+TabWidth: 4
+ContinuationIndentWidth: 4
+AlwaysBreakAfterDefinition: true
+
+# 换行规则
+BreakBeforeBraces: Allman
+
+BraceWrapping:
+    AfterClass: true
+    AfterControlStatement: true
+    AfterEnum: true
+    AfterFunction: true
+    AfterNamespace: true
+    AfterStruct: true
+    AfterUnion: true
+    BeforeCatch: true
+    BeforeElse: true
+    IndentBraces: false
+
+# Switch-case 风格
+IndentCaseLabels: true
+BreakBeforeCaseLabels: true
+AllowShortCaseLabelsOnASingleLine: false
+
+AlignAfterOpenBracket: Align
+MaxEmptyLinesToKeep: 1
+SortIncludes: false
+SpaceBeforeParens: ControlStatements
+ColumnLimit: 150
