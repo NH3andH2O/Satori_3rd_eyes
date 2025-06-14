@@ -29,8 +29,8 @@
 #include "IMUAngle.h"
 
 /* wifi SoftAP 名稱密碼 */
-#define SSID "3rd-Eyes"		// wifi SoftAP名稱
-#define PASSWORD "aaaaaaab" // wifi SoftAP密碼
+#define SSID "3rd-Eyes" // wifi SoftAP名稱
+#define PASSWORD ""		// wifi SoftAP密碼
 
 #define UPPER_EYELID_PIN 13 // 上眼皮伺服馬達引脚
 #define LOWER_EYELID_PIN 14 // 下眼皮伺服馬達引脚
@@ -118,64 +118,94 @@ void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEven
 	switch (type)
 	{
 		case WS_EVT_CONNECT:
-		{
 			Serial.printf("WebSocket client connected: %u\n", client->id());
-
-			/* 發送當前WiFi配置 */
-			{
-				StaticJsonDocument<256> wifi_doc;
-				wifi_doc["type"] = "wifi_config";
-				JsonObject payload = wifi_doc.createNestedObject("payload");
-				payload["iswifi"] = prefs.getBool("iswifi", false);
-				payload["wifi_ssid"] = prefs.getString("wifi_ssid", "");
-				payload["wifi_password"] = prefs.getString("wifi_password", "");
-
-				String jsonStr;
-				serializeJson(wifi_doc, jsonStr);
-
-				/* 發送給該 client */
-				client->text(jsonStr);
-			}
-
 			break;
-		}
 		case WS_EVT_DISCONNECT:
-		{
 			Serial.printf("WebSocket client disconnected: %u\n", client->id());
 			break;
-		}
 		case WS_EVT_DATA:
 		{
 			Serial.printf("WebSocket data received from client %u: %.*s\n", client->id(), len, data);
-
-			/* 解析json數據 */
-			DeserializationError error = deserializeJson(doc_get, data);
-			if (error)
-			{
-				Serial.printf("Failed to parse JSON: %s\n", error.c_str());
-			}
-
-			const char *datatype = doc_get["type"];
-
-			/* 處理數據 */
-			if (strcmp(datatype, "set_wifi_config") == 0)
-			{
-				/* 處理WiFi配置數據 */
-				const char *ssid = doc_get["payload"]["wifi_ssid"] | "";
-				const char *password = doc_get["payload"]["wifi_password"] | "";
-				u_int8_t iswifi = doc_get["payload"]["iswifi"] | false;
-				prefs.putString("wifi_ssid", ssid);
-				prefs.putString("wifi_password", password);
-				prefs.putBool("iswifi", iswifi);
-				uint8_t is_wifiUpdate = 1;							  // WiFi更新標誌
-				xQueueSend(wifiUpdate_data_quene, &is_wifiUpdate, 0); // 發送WiFi更新信號
-			}
-
 			break;
 		}
 		default:
-		{
 			break;
+	}
+}
+
+/* get wifi設置獲取 */
+void api_wifi_config(AsyncWebServerRequest *request)
+{
+	/* 檢查請求方法 */
+	if (request->method() == HTTP_GET)
+	{
+		StaticJsonDocument<256> data_json;
+		data_json["iswifi"] = prefs.getBool("iswifi", false);
+		data_json["wifi_ssid"] = prefs.getString("wifi_ssid", "");
+		data_json["wifi_password"] = prefs.getString("wifi_password", "");
+
+		String jsonStr;
+		serializeJson(data_json, jsonStr);
+
+		request->send(200, "application/json", jsonStr);
+	}
+	else
+	{
+		request->send(405, "text/plain", "Method Not Allowed");
+	}
+}
+
+/* post wifi資料更改 */
+void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+{
+
+	/* 檢查請求方法 */
+	if (request->method() == HTTP_POST)
+	{
+		JsonDocument data_json;
+
+		/* 獲取JSON */
+		DeserializationError error = deserializeJson(data_json, data);
+		if (error)
+		{
+			Serial.printf("Failed to parse JSON: %s\n", error.c_str());
+			request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+			return;
+		}
+
+		/* 獲取WiFi配置 */
+		const char *ssid = data_json["wifi_ssid"] | "";
+		const char *password = data_json["wifi_password"] | "";
+		uint8_t iswifi = data_json["iswifi"] | false;
+
+		/* 檢查WiFi配置 */
+		if (iswifi == false || (iswifi == true && ssid[0] != '\0' && password[0] != '\0'))
+		{
+			/* 存儲WiFi配置 */
+			prefs.putString("wifi_ssid", ssid);
+			prefs.putString("wifi_password", password);
+			prefs.putBool("iswifi", iswifi);
+
+			/* 發送返回值 */
+			StaticJsonDocument<256> response_doc;
+			response_doc["success"] = true;
+			String jsonStr;
+			serializeJson(response_doc, jsonStr);
+			request->send(200, "application/json", jsonStr);
+
+			/* wifi更新 */
+			uint8_t is_wifiUpdate = 1;							  // WiFi更新標誌
+			xQueueSend(wifiUpdate_data_quene, &is_wifiUpdate, 0); // 發送WiFi更新信號
+		}
+		else
+		{
+			/* 發送錯誤返回值 */
+			StaticJsonDocument<256> response_doc;
+			response_doc["success"] = false;
+			response_doc["message"] = "Invalid WiFi configuration";
+			String jsonStr;
+			serializeJson(response_doc, jsonStr);
+			request->send(400, "application/json", jsonStr);
 		}
 	}
 }
@@ -285,6 +315,8 @@ void taskWebServer(void *pvParameters)
 	/* 設置Web服務器路由 */
 	server.addHandler(&ws); // 將WebSocket服務器添加到Web服務器
 	server.serveStatic("/", FFat, "/www/").setDefaultFile("index.html");
+	server.on("/api/wifi_config", HTTP_GET, api_wifi_config);
+	server.on("/api/set_wifi_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_wifi_config);
 
 	/* 伺服器啓動 */
 	server.begin();

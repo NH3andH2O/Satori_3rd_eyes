@@ -6,6 +6,9 @@ export default {
 	wifi_ssid: "WiFi 名稱：",
 	wifi_password: "WiFi 密碼：",
 	save: "儲存",
+	wifi_setting_successfully: "WiFi 設定成功",
+	wifi_setting_failed: "WiFi 設定失敗",
+	wifi_setting_transmission_failed: "無法連綫到伺服器",
 	modeset_title: "模式設定",
 	advancedset_title: "進階設定",
 };
