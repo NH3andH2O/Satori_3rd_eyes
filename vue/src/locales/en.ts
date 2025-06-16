@@ -2,6 +2,8 @@ export default {
 	pageTitle: '3rdEyes',
 	title: '3rdEyes Settings',
 	wifiset_title: 'WiFi Settings',
+	LAN_setting: "LAN setting",
+	LAN_setting_help: 'Connect 3rdEyes to your home network or mobile hotspot for direct access to 3rdEyes',
 	enable_wifi: 'Connect WiFi',
 	wifi_ssid: 'WiFi SSID:',
 	wifi_password: 'Password:',

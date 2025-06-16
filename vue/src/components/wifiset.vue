@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 
 import { useWifiSettings } from '@/composables/useWifiSettings'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const wifi = useWifiSettings()
 </script>
@@ -9,6 +12,14 @@ const wifi = useWifiSettings()
 
 	<div class="title">
 		<h2>{{ $t('wifiset_title') }}</h2>
+	</div>
+	<div class="title2">
+		<h3>{{ $t('LAN_setting') }}</h3>
+		<el-tooltip :content="t('LAN_setting_help')" placement="top">
+			<el-icon size="16" color="slategray">
+				<QuestionFilled />
+			</el-icon>
+		</el-tooltip>
 	</div>
 	<div class="content">
 		<p>{{ $t('enable_wifi') }} </p>
@@ -36,4 +47,4 @@ const wifi = useWifiSettings()
 	</div>
 </template>
 
-<style src="../styles/card.css" scoped></style>
+<style src="@/styles/card.css" scoped></style>

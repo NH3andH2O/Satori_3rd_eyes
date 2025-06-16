@@ -11,9 +11,11 @@ declare module 'vue' {
     Advancedset: typeof import('./src/components/advancedset.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCol: typeof import('element-plus/es')['ElCol']
+    ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
+    ElTooltip: typeof import('element-plus/es')['ElTooltip']
     Modeset: typeof import('./src/components/modeset.vue')['default']
     Wifiset: typeof import('./src/components/wifiset.vue')['default']
   }

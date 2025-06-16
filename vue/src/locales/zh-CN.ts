@@ -2,6 +2,8 @@ export default {
 	pageTitle: "觉之瞳",
 	title: "觉之瞳设置",
 	wifiset_title: "WiFi 设置",
+	LAN_setting: "局域网设置",
+	LAN_setting_help: "将觉之瞳连接到家庭网络或者手机热点，以便直接访问觉之瞳",
 	enable_wifi: "连接局域网",
 	wifi_ssid: "WiFi 名称：",
 	wifi_password: "WiFi 密码：",

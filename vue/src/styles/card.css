@@ -2,11 +2,19 @@
 	color: rgb(74, 250, 177);
 }
 
+.title2 {
+	display: flex;
+	align-items: center;
+	color: rgba(71, 211, 253, 0.842);
+	margin: -15px 20px;
+	gap: 6px;
+}
+
 .content {
 	display: flex;
 	align-items: center;
 	color: rgba(255, 255, 255, 0.842);
-	margin: 1px 20px;
+	margin: 0px 20px;
 	gap: 6px;
 }
 
@@ -30,6 +38,10 @@
 @media (prefers-color-scheme: dark) {
 	.title {
 		color: rgb(35, 218, 142);
+	}
+
+	.title2 {
+		color: rgba(12, 154, 197, 0.842);
 	}
 
 	.content {

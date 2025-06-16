@@ -196,6 +196,7 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 			/* wifi更新 */
 			uint8_t is_wifiUpdate = 1;							  // WiFi更新標誌
 			xQueueSend(wifiUpdate_data_quene, &is_wifiUpdate, 0); // 發送WiFi更新信號
+			return;
 		}
 		else
 		{
@@ -206,6 +207,7 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 			String jsonStr;
 			serializeJson(response_doc, jsonStr);
 			request->send(400, "application/json", jsonStr);
+			return;
 		}
 	}
 }
@@ -239,12 +241,13 @@ void taskNetwork(void *pvParameters)
 		if (is_wifiUpdate) // 如果WiFi需要更新
 		{
 			is_wifiUpdate = 0; // 重置WiFi更新標誌
+			Serial.println("Updating WiFi connection...");
 			if (prefs.getBool("iswifi", false) && prefs.getString("wifi_ssid", "").length() > 0 && prefs.getString("wifi_password", "").length() > 0)
 			{
-				Serial.println("Updating WiFi connection...");
 				/* 斷開當前wifi */
 				if (WiFi.status() == WL_CONNECTED) // 如果WiFi已經連接
 				{
+					vTaskDelay(500);   // 讓前端可以收到返回消息
 					WiFi.disconnect(); // 斷開WiFi連接
 				}
 
@@ -265,6 +268,7 @@ void taskNetwork(void *pvParameters)
 			else
 			{
 				/* 啓動SoftAP */
+				vTaskDelay(500);   // 讓前端可以收到返回消息
 				WiFi.disconnect(); // 斷開WiFi連接
 			}
 		}
