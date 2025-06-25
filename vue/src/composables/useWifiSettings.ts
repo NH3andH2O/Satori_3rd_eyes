@@ -36,7 +36,7 @@ export function useWifiSettings() {
 		}
 		catch (error: any) {
 			console.error('Failed to fetch Wi-Fi config:', error)
-			ElMessage.error(i18n.global.t('wifi_setting_transmission_failed') + `: ${error.message || error}`)
+			ElMessage.error(i18n.global.t('setting_transmission_failed') + `: ${error.message || error}`)
 		}
 		finally {
 			config.value.isLoading = false
@@ -66,7 +66,7 @@ export function useWifiSettings() {
 		catch (err) {
 			console.error('transmission failed:', err)
 			const message = err instanceof Error ? err.message : String(err)
-			ElMessage.error(`${i18n.global.t('wifi_setting_transmission_failed')}: ${message}`)
+			ElMessage.error(`${i18n.global.t('setting_transmission_failed')}: ${message}`)
 		}
 		finally {
 			config.value.isSaving = false

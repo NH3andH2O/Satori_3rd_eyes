@@ -28,9 +28,7 @@
 #include "wit.h"
 #include "IMUAngle.h"
 
-/* wifi SoftAP 名稱密碼 */
-#define SSID "3rd-Eyes" // wifi SoftAP名稱
-#define PASSWORD ""		// wifi SoftAP密碼
+#define DEFAULT_SSID "3rd-Eyes" // wifi SoftAP名稱
 
 #define UPPER_EYELID_PIN 13 // 上眼皮伺服馬達引脚
 #define LOWER_EYELID_PIN 14 // 下眼皮伺服馬達引脚
@@ -51,6 +49,7 @@
 /* 函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType); // 佇列創建
 void listFiles(const char *dirname);										  // 遍歷目錄檔案
+uint8_t is_valid_wifi_password(const char *password);						  // 檢查WiFi密碼是否有效
 
 /* 結構體定義 */
 typedef struct
@@ -212,6 +211,95 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 	}
 }
 
+/* get softAP設置獲取 */
+void api_softAP_config(AsyncWebServerRequest *request)
+{
+	/* 檢查請求方法 */
+	if (request->method() == HTTP_GET)
+	{
+		JsonDocument data_doc;
+		data_doc["ssid"] = prefs.getString("ssid", DEFAULT_SSID);
+		data_doc.shrinkToFit();
+
+		String jsonStr;
+		serializeJson(data_doc, jsonStr);
+
+		request->send(200, "application/json", jsonStr);
+	}
+	else
+	{
+		request->send(405, "text/plain", "Method Not Allowed");
+	}
+}
+
+/* post softAP資料更改 */
+void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+{
+	/* 檢查請求方法 */
+	if (request->method() == HTTP_POST)
+	{
+		JsonDocument data_json;
+
+		/* 獲取JSON */
+		DeserializationError error = deserializeJson(data_json, data);
+		if (error)
+		{
+			Serial.printf("Failed to parse JSON: %s\n", error.c_str());
+			request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+			return;
+		}
+
+		/* 獲取SoftAP配置 */
+		const char *ssid = data_json["ssid"] | DEFAULT_SSID;
+		const uint8_t is_change_password = data_json["is_change_password"] | false;
+		const char *password = data_json["password"] | "";
+		const char *password_confirm = data_json["password_confirm"] | "";
+
+		/* 檢查SoftAP配置 */
+		if (is_change_password && strcmp(password, password_confirm) != 0)
+		{
+			request->send(400, "application/json", "{\"error\":\"Passwords do not match\"}");
+			return;
+		}
+		else if (is_change_password && !is_valid_wifi_password(password))
+		{
+			request->send(400, "application/json", "{\"error\":\"Invalid password\"}");
+			return;
+		}
+
+		/* 存儲SoftAP配置 */
+		if (ssid[0] == '\0')
+		{
+			prefs.putString("ssid", DEFAULT_SSID);
+		}
+		else
+		{
+			prefs.putString("ssid", ssid);
+		}
+		if (is_change_password)
+		{
+			if (strlen(password) > 0)
+			{
+				prefs.putString("password", password);
+			}
+			else
+			{
+				prefs.remove("password"); // 如果密碼為空，則刪除密碼
+			}
+		}
+		request->send(200, "application/json", "{\"success\":true}");
+
+		/* 發送SoftAP配置更新信號 */
+		uint8_t is_wifiUpdate = 2; // WiFi更新標誌
+		xQueueSend(wifiUpdate_data_quene, &is_wifiUpdate, 0);
+		return;
+	}
+	else
+	{
+		request->send(405, "text/plain", "Method Not Allowed");
+	}
+}
+
 /** 任務相關函數 **/
 /* 網絡相關任務 */
 void taskNetwork(void *pvParameters)
@@ -221,11 +309,23 @@ void taskNetwork(void *pvParameters)
 
 	/* WiFi初始化 */
 	WiFi.mode(WIFI_AP_STA);
-	if (!WiFi.softAP(SSID, PASSWORD))
+	if (prefs.getString("password", "").length() > 0)
 	{
-		Serial.println("Failed to start SoftAP");
-		vTaskDelete(NULL);
-		return;
+		if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID), prefs.getString("password", "")))
+		{
+			Serial.println("Failed to start SoftAP");
+			vTaskDelete(NULL);
+			return;
+		}
+	}
+	else
+	{
+		if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID)))
+		{
+			Serial.println("Failed to start SoftAP");
+			vTaskDelete(NULL);
+			return;
+		}
 	}
 	Serial.println("SoftAP Started");
 	Serial.print("IP Address: ");
@@ -238,7 +338,7 @@ void taskNetwork(void *pvParameters)
 	{
 
 		/* wifi更新 */
-		if (is_wifiUpdate) // 如果WiFi需要更新
+		if (is_wifiUpdate == 1) // 如果WiFi需要更新
 		{
 			is_wifiUpdate = 0; // 重置WiFi更新標誌
 			Serial.println("Updating WiFi connection...");
@@ -270,6 +370,35 @@ void taskNetwork(void *pvParameters)
 				/* 啓動SoftAP */
 				vTaskDelay(500);   // 讓前端可以收到返回消息
 				WiFi.disconnect(); // 斷開WiFi連接
+			}
+		}
+
+		/* softAP更新 */
+		else if (is_wifiUpdate == 2)
+		{
+			is_wifiUpdate = 0; // 重置WiFi更新標誌
+			Serial.println("Updating SoftAP configuration...");
+
+			/* 斷開softAP */
+			vTaskDelay(500);
+			WiFi.softAPdisconnect();
+
+			/* 重新啓動SoftAP */
+			if (prefs.getString("password", "").length() > 0)
+			{
+				if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID), prefs.getString("password", "")))
+				{
+					Serial.println("Failed to start SoftAP");
+					return;
+				}
+			}
+			else
+			{
+				if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID)))
+				{
+					Serial.println("Failed to start SoftAP");
+					return;
+				}
 			}
 		}
 		xQueueReceive(wifiUpdate_data_quene, &is_wifiUpdate, 1000); // 等待WiFi更新信號
@@ -321,6 +450,8 @@ void taskWebServer(void *pvParameters)
 	server.serveStatic("/", FFat, "/www/").setDefaultFile("index.html");
 	server.on("/api/wifi_config", HTTP_GET, api_wifi_config);
 	server.on("/api/set_wifi_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_wifi_config);
+	server.on("/api/softap_config", HTTP_GET, api_softAP_config);
+	server.on("/api/set_softap_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_softAP_config);
 
 	/* 伺服器啓動 */
 	server.begin();
@@ -757,4 +888,23 @@ void listFiles(const char *dirname)
 		}
 		file = root.openNextFile();
 	}
+}
+
+uint8_t is_valid_wifi_password(const char *password)
+{
+	size_t len = 0;
+	while (password[len] != '\0')
+	{
+		char c = password[len];
+		if (c < 32 || c > 126) // 檢查是否為可打印字符
+		{
+			return false; // 如果有不可打印字符，返回0
+		}
+		++len;
+	}
+	if ((len < 8 || len > 63) && len != 0) // 檢查長度
+	{
+		return false;
+	}
+	return true;
 }
