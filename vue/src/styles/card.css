@@ -18,19 +18,24 @@
 	gap: 6px;
 }
 
-.button{
+.button {
 	justify-content: flex-end;
 }
 
-.slide-toggle-enter-active, .slide-toggle-leave-active {
-	transition: max-height 0.3s, opacity 0.3s;
+.slide-toggle-enter-active,
+.slide-toggle-leave-active {
+	transition:
+		max-height 0.3s,
+		opacity 0.3s;
 	overflow: hidden;
 }
-.slide-toggle-enter-from, .slide-toggle-leave-to {
+.slide-toggle-enter-from,
+.slide-toggle-leave-to {
 	max-height: 0;
 	opacity: 1;
 }
-.slide-toggle-enter-to, .slide-toggle-leave-from {
+.slide-toggle-enter-to,
+.slide-toggle-leave-from {
 	max-height: 1000px; /* 根據實際內容調整，確保足夠大 */
 	opacity: 1;
 }
@@ -48,4 +53,3 @@
 		color: rgb(255, 255, 255);
 	}
 }
-

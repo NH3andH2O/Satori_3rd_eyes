@@ -5,7 +5,6 @@
 	<p></p>
 </template>
 
-<script lang="ts" setup>
-</script>
+<script lang="ts" setup></script>
 
 <style src="../styles/card.css" scoped></style>

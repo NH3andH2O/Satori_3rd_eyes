@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { watchEffect } from 'vue'
-import wifiset from './components/wifiset.vue'
-import modeset from './components/modeset.vue'
-import advancedset from './components/advancedset.vue'
+import { useI18n } from 'vue-i18n';
+import { watchEffect } from 'vue';
+import wifiset from './components/wifiset.vue';
+import modeset from './components/modeset.vue';
+import advancedset from './components/advancedset.vue';
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 watchEffect(() => {
-	document.title = t('pageTitle')
-})
+	document.title = t('pageTitle');
+});
 </script>
 
 <template>
