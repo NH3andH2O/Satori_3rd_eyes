@@ -138,13 +138,13 @@ void api_wifi_config(AsyncWebServerRequest *request)
 	/* 檢查請求方法 */
 	if (request->method() == HTTP_GET)
 	{
-		StaticJsonDocument<256> data_json;
-		data_json["is_wifi"] = prefs.getBool("iswifi", false);
-		data_json["ssid"] = prefs.getString("wifi_ssid", "");
-		data_json["password"] = prefs.getString("wifi_password", "");
+		JsonDocument data_doc;
+		data_doc["is_wifi"] = prefs.getBool("iswifi", false);
+		data_doc["ssid"] = prefs.getString("wifi_ssid", "");
+		data_doc["password"] = prefs.getString("wifi_password", "");
 
 		String jsonStr;
-		serializeJson(data_json, jsonStr);
+		serializeJson(data_doc, jsonStr);
 
 		request->send(200, "application/json", jsonStr);
 	}
@@ -161,10 +161,10 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 	/* 檢查請求方法 */
 	if (request->method() == HTTP_POST)
 	{
-		JsonDocument data_json;
+		JsonDocument data_doc;
 
 		/* 獲取JSON */
-		DeserializationError error = deserializeJson(data_json, data);
+		DeserializationError error = deserializeJson(data_doc, data);
 		if (error)
 		{
 			Serial.printf("Failed to parse JSON: %s\n", error.c_str());
@@ -173,9 +173,9 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 		}
 
 		/* 獲取WiFi配置 */
-		const char *ssid = data_json["ssid"] | "";
-		const char *password = data_json["password"] | "";
-		uint8_t iswifi = data_json["is_wifi"] | false;
+		const char *ssid = data_doc["ssid"] | "";
+		const char *password = data_doc["password"] | "";
+		uint8_t iswifi = data_doc["is_wifi"] | false;
 
 		/* 檢查WiFi配置 */
 		if (iswifi == false || (iswifi == true && ssid[0] != '\0'))
@@ -186,11 +186,7 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 			prefs.putBool("iswifi", iswifi);
 
 			/* 發送返回值 */
-			StaticJsonDocument<256> response_doc;
-			response_doc["success"] = true;
-			String jsonStr;
-			serializeJson(response_doc, jsonStr);
-			request->send(200, "application/json", jsonStr);
+			request->send(200, "application/json", "{\"success\":true}");
 
 			/* wifi更新 */
 			uint8_t is_wifiUpdate = 1;							  // WiFi更新標誌
@@ -200,12 +196,7 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 		else
 		{
 			/* 發送錯誤返回值 */
-			StaticJsonDocument<256> response_doc;
-			response_doc["success"] = false;
-			response_doc["message"] = "Invalid WiFi configuration";
-			String jsonStr;
-			serializeJson(response_doc, jsonStr);
-			request->send(400, "application/json", jsonStr);
+			request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
 			return;
 		}
 	}
