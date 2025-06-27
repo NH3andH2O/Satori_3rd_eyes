@@ -58,11 +58,6 @@ export function useSoftAPSettings() {
 		config.value.isSaving = true;
 		const { ssid, is_change_password: isChangePassword, password, password_confirm } = config.value;
 
-		if (password && password !== password_confirm) {
-			ElMessage.error(i18n.global.t('password_not_match'));
-			return;
-		}
-
 		const newConfig: Partial<SoftAPConfig> = {
 			ssid,
 			is_change_password: isChangePassword,
@@ -74,7 +69,7 @@ export function useSoftAPSettings() {
 			.post('/api/set_softap_config', newConfig)
 			.then((response) => {
 				if (response.data.success) {
-					console.log('SoftAP setting updated:', response.data.data);
+					console.log('SoftAP setting updated:', response.data);
 					ElMessage.success(i18n.global.t('softAP_setting_successfully'));
 				} else {
 					throw new Error(response.data.message || 'Unknown error');

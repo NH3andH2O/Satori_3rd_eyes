@@ -139,9 +139,9 @@ void api_wifi_config(AsyncWebServerRequest *request)
 	if (request->method() == HTTP_GET)
 	{
 		StaticJsonDocument<256> data_json;
-		data_json["iswifi"] = prefs.getBool("iswifi", false);
-		data_json["wifi_ssid"] = prefs.getString("wifi_ssid", "");
-		data_json["wifi_password"] = prefs.getString("wifi_password", "");
+		data_json["is_wifi"] = prefs.getBool("iswifi", false);
+		data_json["ssid"] = prefs.getString("wifi_ssid", "");
+		data_json["password"] = prefs.getString("wifi_password", "");
 
 		String jsonStr;
 		serializeJson(data_json, jsonStr);
@@ -173,12 +173,12 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 		}
 
 		/* 獲取WiFi配置 */
-		const char *ssid = data_json["wifi_ssid"] | "";
-		const char *password = data_json["wifi_password"] | "";
-		uint8_t iswifi = data_json["iswifi"] | false;
+		const char *ssid = data_json["ssid"] | "";
+		const char *password = data_json["password"] | "";
+		uint8_t iswifi = data_json["is_wifi"] | false;
 
 		/* 檢查WiFi配置 */
-		if (iswifi == false || (iswifi == true && ssid[0] != '\0' && password[0] != '\0'))
+		if (iswifi == false || (iswifi == true && ssid[0] != '\0'))
 		{
 			/* 存儲WiFi配置 */
 			prefs.putString("wifi_ssid", ssid);
