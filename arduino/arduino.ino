@@ -634,7 +634,7 @@ void setup()
 	Serial.println("wit init..."); // 打印初始化狀態
 
 	/* 任務建立 */
-	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 4096, NULL, 1, &taskNetwork_hamdle, 0);									 // 創建網絡任務
+	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);									 // 創建網絡任務
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle, 1);			 // 創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1);			 // 創建獲取數據任務
 	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1); // 創建數據處理任務
