@@ -45,7 +45,7 @@ watchEffect(() => {
 }
 
 .el-row:last-child {
-	margin-bottom: 4px;
+	margin-bottom: 0;
 }
 
 .el-col {
