@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import viteCompression from 'vite-plugin-compression';
 import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
@@ -17,6 +18,14 @@ export default defineConfig({
 		},
 	},
 	plugins: [
+		viteCompression({
+			algorithm: 'gzip',
+			ext: '.gz',
+			threshold: 10240,
+			deleteOriginFile: true,
+			filter: /\.(js|css|html|svg)$/,
+			verbose: true,
+		}),
 		vue(),
 		AutoImport({
 			resolvers: [ElementPlusResolver()],
@@ -31,5 +40,9 @@ export default defineConfig({
 		},
 		host: '0.0.0.0',
 		port: 5173,
+	},
+	build: {
+		outDir: '../arduino/data/www',
+		emptyOutDir: true,
 	},
 });
