@@ -27,5 +27,13 @@ export default {
 	softAP_setting_failed: '熱點設定失敗',
 	setting_transmission_failed: '無法連綫到伺服器',
 	modeset_title: '模式設定',
+	mode: '模式：',
+	mode_empty: '模式不能為空',
+	correction_time_negative: '靜態校正時間不能小於 0',
+	correction_time_over_range: '靜態校正時間不能超過 65535',
+	gyroscope_tracks_mode: '陀螺儀跟隨模式',
+	correction_time: '静态校正時間：',
+	mode_setting_successfully: '模式設定成功',
+	mode_setting_failed: '模式設定失敗',
 	advancedset_title: '進階設定',
 };

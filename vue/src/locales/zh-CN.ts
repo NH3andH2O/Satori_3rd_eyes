@@ -27,5 +27,13 @@ export default {
 	softAP_setting_failed: '热点设置失败',
 	setting_transmission_failed: '无法连接服务器',
 	modeset_title: '模式设置',
+	mode: '模式：',
+	mode_empty: '模式不能为空',
+	correction_time_negative: '静态校正时间不能小于 0',
+	correction_time_over_range: '静态校正时间不能超过 65535',
+	gyroscope_tracks_mode: '陀螺仪跟随模式',
+	correction_time: '静态校正时间：',
+	mode_setting_successfully: '模式设置成功',
+	mode_setting_failed: '模式设置失败',
 	advancedset_title: '高级设置',
 };
