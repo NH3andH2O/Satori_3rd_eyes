@@ -179,3 +179,61 @@ void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t
 		request->send(405, "text/plain", "Method Not Allowed");
 	}
 }
+
+void api_mode_config(AsyncWebServerRequest *request)
+{
+	/* 檢查請求方法 */
+	if (request->method() == HTTP_GET)
+	{
+		JsonDocument data_doc;
+		data_doc["mode"] = prefs.getInt("mode", 1);
+		data_doc["correction_timer"] = prefs.getUInt("correction", 2000);
+
+		String jsonStr;
+		serializeJson(data_doc, jsonStr);
+
+		request->send(200, "application/json", jsonStr);
+	}
+	else
+	{
+		request->send(405, "text/plain", "Method Not Allowed");
+	}
+}
+
+void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+{
+	/* 檢查請求方法 */
+	if (request->method() == HTTP_POST)
+	{
+		JsonDocument data_json;
+
+		/* 獲取JSON */
+		DeserializationError error = deserializeJson(data_json, data);
+		if (error)
+		{
+			Serial.printf("Failed to parse JSON: %s\n", error.c_str());
+			request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+			return;
+		}
+
+		/* 獲取模式配置 */
+		int8_t mode = data_json["mode"] | 0;
+		if (mode < 1 || mode > 1) // 非法模式檢測
+		{
+			request->send(400, "application/json", "{\"error\":\"Invalid mode\"}");
+			return;
+		}
+
+		uint16_t correction_timer = data_json["correction_timer"] | 2000;
+
+		prefs.putInt("mode", mode);
+		prefs.putUInt("correction", correction_timer);
+
+		request->send(200, "application/json", "{\"success\":true}");
+		return;
+	}
+	else
+	{
+		request->send(405, "text/plain", "Method Not Allowed");
+	}
+}

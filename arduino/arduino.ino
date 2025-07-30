@@ -97,6 +97,7 @@ QueueHandle_t wit_data_relative_angle_quene; // 宣告wit差值佇列
 QueueHandle_t eyesmove_data_quene;			 // 宣告眼睛數據佇列
 QueueHandle_t gc9a01_data_quene;			 // 宣告GC9A01佇列
 QueueHandle_t wifiUpdate_data_quene;		 // 宣告WiFi更新佇列
+QueueHandle_t correction_timer_update_quene; // 宣告角度重置時間器更新佇列
 
 /* 任務參照 */
 TaskHandle_t taskWitEyesGetData_hamdle;		// 獲取wit眼睛數據任務
@@ -260,6 +261,8 @@ void taskWebServer(void *pvParameters)
 	server.on("/api/set_wifi_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_wifi_config);
 	server.on("/api/softap_config", HTTP_GET, api_softAP_config);
 	server.on("/api/set_softap_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_softAP_config);
+	server.on("/api/mode_config", HTTP_GET, api_mode_config);
+	server.on("/api/set_mode_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_mode_config);
 
 	/* 伺服器啓動 */
 	server.begin();
@@ -314,7 +317,7 @@ void taskWitGetData(void *arg)
 	}
 }
 
-/* 處理角度差 */
+/* 處理角度數據任務 */
 void taskWitPProcessingData(void *arg)
 {
 	witData wit_data;		   // wit數據結構體
@@ -352,7 +355,13 @@ void taskWitPProcessingData(void *arg)
 	uint8_t witHead_angle_status = 0; // 頭部角度狀態
 	uint8_t *angle_status = nullptr;  // 角度狀態指標
 
+	double calculate_angularSpeed; // 角速度絕對值
+
 	uint8_t read_count = 0; // 讀取計數
+
+	uint16_t reset_reference_timer = prefs.getUInt("correction", 2000); // 重置参考角度時間器
+	uint64_t reset_reference_time = 0;									// 重置参考角度時間
+	uint8_t is_reset_reference_timer_update = 0;						// 重置参考角度時間器更新標誌
 
 	/* 抛棄前10次數據 */
 	while (read_count < 10)
@@ -466,6 +475,34 @@ void taskWitPProcessingData(void *arg)
 			result.witEyes_acceleration = witEyes_acceleration;	   // 設置眼睛加速度
 			result.witHead_acceleration = witHead_acceleration;	   // 設置頭部加速度
 			xQueueSend(wit_data_relative_angle_quene, &result, 0); // 從佇列中獲取數據
+		}
+
+		/* 更新重置時間 */
+		if (xQueueReceive(correction_timer_update_quene, &is_reset_reference_timer_update, 0) == pdTRUE) // 等待時間更新信號
+		{
+			if (is_reset_reference_timer_update == 1)
+			{
+				reset_reference_timer = prefs.getUInt("correction", 2000); // 更新重置参考角度時間器
+				reset_reference_time = xTaskGetTickCount();				   // 更新重置参考角度時間
+				is_reset_reference_timer_update = 0;					   // 重置重置参考角度時間器更新標誌
+			}
+		}
+
+		/* 重置参考角度 */
+		if (reset_reference_timer != 0)
+		{
+			uint64_t current_time = xTaskGetTickCount(); // 獲取當前時間
+			calculate_angularSpeed = sqrt(pow(relative_angularSpeed.xangular_speed, 2) + pow(relative_angularSpeed.yangular_speed, 2) +
+										  pow(relative_angularSpeed.zangular_speed, 2)); // 計算角速度絕對值
+			if (calculate_angularSpeed > 30 || !witEyes_angle_status || !witHead_angle_status)
+			{
+				reset_reference_time = current_time; // 更新重置参考角度時間
+			}
+			if (current_time - reset_reference_time > reset_reference_timer && witEyes_angle_status && witHead_angle_status)
+			{
+				witEyes_angle_status = 0; // 重置眼睛角度狀態
+				witHead_angle_status = 0; // 重置頭部角度狀態
+			}
 		}
 	}
 }
@@ -628,6 +665,7 @@ void setup()
 	queueCreate(&eyesmove_data_quene, 10, sizeof(eyesMove_data));				 // eyesMove_data結構體佇列
 	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));					 // GC9A01_data結構體佇列
 	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));					 // WiFi更新佇列
+	queueCreate(&correction_timer_update_quene, 10, sizeof(uint8_t));			 // 角度重置時間器更新佇列
 
 	Serial.println("quene create success"); // 打印佇列建立成功狀態
 
