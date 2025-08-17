@@ -98,6 +98,7 @@ QueueHandle_t eyesmove_data_quene;			 // 宣告眼睛數據佇列
 QueueHandle_t gc9a01_data_quene;			 // 宣告GC9A01佇列
 QueueHandle_t wifiUpdate_data_quene;		 // 宣告WiFi更新佇列
 QueueHandle_t correction_timer_update_quene; // 宣告角度重置時間器更新佇列
+QueueHandle_t mode_data_quene;				 // 宣告模式數據佇列
 
 /* 任務參照 */
 TaskHandle_t taskWitEyesGetData_hamdle;		// 獲取wit眼睛數據任務
@@ -108,6 +109,7 @@ TaskHandle_t taskGC9A01_hamdle;				// GC9A01任務
 TaskHandle_t taskEyesMove_hamdle;			// 眼睛任務
 TaskHandle_t taskWebServer_hamdle;			// Web服務器任務
 TaskHandle_t taskNetwork_hamdle;			// 網絡任務
+TaskHandle_t taskModeManagement_hamdle;		// 模式管理任務
 
 /** 任務相關函數 **/
 /* 網絡相關任務 */
@@ -271,6 +273,56 @@ void taskWebServer(void *pvParameters)
 	{
 		ws.cleanupClients();
 		vTaskDelay(1000);
+	}
+}
+
+/* 模式管理任務 */
+void taskModeManagement(void *pvParameters)
+{
+	int8_t mode = prefs.getInt("mode", 0); // 獲取當前模式
+	uint8_t task_register = 0;			   // 任務寄存器
+	/* 高 <-------> 低
+	|  |  |  |  |  |  | 陀螺儀跟蹤任務 | 獲取數據任務 | */
+	while (1)
+	{
+
+		/* 設置任務寄存器 */
+		switch (mode)
+		{
+			case 1: // 陀螺儀跟蹤模式
+				task_register = 0x03;
+				break;
+
+			default:
+				break;
+		}
+
+		/* 切換任務模式 */
+		if (task_register & 0x01) // 獲取數據任務
+		{
+			xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle, 1); // 創建獲取數據任務
+			xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1); // 創建獲取數據任務
+			xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle,
+									1); // 創建數據處理任務
+		}
+		else
+		{
+			vTaskDelete(taskWitEyesGetData_hamdle);		// 刪除獲取數據任務
+			vTaskDelete(taskWitHeadGetData_hamdle);		// 刪除獲取數據任務
+			vTaskDelete(taskWitPProcessingData_hamdle); // 刪除數據處理任務
+		}
+		if (task_register & 0x02) // 陀螺儀跟蹤任務
+		{
+			xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle,
+									1); // 創建陀螺儀跟蹤任務
+		}
+		else
+		{
+			vTaskDelete(taskGyroscopeTracking_hamdle); // 刪除陀螺儀跟蹤任務
+		}
+
+		/* 等待模式數據 */
+		xQueueReceive(mode_data_quene, &mode, portMAX_DELAY);
 	}
 }
 
@@ -666,19 +718,17 @@ void setup()
 	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));					 // GC9A01_data結構體佇列
 	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));					 // WiFi更新佇列
 	queueCreate(&correction_timer_update_quene, 10, sizeof(uint8_t));			 // 角度重置時間器更新佇列
+	queueCreate(&mode_data_quene, 10, sizeof(int8_t));							 // 模式數據佇列
 
 	Serial.println("quene create success"); // 打印佇列建立成功狀態
 
 	Serial.println("wit init..."); // 打印初始化狀態
 
 	/* 任務建立 */
-	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);									 // 創建網絡任務
-	xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle, 1);			 // 創建獲取數據任務
-	xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1);			 // 創建獲取數據任務
-	xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle, 1); // 創建數據處理任務
-	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 0);									 // 創建GC9A01任務
-	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 1);								 // 創建眼睛移動任務
-	xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle, 1);	 // 創建陀螺儀跟蹤任務
+	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);						 // 創建網絡任務
+	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 0);						 // 創建GC9A01任務
+	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 1);					 // 創建眼睛移動任務
+	xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_hamdle, 1); // 創建模式管理任務
 }
 
 void loop() { vTaskDelay(1000); }

@@ -180,6 +180,7 @@ void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t
 	}
 }
 
+/* get模式獲取 */
 void api_mode_config(AsyncWebServerRequest *request)
 {
 	/* 檢查請求方法 */
@@ -200,6 +201,7 @@ void api_mode_config(AsyncWebServerRequest *request)
 	}
 }
 
+/* post模式修改 */
 void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
 {
 	/* 檢查請求方法 */
