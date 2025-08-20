@@ -33,6 +33,8 @@ export default {
 	correction_time_over_range: 'Static correction time cannot exceed 65535',
 	gyroscope_tracks_mode: 'Gyroscope Tracking Mode',
 	correction_time: 'Static Correction Time:',
+	correction_time_help:
+		'When 3rdEyes is stationary, the gyroscope resets its initial orientation to correct angle deviations. Setting to 0 means no static correction.',
 	mode_setting_successfully: 'Mode setting successfully',
 	mode_setting_failed: 'Mode setting failed',
 	advancedset_title: 'Advanced Settings',

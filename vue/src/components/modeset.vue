@@ -34,7 +34,17 @@ function mode_save() {
 		<div class="content">
 			<transition name="slide-toggle">
 				<div v-show="mode.config.value.mode === 1">
-					<el-form-item :label="$t('correction_time')" prop="correction_timer">
+					<el-form-item prop="correction_timer">
+						<template #label>
+							<div style="display: flex; align-items: center; gap: 4px">
+								<el-tooltip :content="t('correction_time_help')" placement="top">
+									<el-icon size="16" color="slategray">
+										<QuestionFilled />
+									</el-icon>
+								</el-tooltip>
+								{{ $t('correction_time') }}
+							</div>
+						</template>
 						<el-input-number
 							v-model="mode.config.value.correction_timer"
 							placeholder="Gyroscope Tracking Mode"

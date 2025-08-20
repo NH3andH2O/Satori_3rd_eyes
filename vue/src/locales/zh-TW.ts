@@ -33,6 +33,7 @@ export default {
 	correction_time_over_range: '靜態校正時間不能超過 65535',
 	gyroscope_tracks_mode: '陀螺儀跟隨模式',
 	correction_time: '静态校正時間：',
+	correction_time_help: '當覺之瞳處於靜止狀態時，陀螺儀會重置初始姿態角度以矯正角度偏差。設置為0表示不進行靜態校正。',
 	mode_setting_successfully: '模式設定成功',
 	mode_setting_failed: '模式設定失敗',
 	advancedset_title: '進階設定',
