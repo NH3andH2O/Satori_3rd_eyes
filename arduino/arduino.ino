@@ -726,7 +726,7 @@ void setup()
 
 	/* 任務建立 */
 	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);						 // 創建網絡任務
-	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 0);						 // 創建GC9A01任務
+	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 1);						 // 創建GC9A01任務
 	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 1);					 // 創建眼睛移動任務
 	xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_hamdle, 1); // 創建模式管理任務
 }

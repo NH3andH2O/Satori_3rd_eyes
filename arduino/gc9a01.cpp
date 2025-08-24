@@ -103,6 +103,7 @@ void GC9A01::GC9A01_setEyes_lightMax(uint8_t lightMax, double zeta = -1.0, doubl
 
 uint8_t GC9A01::GC9A01_update()
 {
+	vTaskSuspendAll();
 	this->mySprite.fillScreen(this->myLGFX.color565(0, 0, 0)); // 清屏
 
 	/* 控制眼睛动态效果 */
@@ -184,7 +185,13 @@ uint8_t GC9A01::GC9A01_update()
 		this->mySprite.fillCircle(120, 124, i, this->myLGFX.color565(red, 0, 0)); // 画光环
 	}
 	this->mySprite.fillCircle(120, 124, this->int_eyesR, this->myLGFX.color565(0, 0, 0)); // 畫眼睛
-	this->mySprite.pushSprite(&this->myLGFX, 0, 0);										  // 推送
+
+	xTaskResumeAll();
+
+	/* 推送到屏幕 */
+	this->myLGFX.startWrite();
+	this->mySprite.pushSprite(&this->myLGFX, 0, 0); // 推送
+	this->myLGFX.endWrite();
 
 	/* 返回是否更新完成 */
 	if (this->isUpdate_eyesR == 0 && this->isUpdate_lightMax == 0) // 如果眼睛半徑和光暈都沒有更新
