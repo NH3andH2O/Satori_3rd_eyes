@@ -15,7 +15,7 @@ function getLocaleFromBrowser(): string {
 	};
 
 	for (const key in map) {
-		if (lang.includes(key)) return map[key];
+		if (lang.includes(key)) return map[key] || 'en';
 	}
 
 	return 'en'; // fallback

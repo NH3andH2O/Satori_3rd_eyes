@@ -22,6 +22,8 @@ declare module 'vue' {
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     Modeset: typeof import('./src/components/modeset.vue')['default']
+    RouterLink: typeof import('vue-router')['RouterLink']
+    RouterView: typeof import('vue-router')['RouterView']
     Wifiset: typeof import('./src/components/wifiset.vue')['default']
   }
 }
