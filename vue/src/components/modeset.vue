@@ -70,4 +70,4 @@ function mode_save() {
 	</el-form>
 </template>
 
-<style src="../styles/card.css" scoped></style>
+<style src="@/styles/card.css" scoped></style>
