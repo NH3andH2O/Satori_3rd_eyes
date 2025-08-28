@@ -6,14 +6,14 @@ void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEven
 	switch (type)
 	{
 		case WS_EVT_CONNECT:
-			Serial.printf("WebSocket client connected: %u\n", client->id());
+			ESP_LOGI("server", "WebSocket client connected: %u\n", client->id());
 			break;
 		case WS_EVT_DISCONNECT:
-			Serial.printf("WebSocket client disconnected: %u\n", client->id());
+			ESP_LOGI("server", "WebSocket client disconnected: %u\n", client->id());
 			break;
 		case WS_EVT_DATA:
 		{
-			Serial.printf("WebSocket data received from client %u: %.*s\n", client->id(), len, data);
+			ESP_LOGD("server", "WebSocket data received from client %u: %.*s\n", client->id(), len, data);
 			break;
 		}
 		default:
@@ -56,7 +56,7 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 		DeserializationError error = deserializeJson(data_doc, data);
 		if (error)
 		{
-			Serial.printf("Failed to parse JSON: %s\n", error.c_str());
+			ESP_LOGE("server", "Failed to parse JSON: %s\n", error.c_str());
 			request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
 			return;
 		}
@@ -124,7 +124,7 @@ void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t
 		DeserializationError error = deserializeJson(data_json, data);
 		if (error)
 		{
-			Serial.printf("Failed to parse JSON: %s\n", error.c_str());
+			ESP_LOGE("server", "Failed to parse JSON: %s\n", error.c_str());
 			request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
 			return;
 		}
@@ -213,7 +213,7 @@ void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 		DeserializationError error = deserializeJson(data_json, data);
 		if (error)
 		{
-			Serial.printf("Failed to parse JSON: %s\n", error.c_str());
+			ESP_LOGE("server", "Failed to parse JSON: %s\n", error.c_str());
 			request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
 			return;
 		}

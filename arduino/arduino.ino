@@ -47,7 +47,6 @@
 
 /* 函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType); // 佇列創建
-void listFiles(const char *dirname);										  // 遍歷目錄檔案
 
 /* 結構體定義 */
 typedef struct
@@ -124,7 +123,7 @@ void taskNetwork(void *pvParameters)
 	{
 		if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID), prefs.getString("password", "")))
 		{
-			Serial.println("Failed to start SoftAP");
+			ESP_LOGE("wifi", "Failed to start SoftAP");
 			vTaskDelete(NULL);
 			return;
 		}
@@ -133,14 +132,13 @@ void taskNetwork(void *pvParameters)
 	{
 		if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID)))
 		{
-			Serial.println("Failed to start SoftAP");
+			ESP_LOGE("wifi", "Failed to start SoftAP");
 			vTaskDelete(NULL);
 			return;
 		}
 	}
-	Serial.println("SoftAP Started");
-	Serial.print("IP Address: ");
-	Serial.println(WiFi.softAPIP());
+	ESP_LOGI("wifi", "SoftAP Started");
+	ESP_LOGI("wifi", "IP Address: %s", WiFi.softAPIP().toString().c_str());
 
 	/* 伺服器任務創建 */
 	xTaskCreatePinnedToCore(taskWebServer, "taskWebServer", 4096, NULL, 1, &taskWebServer_hamdle, 0); // 創建網絡任務
@@ -152,7 +150,7 @@ void taskNetwork(void *pvParameters)
 		if (is_wifiUpdate == 1) // 如果WiFi需要更新
 		{
 			is_wifiUpdate = 0; // 重置WiFi更新標誌
-			Serial.println("Updating WiFi connection...");
+			ESP_LOGI("wifi", "Updating WiFi connection...");
 			if (prefs.getBool("iswifi", false) && prefs.getString("wifi_ssid", "").length() > 0 && prefs.getString("wifi_password", "").length() > 0)
 			{
 				/* 斷開當前wifi */
@@ -169,7 +167,7 @@ void taskNetwork(void *pvParameters)
 				{
 					if (xTaskGetTickCount() - startTime > 10000) // 如果超過10秒未連接
 					{
-						Serial.println("WiFi connection timed out");
+						ESP_LOGE("wifi", "WiFi connection timed out");
 						break;
 					}
 					vTaskDelay(100); // 延遲100毫秒
@@ -188,7 +186,7 @@ void taskNetwork(void *pvParameters)
 		else if (is_wifiUpdate == 2)
 		{
 			is_wifiUpdate = 0; // 重置WiFi更新標誌
-			Serial.println("Updating SoftAP configuration...");
+			ESP_LOGI("wifi", "Updating SoftAP configuration...");
 
 			/* 斷開softAP */
 			vTaskDelay(500);
@@ -199,7 +197,7 @@ void taskNetwork(void *pvParameters)
 			{
 				if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID), prefs.getString("password", "")))
 				{
-					Serial.println("Failed to start SoftAP");
+					ESP_LOGE("wifi", "Failed to start SoftAP");
 					return;
 				}
 			}
@@ -207,7 +205,7 @@ void taskNetwork(void *pvParameters)
 			{
 				if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID)))
 				{
-					Serial.println("Failed to start SoftAP");
+					ESP_LOGE("wifi", "Failed to start SoftAP");
 					return;
 				}
 			}
@@ -219,13 +217,12 @@ void taskNetwork(void *pvParameters)
 		{
 			if (WiFi.status() == WL_CONNECTED) // 如果WiFi連接成功
 			{
-				Serial.println("WiFi connected successfully");
-				Serial.print("IP Address: ");
-				Serial.println(WiFi.localIP()); // 打印IP地址
+				ESP_LOGI("wifi", "WiFi connected successfully");
+				ESP_LOGI("wifi", "IP Address: %s", WiFi.localIP().toString().c_str());
 			}
 			else if (wifi_old_status == WL_CONNECTED)
 			{
-				Serial.println("WiFi disconnected");
+				ESP_LOGI("wifi", "WiFi disconnected");
 			}
 			wifi_old_status = WiFi.status(); // 更新舊的WiFi狀態
 		}
@@ -239,19 +236,18 @@ void taskWebServer(void *pvParameters)
 	/* FFat啓動 */
 	if (!FFat.begin(true))
 	{
-		Serial.println("FFat failed to start!");
+		ESP_LOGE("FFat", "FFat failed to start!");
 		vTaskDelete(NULL);
 	}
-	Serial.println("FFat file system started");
-	listFiles("/");
+	ESP_LOGI("FFat", "FFat file system started");
 
 	/* mDNS啓動 */
 	if (!MDNS.begin("3rdeyes"))
 	{
-		Serial.println("mDNS failed to start!");
+		ESP_LOGE("mDNS", "mDNS failed to start!");
 		vTaskDelete(NULL);
 	}
-	Serial.println("mDNS started: http://3rdeyes.local");
+	ESP_LOGI("mDNS", "mDNS started: http://3rdeyes.local");
 
 	/* WebSocket服務器 */
 	ws.onEvent(onSocketEvent); // 設置WebSocket事件處理函數
@@ -268,7 +264,7 @@ void taskWebServer(void *pvParameters)
 
 	/* 伺服器啓動 */
 	server.begin();
-	Serial.println("HTTP server started");
+	ESP_LOGI("server", "HTTP server started");
 	while (1)
 	{
 		ws.cleanupClients();
@@ -340,16 +336,16 @@ void taskWitGetData(void *arg)
 	switch (wit_status)
 	{
 		case 0:
-			printf("%s init success\r\n", wit_name.c_str()); // 打印初始化成功
+			ESP_LOGI("wit", "%s init success", wit_name.c_str()); // 打印初始化成功
 			break;
 		case WIT_INIT_ERROR:
-			printf("%s init error\r\n", wit_name.c_str()); // 打印初始化錯誤
+			ESP_LOGE("wit", "%s init error", wit_name.c_str()); // 打印初始化錯誤
 			break;
 		case SERIAL_INIT_ERROR:
-			printf("%s serial init error\r\n", wit_name.c_str()); // 打印Serial初始化錯誤
+			ESP_LOGE("wit", "%s serial init error", wit_name.c_str()); // 打印Serial初始化錯誤
 			break;
 		default:
-			printf("%s init unknown error\r\n", wit_name.c_str()); // 打印未知錯誤
+			ESP_LOGE("wit", "%s init unknown error", wit_name.c_str()); // 打印未知錯誤
 			break;
 	}
 	while (wit_status) // 失敗進入死循環
@@ -710,7 +706,7 @@ void setup()
 	}
 
 	/* 佇列建立 */
-	Serial.println("quene create..."); // 打印佇列建立狀態
+	ESP_LOGI("quene", "quene create..."); // 打印佇列建立狀態
 
 	queueCreate(&wit_data_quene, 10, sizeof(witData));							 // witData結構體佇列
 	queueCreate(&wit_data_relative_angle_quene, 10, sizeof(witPProcessingData)); // witPProcessingData結構體佇列
@@ -720,9 +716,9 @@ void setup()
 	queueCreate(&correction_timer_update_quene, 10, sizeof(uint8_t));			 // 角度重置時間器更新佇列
 	queueCreate(&mode_data_quene, 10, sizeof(int8_t));							 // 模式數據佇列
 
-	Serial.println("quene create success"); // 打印佇列建立成功狀態
+	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
 
-	Serial.println("wit init..."); // 打印初始化狀態
+	ESP_LOGI("wit", "wit init..."); // 打印初始化狀態
 
 	/* 任務建立 */
 	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);						 // 創建網絡任務
@@ -741,47 +737,10 @@ void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
 	/* 佇列建立失敗 */
 	if (*quene == NULL)
 	{
-		Serial.println("quene create error");
+		ESP_LOGE("quene", "quene create error");
 		while (2)
 		{
 			vTaskDelay(1000);
 		}
-	}
-}
-
-void listFiles(const char *dirname)
-{
-	File root = FFat.open(dirname); // 打開檔案
-	if (!root)
-	{
-		Serial.println("Failed to open directory");
-		return;
-	}
-
-	if (!root.isDirectory())
-	{
-		Serial.println("Not a directory");
-		return;
-	}
-
-	Serial.println("Listing files:");
-
-	/* 遍歷檔案 */
-	File file = root.openNextFile();
-	while (file)
-	{
-		if (file.isDirectory())
-		{
-			Serial.print("[DIR] ");
-			Serial.println(file.name());
-		}
-		else
-		{
-			Serial.print("[FILE] ");
-			Serial.print(file.name());
-			Serial.print(" - ");
-			Serial.println(file.size());
-		}
-		file = root.openNextFile();
 	}
 }
