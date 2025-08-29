@@ -23,6 +23,7 @@
 #include <FFat.h>
 #include <ESPmDNS.h>
 #include <ArduinoJson.h>
+#include <driver/uart.h>
 #include "gc9a01.h"
 #include "eyesMove.h"
 #include "wit.h"
@@ -98,6 +99,7 @@ QueueHandle_t gc9a01_data_quene;			 // 宣告GC9A01佇列
 QueueHandle_t wifiUpdate_data_quene;		 // 宣告WiFi更新佇列
 QueueHandle_t correction_timer_update_quene; // 宣告角度重置時間器更新佇列
 QueueHandle_t mode_data_quene;				 // 宣告模式數據佇列
+QueueHandle_t uart0_queue;					 // UART0事件佇列
 
 /* 任務參照 */
 TaskHandle_t taskWitEyesGetData_hamdle;		// 獲取wit眼睛數據任務
@@ -109,6 +111,7 @@ TaskHandle_t taskEyesMove_hamdle;			// 眼睛任務
 TaskHandle_t taskWebServer_hamdle;			// Web服務器任務
 TaskHandle_t taskNetwork_hamdle;			// 網絡任務
 TaskHandle_t taskModeManagement_hamdle;		// 模式管理任務
+TaskHandle_t taskUART0Read_hamdle;			// UART0讀取任務
 
 /** 任務相關函數 **/
 /* 網絡相關任務 */
@@ -696,14 +699,78 @@ void taskEyesMove(void *arg)
 	}
 }
 
+/* UART0讀取任務 */
+void taskUART0Read(void *arg)
+{
+	const uint16_t BUF_SIZE = 1024;
+
+	uart_event_t event;
+	uint8_t *data = (uint8_t *)malloc(BUF_SIZE);
+
+	/* 配置UART0 */
+	uart_config_t cfg = {
+		.baud_rate = 115200,
+		.data_bits = UART_DATA_8_BITS,
+		.parity = UART_PARITY_DISABLE,
+		.stop_bits = UART_STOP_BITS_1,
+		.flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+		.source_clk = UART_SCLK_APB,
+	};
+	ESP_ERROR_CHECK(uart_param_config(UART_NUM_0, &cfg));
+	ESP_ERROR_CHECK(uart_set_pin(UART_NUM_0, 43, 44, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+	ESP_ERROR_CHECK(uart_driver_install(UART_NUM_0, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart0_queue, 0));
+
+	while (true)
+	{
+		/* 接收指令 */
+		if (xQueueReceive(uart0_queue, &event, portMAX_DELAY))
+		{
+			if (event.type == UART_DATA)
+			{
+				uint16_t len = uart_read_bytes(UART_NUM_0, data, event.size, portMAX_DELAY);
+				if (len > 0)
+				{
+					data[len] = '\0';
+					String data_str = String((char *)data);
+					data_str.trim();		// 去除空格
+					data_str.toLowerCase(); // 轉換為小寫
+
+					/* 執行指令 */
+					if (data_str == "reset") // 重啓指令
+					{
+						ESP_LOGI("UART", "Reset command received. Restarting...");
+						ESP.restart();
+					}
+					else if (data_str == "help") // 幫助指令
+					{
+						ESP_LOGI("UART", "\nAvailable commands:\nreset - Restart the device\nhelp - Show this help message");
+					}
+					else
+					{
+						ESP_LOGE("UART", "Unknown command, type \'help\' for a list of commands.");
+					}
+				}
+
+				/* 清除緩存 */
+				else if (event.type == UART_FIFO_OVF || event.type == UART_BUFFER_FULL)
+				{
+					uart_flush_input(UART_NUM_0);
+					xQueueReset(uart0_queue);
+					ESP_LOGW("UART", "UART0 buffer overflow");
+				}
+			}
+		}
+	}
+}
+
 void setup()
 {
-	Serial.begin(115200);
-	prefs.begin("preferences", false);
 	while (xTaskGetTickCount() < 2000)
 	{
 		; // 等待2秒
 	}
+	ESP_LOGI("UART", "UART0 init...");
+	prefs.begin("preferences", false);
 
 	/* 佇列建立 */
 	ESP_LOGI("quene", "quene create..."); // 打印佇列建立狀態
@@ -721,6 +788,7 @@ void setup()
 	ESP_LOGI("wit", "wit init..."); // 打印初始化狀態
 
 	/* 任務建立 */
+	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_hamdle, 1);				 // 創建UART0讀取任務
 	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);						 // 創建網絡任務
 	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 1);						 // 創建GC9A01任務
 	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 1);					 // 創建眼睛移動任務
