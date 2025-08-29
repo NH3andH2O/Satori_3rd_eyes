@@ -48,6 +48,7 @@
 
 /* 函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType); // 佇列創建
+String macToString(const uint8_t mac[6]);									  // MAC地址轉字符串
 
 /* 結構體定義 */
 typedef struct
@@ -113,15 +114,50 @@ TaskHandle_t taskNetwork_hamdle;			// 網絡任務
 TaskHandle_t taskModeManagement_hamdle;		// 模式管理任務
 TaskHandle_t taskUART0Read_hamdle;			// UART0讀取任務
 
+/** 事件相關函數 **/
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
+{
+	switch (event)
+	{
+		/* wifi部分 */
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP: // WiFi連接成功
+			ESP_LOGI("wifi", "Connected to '%s' with IP %s", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+			break;
+		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: // WiFi斷開
+			ESP_LOGI("wifi", "WiFi disconnected");
+			break;
+		case ARDUINO_EVENT_WIFI_STA_STOP: // WiFi停止
+			ESP_LOGI("wifi", "WiFi stopped");
+			break;
+		case ARDUINO_EVENT_WIFI_AP_START:
+			ESP_LOGI("wifi", "SoftAP \'%s\' Started with IP %s", WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str());
+			break;
+		case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+			ESP_LOGI("wifi", "SoftAP station connected with MAC: %s, AID: %d", macToString(info.wifi_ap_staconnected.mac).c_str(),
+					 info.wifi_ap_staconnected.aid);
+			break;
+		case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+			ESP_LOGI("wifi", "SoftAP station disconnected with MAC: %s, AID: %d", macToString(info.wifi_ap_stadisconnected.mac).c_str(),
+					 info.wifi_ap_stadisconnected.aid);
+			break;
+		case ARDUINO_EVENT_WIFI_AP_STOP:
+			ESP_LOGI("wifi", "SoftAP stopped");
+			break;
+		default:
+			break;
+	}
+}
+
 /** 任務相關函數 **/
 /* 網絡相關任務 */
 void taskNetwork(void *pvParameters)
 {
-	uint8_t is_wifiUpdate = 1;	 // WiFi更新標誌
-	uint8_t wifi_old_status = 0; // 舊的WiFi連接狀態
+	uint8_t is_wifiUpdate = 1; // WiFi更新標誌
 
 	/* WiFi初始化 */
+	WiFi.onEvent(WiFiEvent); // 註冊事件回呼
 	WiFi.mode(WIFI_AP_STA);
+	WiFi.softAPdisconnect();
 	if (prefs.getString("password", "").length() > 0)
 	{
 		if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID), prefs.getString("password", "")))
@@ -140,8 +176,6 @@ void taskNetwork(void *pvParameters)
 			return;
 		}
 	}
-	ESP_LOGI("wifi", "SoftAP Started");
-	ESP_LOGI("wifi", "IP Address: %s", WiFi.softAPIP().toString().c_str());
 
 	/* 伺服器任務創建 */
 	xTaskCreatePinnedToCore(taskWebServer, "taskWebServer", 4096, NULL, 1, &taskWebServer_hamdle, 0); // 創建網絡任務
@@ -152,8 +186,11 @@ void taskNetwork(void *pvParameters)
 		/* wifi更新 */
 		if (is_wifiUpdate == 1) // 如果WiFi需要更新
 		{
-			is_wifiUpdate = 0; // 重置WiFi更新標誌
-			ESP_LOGI("wifi", "Updating WiFi connection...");
+			is_wifiUpdate = 0;				// 重置WiFi更新標誌
+			if (xTaskGetTickCount() > 5000) // 判斷初始化還是更新
+			{
+				ESP_LOGI("wifi", "Updating WiFi connection...");
+			}
 			if (prefs.getBool("iswifi", false) && prefs.getString("wifi_ssid", "").length() > 0 && prefs.getString("wifi_password", "").length() > 0)
 			{
 				/* 斷開當前wifi */
@@ -214,21 +251,6 @@ void taskNetwork(void *pvParameters)
 			}
 		}
 		xQueueReceive(wifiUpdate_data_quene, &is_wifiUpdate, 1000); // 等待WiFi更新信號
-
-		/* 檢查WiFi狀態 */
-		if (WiFi.status() != wifi_old_status)
-		{
-			if (WiFi.status() == WL_CONNECTED) // 如果WiFi連接成功
-			{
-				ESP_LOGI("wifi", "WiFi connected successfully");
-				ESP_LOGI("wifi", "IP Address: %s", WiFi.localIP().toString().c_str());
-			}
-			else if (wifi_old_status == WL_CONNECTED)
-			{
-				ESP_LOGI("wifi", "WiFi disconnected");
-			}
-			wifi_old_status = WiFi.status(); // 更新舊的WiFi狀態
-		}
 	}
 }
 
@@ -336,6 +358,7 @@ void taskWitGetData(void *arg)
 
 	/* 初始化wit */
 	int8_t wit_status = myWit->wit_init(); // 初始化wit眼睛模組
+	vTaskSuspendAll();
 	switch (wit_status)
 	{
 		case 0:
@@ -351,6 +374,7 @@ void taskWitGetData(void *arg)
 			ESP_LOGE("wit", "%s init unknown error", wit_name.c_str()); // 打印未知錯誤
 			break;
 	}
+	xTaskResumeAll();
 	while (wit_status) // 失敗進入死循環
 	{
 		vTaskDelay(1000);
@@ -811,4 +835,11 @@ void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
 			vTaskDelay(1000);
 		}
 	}
+}
+
+String macToString(const uint8_t mac[6])
+{
+	char buf[18];
+	snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	return String(buf);
 }
