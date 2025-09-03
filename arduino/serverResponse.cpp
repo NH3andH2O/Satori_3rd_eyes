@@ -1,19 +1,87 @@
 #include "serverResponse.h"
 
+String getContentType(const String &path)
+{
+	if (path.endsWith(".html"))
+		return "text/html";
+	if (path.endsWith(".css"))
+		return "text/css";
+	if (path.endsWith(".js"))
+		return "application/javascript";
+	if (path.endsWith(".mjs"))
+		return "application/javascript";
+	if (path.endsWith(".json"))
+		return "application/json";
+	if (path.endsWith(".map"))
+		return "application/json";
+	if (path.endsWith(".wasm"))
+		return "application/wasm";
+	if (path.endsWith(".png"))
+		return "image/png";
+	if (path.endsWith(".jpg") || path.endsWith(".jpeg"))
+		return "image/jpeg";
+	if (path.endsWith(".gif"))
+		return "image/gif";
+	if (path.endsWith(".svg"))
+		return "image/svg+xml";
+	if (path.endsWith(".ico"))
+		return "image/x-icon";
+	if (path.endsWith(".webp"))
+		return "image/webp";
+	if (path.endsWith(".woff"))
+		return "font/woff";
+	if (path.endsWith(".woff2"))
+		return "font/woff2";
+	if (path.endsWith(".ttf"))
+		return "font/ttf";
+	if (path.endsWith(".txt"))
+		return "text/plain";
+	return "application/octet-stream";
+}
+
+void handleRoot(AsyncWebServerRequest *req)
+{
+	AsyncWebServerResponse *res = req->beginResponse(FFat, "/www/index.html", "text/html");
+	res->addHeader("Cache-Control", "no-cache");
+	req->send(res);
+}
+
+void handleNotFound(AsyncWebServerRequest *request)
+{
+	const String urlPath = request->url();
+
+	String fsPath = "/www" + urlPath;
+
+	if (fsPath.endsWith("/"))
+	{
+		fsPath += "index.html";
+	}
+
+	if (FFat.exists(fsPath))
+	{
+		request->send(FFat, fsPath, getContentType(fsPath));
+		return;
+	}
+
+	AsyncWebServerResponse *res = request->beginResponse(FFat, "/www/index.html", "text/html");
+	res->addHeader("Cache-Control", "no-cache");
+	request->send(res);
+}
+
 void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
 	JsonDocument doc_get;
 	switch (type)
 	{
 		case WS_EVT_CONNECT:
-			ESP_LOGI("server", "WebSocket client connected: %u\n", client->id());
+			ESP_LOGI("server", "WebSocket client connected: %u", client->id());
 			break;
 		case WS_EVT_DISCONNECT:
-			ESP_LOGI("server", "WebSocket client disconnected: %u\n", client->id());
+			ESP_LOGI("server", "WebSocket client disconnected: %u", client->id());
 			break;
 		case WS_EVT_DATA:
 		{
-			ESP_LOGD("server", "WebSocket data received from client %u: %.*s\n", client->id(), len, data);
+			ESP_LOGD("server", "WebSocket data received from client %u: %.*s", client->id(), len, data);
 			break;
 		}
 		default:

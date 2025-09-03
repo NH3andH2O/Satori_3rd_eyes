@@ -280,6 +280,8 @@ void taskWebServer(void *pvParameters)
 	/* 設置Web服務器路由 */
 	server.addHandler(&ws); // 將WebSocket服務器添加到Web服務器
 	server.serveStatic("/", FFat, "/www/").setDefaultFile("index.html");
+	server.onNotFound(handleNotFound);
+	server.on("/", HTTP_GET, handleRoot);
 	server.on("/api/wifi_config", HTTP_GET, api_wifi_config);
 	server.on("/api/set_wifi_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_wifi_config);
 	server.on("/api/softap_config", HTTP_GET, api_softAP_config);

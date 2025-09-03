@@ -1,5 +1,6 @@
 export default {
 	pageTitle: '覺之瞳',
+	controlTitle: '覺之瞳控制',
 	title: '覺之瞳設定',
 	wifiset_title: 'WiFi 設定',
 	LAN_setting: '局域網設置',
@@ -37,4 +38,5 @@ export default {
 	mode_setting_successfully: '模式設定成功',
 	mode_setting_failed: '模式設定失敗',
 	advancedset_title: '進階設定',
+	back: '返回',
 };

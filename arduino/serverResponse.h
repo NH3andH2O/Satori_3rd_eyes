@@ -6,12 +6,15 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
+#include <FFat.h>
 #include "verify.h"
 
 extern Preferences prefs; // 偏好設置實例
 
 extern QueueHandle_t wifiUpdate_data_quene; // 宣告WiFi更新佇列
 
+void handleRoot(AsyncWebServerRequest *req);
+void handleNotFound(AsyncWebServerRequest *request);
 void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 void api_wifi_config(AsyncWebServerRequest *request);
 void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);

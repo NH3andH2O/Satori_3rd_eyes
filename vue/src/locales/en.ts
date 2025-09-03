@@ -1,5 +1,6 @@
 export default {
 	pageTitle: '3rdEyes',
+	controlTitle: '3rdEyes Control',
 	title: '3rdEyes Settings',
 	wifiset_title: 'WiFi Settings',
 	LAN_setting: 'LAN setting',
@@ -38,4 +39,5 @@ export default {
 	mode_setting_successfully: 'Mode setting successfully',
 	mode_setting_failed: 'Mode setting failed',
 	advancedset_title: 'Advanced Settings',
+	back: 'Back',
 };
