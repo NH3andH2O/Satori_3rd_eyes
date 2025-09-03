@@ -76,3 +76,9 @@ button:focus-visible {
 		color: rgba(255, 255, 255, 0.87);
 	}
 }
+
+@media (max-width: 768px) {
+	#app {
+		padding: 2rem 0.5rem;
+	}
+}
