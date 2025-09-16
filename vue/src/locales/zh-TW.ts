@@ -39,4 +39,8 @@ export default {
 	mode_setting_failed: '模式設定失敗',
 	advancedset_title: '進階設定',
 	back: '返回',
+	setting: '設定',
+	inverted_controls: '翻轉控制',
+	invert_Xaxis: '水平翻轉',
+	invert_Yaxis: '垂直翻轉',
 };

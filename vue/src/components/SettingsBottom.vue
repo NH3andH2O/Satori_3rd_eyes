@@ -1,24 +1,20 @@
 <template>
 	<transition name="el-fade-in">
 		<div v-if="visible">
-			<el-tooltip :content="t('back')" placement="left" :effect="isDark ? 'dark' : 'light'">
+			<el-tooltip :content="t('setting')" placement="left" :effect="isDark ? 'dark' : 'light'">
 				<div
 					class="backtop-like"
-					:style="{
-						right: `${right}px`,
-						bottom: `${bottom}px`,
-						zIndex: zIndex,
-					}"
-					@click="handleClick"
+					:style="{ right: `${right}px`, bottom: `${bottom}px`, zIndex: zIndex }"
+					@click="emit('click')"
 					role="button"
-					:aria-label="t('back')"
+					:aria-label="$t('back')"
 					tabindex="0"
-					@keydown.enter.prevent="handleClick"
-					@keydown.space.prevent="handleClick"
+					@keydown.enter.prevent="emit('click')"
+					@keydown.space.prevent="emit('click')"
 				>
 					<slot>
 						<div class="btn-content">
-							<el-icon><ArrowLeft /></el-icon>
+							<el-icon><Setting /></el-icon>
 						</div>
 					</slot>
 				</div>
@@ -29,14 +25,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { useRouter, type RouteLocationRaw } from 'vue-router';
+import { type RouteLocationRaw } from 'vue-router';
 import { useDark } from '@vueuse/core';
-import { ArrowLeft } from '@element-plus/icons-vue';
+import { Setting } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
 const isDark = useDark();
+
+const emit = defineEmits(['click']);
 
 const props = defineProps<{
 	visibilityHeight?: number;
@@ -48,35 +46,10 @@ const props = defineProps<{
 	target?: string | Element;
 }>();
 
-const { visibilityHeight = 300, right = 40, bottom = 40, zIndex = 1000, fallbackPath = '/', target = '' } = props;
+const { visibilityHeight = 300, right = 40, bottom = 40, zIndex = 1000, target = '' } = props;
 
-const router = useRouter();
 const visible = ref(false);
 let containerEl: Element | Window = window;
-
-function isAbsoluteUrl(url: string) {
-	return /^https?:\/\//i.test(url);
-}
-function getReturnTarget(): string | RouteLocationRaw {
-	if (typeof props.returnTo === 'function') return props.returnTo();
-	if (props.returnTo) return props.returnTo;
-	return fallbackPath;
-}
-
-function handleClick() {
-	const target = getReturnTarget();
-
-	if (typeof target === 'string') {
-		if (isAbsoluteUrl(target)) {
-			window.location.assign(target);
-		} else {
-			router.push(target);
-		}
-		return;
-	}
-
-	router.push(target);
-}
 
 function getScrollTop(el: Element | Window | null) {
 	if (!el || el === window) {
@@ -114,7 +87,7 @@ onBeforeUnmount(() => {
 	justify-content: center;
 	width: 48px;
 	height: 48px;
-	background: var(--el-color-primary);
+	background: #9c9c9c;
 	color: #fff;
 	border-radius: 50%;
 	cursor: pointer;

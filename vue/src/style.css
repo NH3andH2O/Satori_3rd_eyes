@@ -67,13 +67,44 @@ button:focus-visible {
 	margin-inline: auto;
 	box-sizing: border-box;
 	padding: 2rem 2rem;
-	text-align: center;
+}
+
+.el-dialog {
+	background-color: #ffffff !important;
+}
+
+.el-dialog__title {
+	font-size: 20px !important;
+	font-weight: bold !important;
+	color: #000000 !important;
+	text-align: left;
+}
+
+.el-dialog__headerbtn:focus {
+	outline: none;
+}
+
+.el-dialog__headerbtn:focus-visible {
+	outline: 2px solid #141414; /* 仅在 Tab 键聚焦时显示 */
+	border-radius: 30%;
 }
 
 @media (prefers-color-scheme: dark) {
 	body {
 		background: linear-gradient(to bottom, #94051dc5 0%, #1d1d1d 400px, #1d1d1d 100%);
 		color: rgba(255, 255, 255, 0.87);
+	}
+
+	.el-dialog {
+		background-color: #141414 !important;
+	}
+
+	.el-dialog__title {
+		color: #ffffff !important;
+	}
+
+	.el-dialog__headerbtn:focus-visible {
+		outline: 2px solid #ffffff; /* 仅在 Tab 键聚焦时显示 */
 	}
 }
 

@@ -12,6 +12,7 @@ declare module 'vue' {
     BackToPrev: typeof import('./src/components/BackToPrev.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCol: typeof import('element-plus/es')['ElCol']
+    ElDialog: typeof import('element-plus/es')['ElDialog']
     ElForm: typeof import('element-plus/es')['ElForm']
     ElFormItem: typeof import('element-plus/es')['ElFormItem']
     ElIcon: typeof import('element-plus/es')['ElIcon']
@@ -25,6 +26,8 @@ declare module 'vue' {
     Modeset: typeof import('./src/components/modeset.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SettingsBottom: typeof import('./src/components/SettingsBottom.vue')['default']
+    VirtualJoystick: typeof import('./src/components/VirtualJoystick.vue')['default']
     Wifiset: typeof import('./src/components/wifiset.vue')['default']
   }
 }
