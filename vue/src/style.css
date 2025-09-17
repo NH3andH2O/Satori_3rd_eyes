@@ -5,7 +5,8 @@
 
 	color-scheme: light dark;
 	color: rgba(255, 255, 255, 0.87);
-	background-color: #1f1f1f;
+
+	background-color: rgba(255, 255, 255, 0.87);
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
@@ -90,6 +91,10 @@ button:focus-visible {
 }
 
 @media (prefers-color-scheme: dark) {
+	:root {
+		background-color: #1f1f1f;
+	}
+
 	body {
 		background: linear-gradient(to bottom, #94051dc5 0%, #1d1d1d 400px, #1d1d1d 100%);
 		color: rgba(255, 255, 255, 0.87);
