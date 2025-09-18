@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { watchEffect, onMounted, onBeforeUnmount, ref } from 'vue';
+import { watchEffect, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { useWebSocket } from '@/composables/useWebSocket';
 import VirtualJoystick from '@/components/VirtualJoystick.vue';
 import SettingsBottom from '@/components/SettingsBottom.vue';
@@ -11,8 +11,16 @@ const { connect, disconnect } = useWebSocket();
 const log = ref({ vx: 0, vy: 0, x: 0, y: 0 });
 const SettingVisible = ref(false);
 
-const X_invert = ref(false);
-const Y_invert = ref(false);
+const X_invert = ref(localStorage.getItem('X_invert') === 'true');
+const Y_invert = ref(localStorage.getItem('Y_invert') === 'true');
+
+watch(X_invert, (newVal) => {
+	localStorage.setItem('X_invert', String(newVal));
+});
+
+watch(Y_invert, (newVal) => {
+	localStorage.setItem('Y_invert', String(newVal));
+});
 
 watchEffect(() => {
 	document.title = t('controlTitle');
