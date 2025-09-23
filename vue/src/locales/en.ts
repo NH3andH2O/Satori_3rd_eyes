@@ -39,9 +39,13 @@ export default {
 	mode_setting_successfully: 'Mode setting successfully',
 	mode_setting_failed: 'Mode setting failed',
 	advancedset_title: 'Advanced Settings',
+	tutorial: 'Tutorial',
+	control_help: 'Slide anywhere on the screen to control the direction of 3rdEyes.',
 	back: 'Back',
 	setting: 'Settings',
 	inverted_controls: 'Inverted Controls',
 	invert_Xaxis: 'Invert X-Axis',
 	invert_Yaxis: 'Invert Y-Axis',
+	help: 'Help',
+	help_button: 'Show Tutorial',
 };

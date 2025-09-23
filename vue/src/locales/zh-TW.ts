@@ -38,9 +38,13 @@ export default {
 	mode_setting_successfully: '模式設定成功',
 	mode_setting_failed: '模式設定失敗',
 	advancedset_title: '進階設定',
+	tutorial: '教學',
+	control_help: '任意位置滑動屏幕來控制覺之瞳方向。',
 	back: '返回',
 	setting: '設定',
 	inverted_controls: '翻轉控制',
 	invert_Xaxis: '水平翻轉',
 	invert_Yaxis: '垂直翻轉',
+	help: '幫助',
+	help_button: '顯示教學',
 };

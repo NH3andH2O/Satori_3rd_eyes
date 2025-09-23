@@ -11,6 +11,7 @@ const { connect, disconnect } = useWebSocket();
 const log = ref({ vx: 0, vy: 0, x: 0, y: 0 });
 const SettingVisible = ref(false);
 
+const show_help = ref(localStorage.getItem('show_help') === null ? true : localStorage.getItem('show_help') === 'true');
 const X_invert = ref(localStorage.getItem('X_invert') === 'true');
 const Y_invert = ref(localStorage.getItem('Y_invert') === 'true');
 
@@ -20,6 +21,10 @@ watch(X_invert, (newVal) => {
 
 watch(Y_invert, (newVal) => {
 	localStorage.setItem('Y_invert', String(newVal));
+});
+
+watch(show_help, (newVal) => {
+	localStorage.setItem('show_help', String(newVal));
 });
 
 watchEffect(() => {
@@ -54,6 +59,11 @@ function onMove(p: any) {
 	</section>
 	<SettingsBottom :visibility-height="0" :bottom="110" @click="SettingVisible = true" />
 	<BackToPrev :visibility-height="0" return-to="/" />
+	<el-dialog v-model="show_help" width="500" align-center :title="t('tutorial')">
+		<div class="setting-content">
+			<p>{{ t('control_help') }}</p>
+		</div>
+	</el-dialog>
 	<el-dialog v-model="SettingVisible" width="500" align-center :title="t('setting')">
 		<div class="setting-content">
 			<h3>{{ t('inverted_controls') }}</h3>
@@ -71,6 +81,10 @@ function onMove(p: any) {
 					</div>
 				</el-col>
 			</el-row>
+			<h3>{{ t('help') }}</h3>
+			<div class="setting-item">
+				<el-button type="primary" round plain @click="show_help = true">{{ t('help_button') }}</el-button>
+			</div>
 		</div>
 	</el-dialog>
 </template>
