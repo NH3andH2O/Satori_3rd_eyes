@@ -8,14 +8,14 @@ export {};
 /* prettier-ignore */
 declare module 'vue' {
 	export interface GlobalComponents {
-		Advancedset: typeof import('./components/advancedset.vue')['default']
+		Advancedset: typeof import('./views/Home/advancedset/advancedset.vue')['default']
 		ElButton: typeof import('element-plus/es')['ElButton']
 		ElCol: typeof import('element-plus/es')['ElCol']
 		ElIcon: typeof import('element-plus/es')['ElIcon']
 		ElInput: typeof import('element-plus/es')['ElInput']
 		ElRow: typeof import('element-plus/es')['ElRow']
 		ElSwitch: typeof import('element-plus/es')['ElSwitch']
-		Modeset: typeof import('./components/modeset.vue')['default']
-		Wifiset: typeof import('./components/wifiset.vue')['default']
+		Modeset: typeof import('./views/Home/modeset/modeset.vue')['default']
+		Wifiset: typeof import('./views/Home/wifiset/wifiset.vue')['default']
 	}
 }

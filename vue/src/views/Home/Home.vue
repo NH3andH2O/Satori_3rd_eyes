@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { watchEffect } from 'vue';
-import wifiset from '@/components/wifiset.vue';
-import modeset from '@/components/modeset.vue';
-import advancedset from '@/components/advancedset.vue';
+import wifiset from '@/views/Home/wifiset/wifiset.vue';
+import modeset from '@/views/Home/modeset/modeset.vue';
+import advancedset from '@/views/Home/advancedset/advancedset.vue';
 
 const { t } = useI18n();
 

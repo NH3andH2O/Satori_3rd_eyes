@@ -8,7 +8,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    Advancedset: typeof import('./src/components/advancedset.vue')['default']
     BackToPrev: typeof import('./src/components/BackToPrev.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCol: typeof import('element-plus/es')['ElCol']
@@ -23,11 +22,9 @@ declare module 'vue' {
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
-    Modeset: typeof import('./src/components/modeset.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsBottom: typeof import('./src/components/SettingsBottom.vue')['default']
     VirtualJoystick: typeof import('./src/components/VirtualJoystick.vue')['default']
-    Wifiset: typeof import('./src/components/wifiset.vue')['default']
   }
 }

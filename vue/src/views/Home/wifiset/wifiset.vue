@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { useWifiSettings } from '@/composables/useWifiSettings';
-import { useSoftAPSettings } from '@/composables/useSoftAPSettings';
-import { useWiFiRules } from '@/validators/useWiFiRules';
-import { useSoftAPRules } from '@/validators/useSoftAPRules';
+import { useWifiSettings } from './composables/useWifiSettings';
+import { useSoftAPSettings } from './composables/useSoftAPSettings';
+import { useWiFiRules } from './validators/useWiFiRules';
+import { useSoftAPRules } from './validators/useSoftAPRules';
 import { useI18n } from 'vue-i18n';
 import { ref, computed } from 'vue';
 

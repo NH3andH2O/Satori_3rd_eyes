@@ -1,23 +1,3 @@
-<script lang="ts" setup>
-import { ref, computed } from 'vue';
-import { useModeRules } from '@/validators/useModeRules';
-import { useModeSetting } from '@/composables/useModeSetting';
-import { useI18n } from 'vue-i18n';
-
-const { t } = useI18n();
-const mode_form_ref = ref();
-const mode = useModeSetting();
-const mode_rules = computed(() => useModeRules(mode.config.value, t));
-
-function mode_save() {
-	mode_form_ref.value?.validate((valid: boolean) => {
-		if (valid) {
-			mode.update();
-		}
-	});
-}
-</script>
-
 <template>
 	<div class="title">
 		<h2>{{ $t('modeset_title') }}</h2>
@@ -69,5 +49,25 @@ function mode_save() {
 		</div>
 	</el-form>
 </template>
+
+<script lang="ts" setup>
+import { ref, computed } from 'vue';
+import { useModeRules } from './validators/useModeRules';
+import { useModeSetting } from './composables/useModeSetting';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+const mode_form_ref = ref();
+const mode = useModeSetting();
+const mode_rules = computed(() => useModeRules(mode.config.value, t));
+
+function mode_save() {
+	mode_form_ref.value?.validate((valid: boolean) => {
+		if (valid) {
+			mode.update();
+		}
+	});
+}
+</script>
 
 <style src="@/styles/card.css" scoped></style>
