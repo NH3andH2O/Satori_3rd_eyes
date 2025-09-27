@@ -2,10 +2,10 @@
 	<div class="title">
 		<h2>{{ $t('modeset_title') }}</h2>
 	</div>
-	<el-form :model="mode.config.value" :rules="mode_rules" ref="mode_form_ref" label-position="right" class="custom-form">
+	<el-form :model="mode_form_model" :rules="mode_rules" ref="mode_form_ref" label-position="right" class="custom-form">
 		<div class="content">
 			<el-form-item :label="$t('mode')" prop="mode">
-				<el-select v-model="mode.config.value.mode" placeholder="Select Mode" :disabled="mode.config.value.isLoading" style="width: 170px">
+				<el-select v-model="mode_form_model.mode" placeholder="Select Mode" :disabled="mode_form_model.isLoading" style="width: 170px">
 					<el-option label="" :value="0" v-show="false" />
 					<el-option :label="$t('gyroscope_tracks_mode')" :value="1" />
 				</el-select>
@@ -13,7 +13,7 @@
 		</div>
 		<div class="content">
 			<transition name="slide-toggle">
-				<div v-show="mode.config.value.mode === 1">
+				<div v-show="mode_form_model.mode === 1">
 					<el-form-item prop="correction_timer">
 						<template #label>
 							<div style="display: flex; align-items: center; gap: 4px">
@@ -26,13 +26,13 @@
 							</div>
 						</template>
 						<el-input-number
-							v-model="mode.config.value.correction_timer"
+							v-model="mode_form_model.correction_timer"
 							placeholder="Gyroscope Tracking Mode"
 							clearable
 							:step="100"
 							:min="0"
 							:max="65535"
-							:disabled="mode.config.value.isLoading"
+							:disabled="mode_form_model.isLoading"
 						>
 							<template #suffix>ms</template>
 						</el-input-number>
@@ -42,7 +42,7 @@
 		</div>
 		<div class="content button">
 			<el-form-item>
-				<el-button round @click="mode_save" :loading="mode.config.value.isSaving" :disabled="mode.config.value.isLoading">
+				<el-button round @click="mode_save" :loading="mode_form_model.isSaving" :disabled="mode_form_model.isLoading">
 					{{ $t('save') }}
 				</el-button>
 			</el-form-item>
@@ -51,7 +51,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { useModeRules } from './validators/useModeRules';
 import { useModeSetting } from './composables/useModeSetting';
 import { useI18n } from 'vue-i18n';
@@ -59,7 +59,14 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const mode_form_ref = ref();
 const mode = useModeSetting();
-const mode_rules = computed(() => useModeRules(mode.config.value, t));
+const mode_form_model = reactive({
+	mode: mode.mode,
+	correction_timer: mode.correction_timer,
+	isLoading: mode.isLoading,
+	isSaving: mode.isSaving,
+});
+
+const mode_rules = computed(() => useModeRules(mode_form_model, t));
 
 function mode_save() {
 	mode_form_ref.value?.validate((valid: boolean) => {
