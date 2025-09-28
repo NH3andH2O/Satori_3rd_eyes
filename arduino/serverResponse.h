@@ -22,5 +22,7 @@ void api_softAP_config(AsyncWebServerRequest *request);
 void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
 void api_mode_config(AsyncWebServerRequest *request);
 void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
+void api_advanced_config(AsyncWebServerRequest *request);
+void api_set_advanced_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
 
 #endif

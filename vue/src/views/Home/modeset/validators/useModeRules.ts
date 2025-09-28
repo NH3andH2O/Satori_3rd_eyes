@@ -1,28 +1,12 @@
-export function useModeRules(form: any, t: Function) {
+export function useModeRules(t: (key: string) => string) {
 	return {
 		mode: [
 			{
-				validator: (_: any, value: number, callback: Function) => {
-					if (value === 0) {
-						return callback(new Error(t('mode_empty')));
-					}
-					callback();
+				validator: async (_: any, value: number) => {
+					if (value === 0) throw new Error(t('mode_empty'));
+					if (value > 1) throw new Error(t('mode_invalid'));
 				},
 				trigger: 'change',
-			},
-		],
-		correction_timer: [
-			{
-				validator: (_: any, value: number, callback: Function) => {
-					if (form.mode !== 1) return callback();
-					if (value < 0) {
-						return callback(new Error(t('correction_time_negative')));
-					} else if (value > 65535) {
-						return callback(new Error(t('correction_time_over_range')));
-					}
-					callback();
-				},
-				trigger: 'blur',
 			},
 		],
 	};

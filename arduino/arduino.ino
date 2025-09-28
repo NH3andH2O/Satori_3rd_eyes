@@ -288,6 +288,8 @@ void taskWebServer(void *pvParameters)
 	server.on("/api/set_softap_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_softAP_config);
 	server.on("/api/mode_config", HTTP_GET, api_mode_config);
 	server.on("/api/set_mode_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_mode_config);
+	server.on("/api/advanced_config", HTTP_GET, api_advanced_config);
+	server.on("/api/set_advanced_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_advanced_config);
 
 	/* 伺服器啓動 */
 	server.begin();
