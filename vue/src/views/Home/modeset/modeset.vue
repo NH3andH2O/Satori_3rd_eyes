@@ -14,9 +14,19 @@
 				>
 					<el-option label="" :value="0" v-show="false" />
 					<el-option :label="$t('gyroscope_tracks_mode')" :value="1" />
+					<el-option :label="$t('network_control_mode')" :value="2" />
 				</el-select>
 			</el-form-item>
 		</div>
+		<transition name="slide-toggle">
+			<div v-show="mode_form_model.mode === 2" class="content button" @click="$router.push('/control')">
+				<el-form-item>
+					<el-button type="success" round>
+						{{ $t('enter_network_control') }}
+					</el-button>
+				</el-form-item>
+			</div>
+		</transition>
 	</el-form>
 </template>
 

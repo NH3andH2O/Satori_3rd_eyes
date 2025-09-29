@@ -35,6 +35,8 @@ export default {
 	correction_time_negative: '静态校正时间不能小于 0',
 	correction_time_over_range: '静态校正时间不能超过 65535',
 	gyroscope_tracks_mode: '陀螺仪跟随模式',
+	network_control_mode: '网络控制模式',
+	enter_network_control: '进入控制界面',
 	correction_time: '静态校正时间：',
 	correction_time_help: '当觉之瞳处于静止状态时，陀螺仪会重置初始姿态角度以矫正角度偏差。设置为0表示不进行静态校正。',
 	mode_setting_successfully: '模式设置成功',

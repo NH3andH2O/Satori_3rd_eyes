@@ -38,6 +38,7 @@ export function useModeSetting() {
 		try {
 			const payloadBuilders: Record<number, () => any> = {
 				1: () => ({ mode: mode.value }),
+				2: () => ({ mode: mode.value }),
 			};
 			const payload = (
 				payloadBuilders[mode.value] ??

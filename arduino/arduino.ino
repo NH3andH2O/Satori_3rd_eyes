@@ -46,6 +46,9 @@
 #define GC9A01_SCL_PIN 17 // GC9A01時鐘引脚
 #define GC9A01_SDA_PIN 16 // GC9A01數據引脚
 
+#define GYROSCOPE_TRACKS_MODE 1
+#define NETWORK_CONTROL_MODE 2
+
 /* 函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType); // 佇列創建
 String macToString(const uint8_t mac[6]);									  // MAC地址轉字符串
@@ -314,12 +317,12 @@ void taskModeManagement(void *pvParameters)
 		/* 設置任務寄存器 */
 		switch (mode)
 		{
-			case 1: // 陀螺儀跟蹤模式
+			case GYROSCOPE_TRACKS_MODE: // 陀螺儀跟蹤模式
 				task_register = 0x03;
 				break;
 
 			default:
-				break;
+				task_register = 0x00;
 		}
 
 		/* 切換任務模式 */

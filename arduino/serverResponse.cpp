@@ -287,7 +287,7 @@ void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 
 		/* 獲取模式配置 */
 		int8_t mode = data_json["mode"] | 0;
-		if (mode < 1 || mode > 1) // 非法模式檢測
+		if (mode < 1 || mode > 2) // 非法模式檢測
 		{
 			request->send(400, "application/json", "{\"error\":\"Invalid mode\"}");
 			return;
