@@ -70,7 +70,6 @@ void handleNotFound(AsyncWebServerRequest *request)
 
 void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
-	JsonDocument doc_get;
 	switch (type)
 	{
 		case WS_EVT_CONNECT:
@@ -82,6 +81,33 @@ void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEven
 		case WS_EVT_DATA:
 		{
 			ESP_LOGD("server", "WebSocket data received from client %u: %.*s", client->id(), len, data);
+			JsonDocument data_doc;
+
+			/* 解析JSON */
+			DeserializationError error = deserializeJson(data_doc, data, len);
+			if (error)
+			{
+				ESP_LOGE("server", "Failed to parse JSON: %s\n", error.c_str());
+				return;
+			}
+
+			/* 處理不同數據消息 */
+			String type = data_doc["type"] | "";
+
+			// joystick數據
+			if (type.startsWith("joystick"))
+			{
+				String L2_type = type.substring(9);
+				network_control_data data_send;
+
+				/* 移動 */
+				if (L2_type == "move")
+				{
+					data_send.x = data_doc["payload"]["vx"] | 0;
+					data_send.y = data_doc["payload"]["vy"] | 0;
+					xQueueSend(network_control_data_quene, &data_send, 0);
+				}
+			}
 			break;
 		}
 		default:
@@ -294,6 +320,7 @@ void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 		}
 
 		prefs.putInt("mode", mode);
+		xQueueSend(mode_data_quene, &mode, 0); // 發送模式數據
 
 		request->send(200, "application/json", "{\"success\":true}");
 		return;

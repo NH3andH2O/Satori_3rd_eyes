@@ -6,9 +6,11 @@ import VirtualJoystick from '@/components/VirtualJoystick.vue';
 import SettingsBottom from '@/components/SettingsBottom.vue';
 import '@/components/BackToPrev.vue';
 
+type MovePayload = { vx: number; vy: number };
+
 const { t } = useI18n();
-const { connect, disconnect } = useWebSocket();
-const log = ref({ vx: 0, vy: 0, x: 0, y: 0 });
+const { connect, disconnect, send, isOpen } = useWebSocket();
+const log = ref<MovePayload>({ vx: 0, vy: 0 });
 const SettingVisible = ref(false);
 
 const show_help = ref(localStorage.getItem('show_help') === null ? true : localStorage.getItem('show_help') === 'true');
@@ -39,8 +41,38 @@ onBeforeUnmount(() => {
 	disconnect(1000, 'leave /control');
 });
 
-function onMove(p: any) {
-	log.value = { vx: p.vx, vy: p.vy, x: p.x, y: p.y };
+// rAF 合併：同一幀只送最新一次
+let pending: MovePayload | null = null;
+let rafId = 0;
+
+function flushPending() {
+	if (!pending) return;
+	const ok = typeof isOpen === 'function' ? isOpen() : true;
+
+	if (ok) {
+		send?.('joystick/move', pending);
+	}
+	pending = null;
+	rafId = 0;
+}
+
+function onMove(p: MovePayload) {
+	// 反轉處理
+	const vx = X_invert.value ? -p.vx : p.vx;
+	const vy = Y_invert.value ? -p.vy : p.vy;
+
+	// 更新 log
+	log.value = { vx, vy };
+
+	// 保持原有的 pending / raf 流程
+	pending = { ...log.value };
+	if (!rafId) {
+		rafId = requestAnimationFrame(flushPending);
+	}
+}
+
+function onEnd() {
+	send?.('joystick/end', {});
 }
 </script>
 
@@ -55,6 +87,7 @@ function onMove(p: any) {
 			:scale="100"
 			:invertYPositive="true"
 			@move="onMove"
+			@end="onEnd"
 		/>
 	</section>
 	<SettingsBottom :visibility-height="0" :bottom="110" @click="SettingVisible = true" />

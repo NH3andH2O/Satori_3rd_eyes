@@ -29,6 +29,7 @@
 #include "wit.h"
 #include "IMUAngle.h"
 #include "serverResponse.h"
+#include "types.h"
 
 #define UPPER_EYELID_PIN 13 // 上眼皮伺服馬達引脚
 #define LOWER_EYELID_PIN 14 // 下眼皮伺服馬達引脚
@@ -51,33 +52,10 @@
 
 /* 函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType); // 佇列創建
-String macToString(const uint8_t mac[6]);									  // MAC地址轉字符串
+void TaskDeleteSafe(TaskHandle_t *pHandle, uint32_t yieldMs = 0);
+String macToString(const uint8_t mac[6]); // MAC地址轉字符串
 
 /* 結構體定義 */
-typedef struct
-{
-	witDataAngle relative_angle;			   // 角度差
-	witDataAngularSpeed relative_angularSpeed; // 角速度差
-	witDataAcceleration witEyes_acceleration;  // 眼睛加速度
-	witDataAcceleration witHead_acceleration;  // 頭部加速度
-} witPProcessingData;						   // wit處理數據結構體
-
-typedef struct
-{
-	uint8_t R;
-	double zetaR;
-	double omega_nR;
-	uint8_t lightMax;
-	double zetaLightMax;
-	double omega_nLightMax;
-} GC9A01_data; // GC9A01數據結構體
-
-typedef struct
-{
-	uint8_t eyelid_angle; // 眼睛張開角度
-	int8_t x_angle;		  // x角度
-	int8_t y_angle;		  // y角度
-} eyesMove_data;		  // 眼睛數據結構體
 
 /* 結構體宣告 */
 eyesMove eyesmove(UPPER_EYELID_PIN, LOWER_EYELID_PIN, EYEBALL_PIN);
@@ -96,26 +74,30 @@ witData witEyes_data; // wit眼睛數據結構體
 witData witHead_data; // wit頭部數據結構體
 
 /* 佇列宣告 */
-QueueHandle_t wit_data_quene;				 // 宣告wit原始佇列
-QueueHandle_t wit_data_relative_angle_quene; // 宣告wit差值佇列
-QueueHandle_t eyesmove_data_quene;			 // 宣告眼睛數據佇列
-QueueHandle_t gc9a01_data_quene;			 // 宣告GC9A01佇列
-QueueHandle_t wifiUpdate_data_quene;		 // 宣告WiFi更新佇列
-QueueHandle_t correction_timer_update_quene; // 宣告角度重置時間器更新佇列
-QueueHandle_t mode_data_quene;				 // 宣告模式數據佇列
-QueueHandle_t uart0_queue;					 // UART0事件佇列
+QueueHandle_t wit_data_quene;					// 宣告wit原始佇列
+QueueHandle_t wit_data_relative_angle_quene;	// 宣告wit差值佇列
+QueueHandle_t eyesmove_data_quene;				// 宣告眼睛數據佇列
+QueueHandle_t gc9a01_data_quene;				// 宣告GC9A01佇列
+QueueHandle_t wifiUpdate_data_quene;			// 宣告WiFi更新佇列
+QueueHandle_t correction_timer_update_quene;	// 宣告角度重置時間器更新佇列
+QueueHandle_t mode_data_quene;					// 宣告模式數據佇列
+QueueHandle_t uart0_queue;						// UART0事件佇列
+QueueHandle_t network_control_data_quene;		// 網絡數據佇列
+QueueHandle_t network_control_speed_data_quene; // 網絡控制速度數據佇列
 
 /* 任務參照 */
-TaskHandle_t taskWitEyesGetData_hamdle;		// 獲取wit眼睛數據任務
-TaskHandle_t taskWitHeadGetData_hamdle;		// 獲取wit頭部數據任務
-TaskHandle_t taskWitPProcessingData_hamdle; // 處理wit數據任務
-TaskHandle_t taskGyroscopeTracking_hamdle;	// 陀螺儀跟蹤任務
-TaskHandle_t taskGC9A01_hamdle;				// GC9A01任務
-TaskHandle_t taskEyesMove_hamdle;			// 眼睛任務
-TaskHandle_t taskWebServer_hamdle;			// Web服務器任務
-TaskHandle_t taskNetwork_hamdle;			// 網絡任務
-TaskHandle_t taskModeManagement_hamdle;		// 模式管理任務
-TaskHandle_t taskUART0Read_hamdle;			// UART0讀取任務
+TaskHandle_t taskWitEyesGetData_hamdle;		  // 獲取wit眼睛數據任務
+TaskHandle_t taskWitHeadGetData_hamdle;		  // 獲取wit頭部數據任務
+TaskHandle_t taskWitPProcessingData_hamdle;	  // 處理wit數據任務
+TaskHandle_t taskGyroscopeTracking_hamdle;	  // 陀螺儀跟蹤任務
+TaskHandle_t taskNetworkControl_hamdle;		  // 網絡控制任務
+TaskHandle_t taskNetworkControlGC9A01_hamdle; // 網絡控制屏幕任務
+TaskHandle_t taskGC9A01_hamdle;				  // GC9A01任務
+TaskHandle_t taskEyesMove_hamdle;			  // 眼睛任務
+TaskHandle_t taskWebServer_hamdle;			  // Web服務器任務
+TaskHandle_t taskNetwork_hamdle;			  // 網絡任務
+TaskHandle_t taskModeManagement_hamdle;		  // 模式管理任務
+TaskHandle_t taskUART0Read_hamdle;			  // UART0讀取任務
 
 /** 事件相關函數 **/
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
@@ -309,6 +291,7 @@ void taskModeManagement(void *pvParameters)
 {
 	int8_t mode = prefs.getInt("mode", 0); // 獲取當前模式
 	uint8_t task_register = 0;			   // 任務寄存器
+	ESP_LOGI("mode", "Current mode: %d", mode);
 	/* 高 <-------> 低
 	|  |  |  |  |  |  | 陀螺儀跟蹤任務 | 獲取數據任務 | */
 	while (1)
@@ -320,9 +303,12 @@ void taskModeManagement(void *pvParameters)
 			case GYROSCOPE_TRACKS_MODE: // 陀螺儀跟蹤模式
 				task_register = 0x03;
 				break;
-
+			case NETWORK_CONTROL_MODE: // 網絡控制模式
+				task_register = 0x04;
+				break;
 			default:
 				task_register = 0x00;
+				break;
 		}
 
 		/* 切換任務模式 */
@@ -335,9 +321,9 @@ void taskModeManagement(void *pvParameters)
 		}
 		else
 		{
-			vTaskDelete(taskWitEyesGetData_hamdle);		// 刪除獲取數據任務
-			vTaskDelete(taskWitHeadGetData_hamdle);		// 刪除獲取數據任務
-			vTaskDelete(taskWitPProcessingData_hamdle); // 刪除數據處理任務
+			TaskDeleteSafe(&taskWitEyesGetData_hamdle);		// 刪除獲取數據任務
+			TaskDeleteSafe(&taskWitHeadGetData_hamdle);		// 刪除獲取數據任務
+			TaskDeleteSafe(&taskWitPProcessingData_hamdle); // 刪除數據處理任務
 		}
 		if (task_register & 0x02) // 陀螺儀跟蹤任務
 		{
@@ -346,11 +332,23 @@ void taskModeManagement(void *pvParameters)
 		}
 		else
 		{
-			vTaskDelete(taskGyroscopeTracking_hamdle); // 刪除陀螺儀跟蹤任務
+			TaskDeleteSafe(&taskGyroscopeTracking_hamdle); // 刪除陀螺儀跟蹤任務
+		}
+		if (task_register & 0x04) // 網絡控制任務
+		{
+			xTaskCreatePinnedToCore(taskNetworkControl, "taskNetworkControl", 4096, NULL, 1, &taskNetworkControl_hamdle, 1); // 創建網絡控制任務
+			xTaskCreatePinnedToCore(taskNetworkControlGC9A01, "taskNetworkControlGC9A01", 4096, NULL, 1, &taskNetworkControlGC9A01_hamdle,
+									1); // 創建網絡控制屏幕任務
+		}
+		else
+		{
+			TaskDeleteSafe(&taskNetworkControl_hamdle);		  // 刪除網絡控制任務
+			TaskDeleteSafe(&taskNetworkControlGC9A01_hamdle); // 刪除網絡控制屏幕任務
 		}
 
 		/* 等待模式數據 */
 		xQueueReceive(mode_data_quene, &mode, portMAX_DELAY);
+		ESP_LOGI("mode", "Current mode change: %d", mode);
 	}
 }
 
@@ -589,7 +587,7 @@ void taskWitPProcessingData(void *arg)
 	}
 }
 
-/* 陀螺儀跟蹤模式 */
+/* 陀螺儀跟蹤任務 */
 void taskGyroscopeTracking(void *arg)
 {
 	witPProcessingData data_get;   // 數據接收
@@ -667,7 +665,123 @@ void taskGyroscopeTracking(void *arg)
 	}
 }
 
-/* 畫眼睛 */
+/* 網絡控制任務 */
+void taskNetworkControl(void *arg)
+{
+	network_control_data data_get;
+	eyesMove_data data_send;
+	int8_t x = 0, y = 0, last_x = 0, last_y = 0;
+	double speed_x = 0, speed_y = 0;
+	double velocity = 0;
+	uint8_t eyelid_angle;
+	uint64_t last_time = 0;
+
+	/* 清除佇列數據 */
+	for (uint8_t i = 0; i < 10; i++)
+	{
+		xQueueReceive(network_control_data_quene, &data_get, 0);
+	}
+
+	ESP_LOGI("network control", "Network control task started");
+	while (1)
+	{
+		/* 獲取網絡控制數據 */
+		xQueueReceive(network_control_data_quene, &data_get, portMAX_DELAY);
+
+		/* 計算速度 */
+		x = data_get.x;
+		y = data_get.y;
+
+		uint64_t new_time = xTaskGetTickCount();
+		uint64_t diff_time = new_time - last_time;
+		last_time = new_time;
+		if (diff_time == 0)
+		{
+			diff_time = 1;
+		}
+
+		int16_t delta_x = x - last_x;
+		int16_t delta_y = y - last_y;
+		last_x = x;
+		last_y = y;
+
+		speed_x = (double)delta_x / (double)diff_time * 1000.0;
+		speed_y = (double)delta_y / (double)diff_time * 1000.0;
+		velocity = sqrt(speed_x * speed_x + speed_y * speed_y);
+		xQueueSend(network_control_speed_data_quene, &velocity, 0);
+
+		/* 映射眼睛角度 */
+		x = map(data_get.x, -100, 100, -55, 55);
+		y = map(data_get.y, -100, 100, -35, 35);
+
+		/* 設置眼睛角度 */
+		data_send.x_angle = x;
+		data_send.y_angle = y;
+		eyelid_angle = 45;
+
+		/* 傳遞數據 */
+		data_send.x_angle = x;
+		data_send.y_angle = y;
+		data_send.eyelid_angle = eyelid_angle;
+		xQueueSend(eyesmove_data_quene, &data_send, 0);
+	}
+}
+
+/* 網絡控制屏幕任務 */
+void taskNetworkControlGC9A01(void *arg)
+{
+	double velocity;
+	int32_t velocity_sum = 0;
+	int32_t velocity_array[5] = {0}; // 速度數組
+	uint8_t velocity_index = 0;		 // 速度數組索引
+	GC9A01_data gc9a01_data;		 // GC9A01數據結構體
+	while (1)
+	{
+		velocity = 0;
+		xQueueReceive(network_control_speed_data_quene, &velocity, 150); // 獲取速度
+		velocity_array[velocity_index] = (int32_t)velocity;				 // 存儲速度
+		velocity_index = (velocity_index + 1) % 5;						 // 更新索引
+
+		/* 計算平均速度 */
+		velocity_sum = 0;
+		for (uint8_t i = 0; i < 5; i++)
+		{
+			velocity_sum += velocity_array[i];
+		}
+
+		/* 判斷瞳孔大小 */
+		if (velocity_sum > 7500)
+		{
+			gc9a01_data.R = 65;				  // 設置GC9A01半徑
+			gc9a01_data.zetaR = 0.9;		  // 設置GC9A01阻尼比
+			gc9a01_data.omega_nR = 20;		  // 設置GC9A01自然頻率
+			gc9a01_data.lightMax = 250;		  // 設置GC9A01光暈最大值
+			gc9a01_data.zetaLightMax = 0.9;	  // 設置GC9A01光暈阻尼比
+			gc9a01_data.omega_nLightMax = 20; // 設置GC9A01光暈自然頻率
+		}
+		else if (velocity_sum > 1000)
+		{
+			gc9a01_data.R = 73;				  // 設置GC9A01半徑
+			gc9a01_data.zetaR = 0.9;		  // 設置GC9A01阻尼比
+			gc9a01_data.omega_nR = 10;		  // 設置GC9A01自然頻率
+			gc9a01_data.lightMax = 200;		  // 設置GC9A01光暈最大值
+			gc9a01_data.zetaLightMax = 0.9;	  // 設置GC9A01光暈阻尼比
+			gc9a01_data.omega_nLightMax = 10; // 設置GC9A01光暈自然頻率
+		}
+		else
+		{
+			gc9a01_data.R = 80;				 // 設置GC9A01半徑
+			gc9a01_data.zetaR = 1;			 // 設置GC9A01阻尼比
+			gc9a01_data.omega_nR = 5;		 // 設置GC9A01自然頻率
+			gc9a01_data.lightMax = 150;		 // 設置GC9A01光暈最大值
+			gc9a01_data.zetaLightMax = 1;	 // 設置GC9A01光暈阻尼比
+			gc9a01_data.omega_nLightMax = 5; // 設置GC9A01光暈自然頻率
+		}
+		xQueueSend(gc9a01_data_quene, &gc9a01_data, 0); // 傳遞GC9A01數據
+	}
+}
+
+/* 畫眼睛任務 */
 void taskGC9A01(void *arg)
 {
 	/* 初始化GC9A01 */
@@ -699,7 +813,7 @@ void taskGC9A01(void *arg)
 	}
 }
 
-/* 眼睛移動 */
+/* 眼睛移動任務 */
 void taskEyesMove(void *arg)
 {
 	eyesMove_data data_get;				   // 眼睛數據結構體
@@ -813,6 +927,8 @@ void setup()
 	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));					 // WiFi更新佇列
 	queueCreate(&correction_timer_update_quene, 10, sizeof(uint8_t));			 // 角度重置時間器更新佇列
 	queueCreate(&mode_data_quene, 10, sizeof(int8_t));							 // 模式數據佇列
+	queueCreate(&network_control_data_quene, 10, sizeof(network_control_data));	 // 網絡控制佇列
+	queueCreate(&network_control_speed_data_quene, 10, sizeof(double));			 // 網絡控制速度佇列
 
 	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
 
@@ -842,6 +958,48 @@ void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
 			vTaskDelay(1000);
 		}
 	}
+}
+
+void TaskDeleteSafe(TaskHandle_t *pHandle, uint32_t yieldMs)
+{
+	/* 檢查指標 */
+	if (pHandle == NULL)
+	{
+		return;
+	}
+	TaskHandle_t h = *pHandle;
+	if (h == NULL)
+	{
+		return;
+	}
+
+	/* 先讓出 CPU，降低和目標任務的即時競態 */
+	if (yieldMs > 0)
+	{
+		vTaskDelay(pdMS_TO_TICKS(yieldMs));
+	}
+
+	/* 檢查是否已無效/已刪除 */
+#if (INCLUDE_eTaskGetState == 1)
+	eTaskState s = eTaskGetState(h);
+	if (s == eDeleted || s == eInvalid)
+	{
+		*pHandle = NULL; // 清空以反映真實狀態
+		return;
+	}
+#endif
+
+	/* 自刪任務情景 */
+	if (xTaskGetCurrentTaskHandle() == h)
+	{
+		*pHandle = NULL;   // 先清掉全域/外部可見的 handle
+		vTaskDelete(NULL); // 這行之後不會再回來
+		return;
+	}
+
+	/* 從其他任務刪除目標任務 */
+	vTaskDelete(h);
+	*pHandle = NULL; // 避免懸掛指標
 }
 
 String macToString(const uint8_t mac[6])
