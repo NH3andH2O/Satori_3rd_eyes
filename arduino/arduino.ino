@@ -99,6 +99,9 @@ TaskHandle_t taskNetwork_hamdle;			  // 網絡任務
 TaskHandle_t taskModeManagement_hamdle;		  // 模式管理任務
 TaskHandle_t taskUART0Read_hamdle;			  // UART0讀取任務
 
+/* 定時器參照 */
+TimerHandle_t wifiReconnectTimer; // WiFi重連定時器
+
 /** 事件相關函數 **/
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 {
@@ -109,7 +112,41 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 			ESP_LOGI("wifi", "Connected to '%s' with IP %s", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
 			break;
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: // WiFi斷開
-			ESP_LOGI("wifi", "WiFi disconnected");
+			switch (info.wifi_sta_disconnected.reason)
+			{
+				case WIFI_REASON_NO_AP_FOUND: // 無法找到AP
+					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
+					xTimerStart(wifiReconnectTimer, 0);
+					break;
+				case WIFI_REASON_AUTH_FAIL: // 認證失敗
+					break;
+				case WIFI_REASON_802_1X_AUTH_FAILED: // 802.1x認證失敗
+					break;
+				case WIFI_REASON_HANDSHAKE_TIMEOUT: // 握手超時
+					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
+					xTimerStart(wifiReconnectTimer, 0);
+					break;
+				case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT: // 4路握手超時
+					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
+					xTimerStart(wifiReconnectTimer, 0);
+					break;
+				case WIFI_REASON_BEACON_TIMEOUT: // 信標超時
+					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
+					xTimerStart(wifiReconnectTimer, 0);
+					break;
+				case WIFI_REASON_ASSOC_EXPIRE: // 協會過期
+					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
+					xTimerStart(wifiReconnectTimer, 0);
+					break;
+				case WIFI_REASON_AUTH_EXPIRE: // 認證過期
+					break;
+				case WIFI_REASON_ASSOC_LEAVE: // 協會離開
+					break;
+				default:
+					ESP_LOGW("wifi", "Disconnected from WiFi for reason: %d", info.wifi_sta_disconnected.reason);
+
+					break;
+			}
 			break;
 		case ARDUINO_EVENT_WIFI_STA_STOP: // WiFi停止
 			ESP_LOGI("wifi", "WiFi stopped");
@@ -133,6 +170,17 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 	}
 }
 
+/** 回調相關函數 **/
+/* WiFi重連定時器回調 */
+void TimerReconnectWiFi(TimerHandle_t xTimer)
+{
+	if (WiFi.status() != WL_CONNECTED)
+	{
+		ESP_LOGI("wifi", "Attempting reconnect...");
+		WiFi.begin(prefs.getString("wifi_ssid", "").c_str(), prefs.getString("wifi_password", "").c_str());
+	}
+}
+
 /** 任務相關函數 **/
 /* 網絡相關任務 */
 void taskNetwork(void *pvParameters)
@@ -141,6 +189,7 @@ void taskNetwork(void *pvParameters)
 
 	/* WiFi初始化 */
 	WiFi.onEvent(WiFiEvent); // 註冊事件回呼
+	WiFi.setAutoReconnect(false);
 	WiFi.mode(WIFI_AP_STA);
 	WiFi.softAPdisconnect();
 	if (prefs.getString("password", "").length() > 0)
@@ -178,32 +227,22 @@ void taskNetwork(void *pvParameters)
 			}
 			if (prefs.getBool("iswifi", false) && prefs.getString("wifi_ssid", "").length() > 0 && prefs.getString("wifi_password", "").length() > 0)
 			{
+
 				/* 斷開當前wifi */
 				if (WiFi.status() == WL_CONNECTED) // 如果WiFi已經連接
 				{
-					vTaskDelay(500);   // 讓前端可以收到返回消息
-					WiFi.disconnect(); // 斷開WiFi連接
+					vTaskDelay(500);			  // 讓前端可以收到返回消息
+					WiFi.disconnect(false, true); // 斷開WiFi連接
 				}
 
 				/* 連接新的wifi */
 				WiFi.begin(prefs.getString("wifi_ssid", "").c_str(), prefs.getString("wifi_password", "").c_str()); // 連接WiFi
-				uint64_t startTime = xTaskGetTickCount();															// 記錄開始時間
-				while (WiFi.status() != WL_CONNECTED)																// 等待WiFi連接
-				{
-					if (xTaskGetTickCount() - startTime > 10000) // 如果超過10秒未連接
-					{
-						ESP_LOGE("wifi", "WiFi connection timed out");
-						break;
-					}
-					vTaskDelay(100); // 延遲100毫秒
-				}
-				/* WiFi連接成功 */
 			}
 			else
 			{
-				/* 啓動SoftAP */
-				vTaskDelay(500);   // 讓前端可以收到返回消息
-				WiFi.disconnect(); // 斷開WiFi連接
+				/* 停止WiFi */
+				vTaskDelay(500);	   // 讓前端可以收到返回消息
+				WiFi.disconnect(true); // 斷開WiFi連接
 			}
 		}
 
@@ -235,7 +274,7 @@ void taskNetwork(void *pvParameters)
 				}
 			}
 		}
-		xQueueReceive(wifiUpdate_data_quene, &is_wifiUpdate, 1000); // 等待WiFi更新信號
+		xQueueReceive(wifiUpdate_data_quene, &is_wifiUpdate, portMAX_DELAY); // 等待WiFi更新信號
 	}
 }
 
@@ -538,9 +577,9 @@ void taskWitPProcessingData(void *arg)
 		if (witEyes_angle_status == 1 && witHead_angle_status == 1) // 眼睛和頭部數據都獲取完成
 		{
 			/* 角度差 */
-			relative_quaternion =
-				IMUAngle::quaternion_multiply(witEyes_quaternion, IMUAngle::quaternion_conjugate(witHead_quaternion)); // 計算眼睛和頭部的四元數差值
-			relative_angle = IMUAngle::quaternion_to_euler(relative_quaternion);									   // 計算眼睛和頭部的角度差值
+			relative_quaternion = IMUAngle::quaternion_multiply(witEyes_quaternion,
+																IMUAngle::quaternion_conjugate(witHead_quaternion)); // 計算眼睛和頭部的四元數差值
+			relative_angle = IMUAngle::quaternion_to_euler(relative_quaternion);									 // 計算眼睛和頭部的角度差值
 
 			/* 角速度差 */
 			relative_angularSpeed.xangular_speed =
@@ -933,6 +972,9 @@ void setup()
 	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
 
 	ESP_LOGI("wit", "wit init..."); // 打印初始化狀態
+
+	/* 定時器建立 */
+	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
 
 	/* 任務建立 */
 	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_hamdle, 1);				 // 創建UART0讀取任務
