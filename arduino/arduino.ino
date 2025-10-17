@@ -707,13 +707,25 @@ void taskGyroscopeTracking(void *arg)
 /* 網絡控制任務 */
 void taskNetworkControl(void *arg)
 {
-	network_control_data data_get;
-	eyesMove_data data_send;
-	int8_t x = 0, y = 0, last_x = 0, last_y = 0;
-	double speed_x = 0, speed_y = 0;
-	double velocity = 0;
-	uint8_t eyelid_angle;
-	uint64_t last_time = 0;
+	network_control_data data_get;		  // 網絡控制數據接收
+	eyesMove_data data_send;			  // 眼睛移動數據發送
+	int8_t x = 0, y = 0;				  // 眼睛角度和上次眼睛角度
+	int8_t last_x = 0, last_y = 0;		  // 上次眼睛角度
+	int8_t send_x = 0, send_y = 0;		  // 發送眼睛角度
+	double speed_x = 0, speed_y = 0;	  // 眼睛速度
+	double velocity = 0;				  // 眼睛速度絕對值
+	double eyelid_angle = 45;			  // 眼睛張開角度
+	uint8_t eyelid_angle_int = 45;		  // 眼睛張開角度整數
+	uint8_t send_eyelid_angle = 45;		  // 眼睛張開目標角度
+	uint64_t move_last_time = 0;		  // 眼睛移動上次時間
+	uint64_t eyelid_last_time = 0;		  // 眼皮角度移動上次時間
+	uint8_t type = 0;					  // 數據類型
+	TickType_t wait_time = portMAX_DELAY; // 等待時間
+
+	/* 初始化數據 */
+	data_get.type = 0;
+	data_get.x = 0;
+	data_get.y = 0;
 
 	/* 清除佇列數據 */
 	for (uint8_t i = 0; i < 10; i++)
@@ -725,43 +737,85 @@ void taskNetworkControl(void *arg)
 	while (1)
 	{
 		/* 獲取網絡控制數據 */
-		xQueueReceive(network_control_data_quene, &data_get, portMAX_DELAY);
-
-		/* 計算速度 */
-		x = data_get.x;
-		y = data_get.y;
-
-		uint64_t new_time = xTaskGetTickCount();
-		uint64_t diff_time = new_time - last_time;
-		last_time = new_time;
-		if (diff_time == 0)
+		if (xQueueReceive(network_control_data_quene, &data_get, wait_time) == pdPASS)
 		{
-			diff_time = 1;
+			type = data_get.type;
 		}
 
-		int16_t delta_x = x - last_x;
-		int16_t delta_y = y - last_y;
-		last_x = x;
-		last_y = y;
+		/* 處理眼皮角度移動 */
+		if (type == 1)
+		{
+			/* 設置等待時間*/
+			wait_time = pdMS_TO_TICKS(10);
 
-		speed_x = (double)delta_x / (double)diff_time * 1000.0;
-		speed_y = (double)delta_y / (double)diff_time * 1000.0;
-		velocity = sqrt(speed_x * speed_x + speed_y * speed_y);
-		xQueueSend(network_control_speed_data_quene, &velocity, 0);
+			/* 獲取資料 */
+			y = data_get.y;
 
-		/* 映射眼睛角度 */
-		x = map(data_get.x, -100, 100, -55, 55);
-		y = map(data_get.y, -100, 100, -35, 35);
+			/* */
+			if (y == 0)
+			{
+				wait_time = portMAX_DELAY;
+			}
 
-		/* 設置眼睛角度 */
-		data_send.x_angle = x;
-		data_send.y_angle = y;
-		eyelid_angle = 45;
+			/* 獲取時間差 */
+			uint64_t new_time = xTaskGetTickCount();
+			uint64_t diff_time = new_time - eyelid_last_time;
+			eyelid_last_time = new_time;
+			if (diff_time == 0)
+			{
+				diff_time = 1;
+			}
+
+			/* 計算眼皮角度變化 */
+			eyelid_angle = eyelid_angle + (double)y * 100.0 / (1000.0 * (double)diff_time);
+			eyelid_angle = constrain(eyelid_angle, 0.0, 80.0);
+			eyelid_angle_int = round((uint8_t)eyelid_angle);
+
+			/* 設置眼皮角度 */
+			send_eyelid_angle = eyelid_angle_int;
+		}
+
+		/* 處理眼睛移動 */
+		if (type == 0)
+		{
+			/* 設置等待時間*/
+			wait_time = portMAX_DELAY;
+
+			/* 計算速度 */
+			x = data_get.x;
+			y = data_get.y;
+
+			uint64_t new_time = xTaskGetTickCount();
+			uint64_t diff_time = new_time - move_last_time;
+			move_last_time = new_time;
+			if (diff_time == 0)
+			{
+				diff_time = 1;
+			}
+
+			int16_t delta_x = x - last_x;
+			int16_t delta_y = y - last_y;
+			last_x = x;
+			last_y = y;
+
+			speed_x = (double)delta_x / (double)diff_time * 1000.0;
+			speed_y = (double)delta_y / (double)diff_time * 1000.0;
+			velocity = sqrt(speed_x * speed_x + speed_y * speed_y);
+			xQueueSend(network_control_speed_data_quene, &velocity, 0);
+
+			/* 映射眼睛角度 */
+			x = map(data_get.x, -100, 100, -55, 55);
+			y = map(data_get.y, -100, 100, -35, 35);
+
+			/* 設置眼睛角度 */
+			send_x = x;
+			send_y = y;
+		}
 
 		/* 傳遞數據 */
-		data_send.x_angle = x;
-		data_send.y_angle = y;
-		data_send.eyelid_angle = eyelid_angle;
+		data_send.x_angle = send_x;
+		data_send.y_angle = send_y;
+		data_send.eyelid_angle = send_eyelid_angle;
 		xQueueSend(eyesmove_data_quene, &data_send, 0);
 	}
 }
@@ -875,7 +929,7 @@ void taskEyesMove(void *arg)
 		{
 			if (xQueueReceive(eyesmove_data_quene, &data_get, 0) == pdTRUE) // 從佇列中獲取數據
 			{
-				eyesmove.eyesMove_angle_set(45, data_get.x_angle, data_get.y_angle); // 設置眼睛角度
+				eyesmove.eyesMove_angle_set(data_get.eyelid_angle, data_get.x_angle, data_get.y_angle); // 設置眼睛角度
 			}
 		}
 		is_eyesmove_update_finish = eyesmove.eyesMove_update(); // 更新眼睛

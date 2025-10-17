@@ -91,21 +91,61 @@ void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEven
 				return;
 			}
 
-			/* 處理不同數據消息 */
+			/**  處理不同數據消息 **/
 			String type = data_doc["type"] | "";
 
-			// joystick數據
+			/* joystick數據 */
 			if (type.startsWith("joystick"))
 			{
-				String L2_type = type.substring(9);
 				network_control_data data_send;
+				String L2_type = type.substring(9);
 
-				/* 移動 */
-				if (L2_type == "move")
+				/* 眼球移動數據 */
+				if (L2_type.startsWith("move"))
 				{
-					data_send.x = data_doc["payload"]["vx"] | 0;
-					data_send.y = data_doc["payload"]["vy"] | 0;
-					xQueueSend(network_control_data_quene, &data_send, 0);
+					String L3_type = L2_type.substring(5);
+
+					/* 移動 */
+					if (L3_type.startsWith("move"))
+					{
+						data_send.type = 0;
+						data_send.x = data_doc["payload"]["vx"] | 0;
+						data_send.y = data_doc["payload"]["vy"] | 0;
+						xQueueSend(network_control_data_quene, &data_send, 0);
+					}
+
+					/* 停止 */
+					else if (L3_type.startsWith("end"))
+					{
+						data_send.type = 0;
+						data_send.x = 0;
+						data_send.y = 0;
+						xQueueSend(network_control_data_quene, &data_send, 0);
+					}
+				}
+
+				/* 眼皮移動數據 */
+				else if (L2_type.startsWith("eyelid"))
+				{
+					String L3_type = L2_type.substring(7);
+
+					/* 移動 */
+					if (L3_type.startsWith("move"))
+					{
+						data_send.type = 1;
+						data_send.x = 0;
+						data_send.y = data_doc["payload"]["vy"] | 0;
+						xQueueSend(network_control_data_quene, &data_send, 0);
+					}
+
+					/* 停止 */
+					else if (L3_type.startsWith("end"))
+					{
+						data_send.type = 1;
+						data_send.x = 0;
+						data_send.y = 0;
+						xQueueSend(network_control_data_quene, &data_send, 0);
+					}
 				}
 			}
 			break;

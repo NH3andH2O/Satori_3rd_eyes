@@ -34,8 +34,9 @@ typedef struct
 // 網絡數據結構體
 typedef struct
 {
-	int8_t x; // x
-	int8_t y; // y
+	int8_t type; // 類型
+	int8_t x;	 // x
+	int8_t y;	 // y
 } network_control_data;
 
 #endif
