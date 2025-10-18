@@ -1,0 +1,120 @@
+:root {
+	font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+	line-height: 1.3;
+	font-weight: 400;
+
+	color-scheme: light dark;
+	color: rgba(255, 255, 255, 0.87);
+
+	background-color: rgba(255, 255, 255, 0.87);
+
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+a {
+	font-weight: 500;
+	color: #646cff;
+	text-decoration: inherit;
+}
+
+a:hover {
+	color: #535bf2;
+}
+
+body {
+	margin: 0;
+	place-items: center;
+	min-width: 320px;
+	min-height: 100vh;
+	background: linear-gradient(to bottom, #fa0ffac5 0%, #dad8d8 400px, #ffffff 100%);
+	color: rgba(0, 0, 0, 0.87);
+}
+
+h1 {
+	font-size: 3.2em;
+	line-height: 1.1;
+}
+
+button {
+	border-radius: 8px;
+	border: 1px solid transparent;
+	padding: 0.6em 1.2em;
+	font-size: 1em;
+	font-weight: 500;
+	font-family: inherit;
+	background-color: #1a1a1a;
+	cursor: pointer;
+	transition: border-color 0.25s;
+}
+
+button:hover {
+	border-color: #646cff;
+}
+
+button:focus,
+button:focus-visible {
+	outline: 4px auto -webkit-focus-ring-color;
+}
+
+.card {
+	padding: 2em;
+}
+
+#app {
+	width: min(100%, 1280px);
+	margin-inline: auto;
+	box-sizing: border-box;
+	padding: 2rem 2rem;
+}
+
+.el-dialog {
+	background-color: #ffffff !important;
+}
+
+.el-dialog__title {
+	font-size: 20px !important;
+	font-weight: bold !important;
+	color: #000000 !important;
+	text-align: left;
+}
+
+.el-dialog__headerbtn:focus {
+	outline: none;
+}
+
+.el-dialog__headerbtn:focus-visible {
+	outline: 2px solid #141414; /* 仅在 Tab 键聚焦时显示 */
+	border-radius: 30%;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		background-color: #1f1f1f;
+	}
+
+	body {
+		background: linear-gradient(to bottom, #94051dc5 0%, #1d1d1d 400px, #1d1d1d 100%);
+		color: rgba(255, 255, 255, 0.87);
+	}
+
+	.el-dialog {
+		background-color: #141414 !important;
+	}
+
+	.el-dialog__title {
+		color: #ffffff !important;
+	}
+
+	.el-dialog__headerbtn:focus-visible {
+		outline: 2px solid #ffffff; /* 仅在 Tab 键聚焦时显示 */
+	}
+}
+
+@media (max-width: 768px) {
+	#app {
+		padding: 2rem 0.5rem;
+	}
+}

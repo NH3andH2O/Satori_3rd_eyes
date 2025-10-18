@@ -1,0 +1,48 @@
+import { defineConfig } from 'vite';
+import viteCompression from 'vite-plugin-compression';
+import AutoImport from 'unplugin-auto-import/vite';
+import Components from 'unplugin-vue-components/vite';
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
+import vue from '@vitejs/plugin-vue';
+import { resolve } from 'path';
+
+// https://vite.dev/config/
+export default defineConfig({
+	resolve: {
+		alias: {
+			'@': resolve(__dirname, 'src'),
+			'@services': resolve(__dirname, 'src/services'),
+			'@composables': resolve(__dirname, 'src/composables'),
+			'@assets': resolve(__dirname, 'src/assets'),
+			'@components': resolve(__dirname, 'src/components'),
+		},
+	},
+	plugins: [
+		viteCompression({
+			algorithm: 'gzip',
+			ext: '.gz',
+			threshold: 10240,
+			deleteOriginFile: true,
+			filter: /\.(js|css|html|svg)$/,
+			verbose: true,
+		}),
+		vue(),
+		AutoImport({
+			resolvers: [ElementPlusResolver()],
+		}),
+		Components({
+			resolvers: [ElementPlusResolver()],
+		}),
+	],
+	server: {
+		watch: {
+			usePolling: true,
+		},
+		host: '0.0.0.0',
+		port: 5173,
+	},
+	build: {
+		outDir: '../arduino/data/www',
+		emptyOutDir: true,
+	},
+});

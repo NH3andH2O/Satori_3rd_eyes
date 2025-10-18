@@ -2,10 +2,15 @@
 
 ## 使用方法
 
-1. 下载并安装arduino IDE
+### 第一部分：安装IDE
+1. 下载并安装[arduino IDE](https://www.arduino.cc/en/software/)(建议下载Legacy IDE (1.8.19)版本)
 2. 打开`arduino.ino`
-3. 安装esp32固件库
-4. 安装`ESP32Servo(3.0.6)`和`LovyanGX(1.2.0)`程式库
+3. 安装`esp32(3.2.1)`固件库
+    > [!WARNING]
+    > 由于3.3版本以上的固件库不兼容LovyanGX，故暂时不要升级到3.3以上的版本
+4. 安装`ESP32Servo(3.0.9)`、`LovyanGX(1.2.7)`、`ESP Async WebServer(3.8.1)`、`AsyncTCP(3.4.9)`、`ArduinoJson(7.4.2)`程式库
+
+### 第二部分：上传硬件代码到开发板
 5. 选择`ESP32S3 Dev Module (esp32)`,开发板设置如下（此为N16R8版本，其他版本的需要修改部分参数）：
 
     | 参数名                               | 参数                            |
@@ -27,9 +32,12 @@
     | JATG Adapter                         | Disabled                        |
     | Zigbee Mode                          | Disabled                        |
 
+6. 连接开发板，从`arduino.ino`上传代码
 
-5. 连接开发板，从`arduino.ino`上传代码
+### 第三部分：上传网页代码到开发板
+7. 下载[ESP32fs Plugin](https://github.com/lorol/arduino-esp32fs-plugin/releases/tag/2.0.7)插件，解压缩后将`esp32fs.jar`放置到`（arduino安装位置）\tools\ESP32FS\tool`文件夹下（如果没有文件夹，新创建一个）
+8. 下载[mkfatfs](https://github.com/labplus-cn/mkfatfs/releases/tag/v2.0.1)，解压缩后将里面4个文件放置到`%LOCALAPPDATA%\Arduino15\packages\esp32\hardware\esp32\3.2.1\tools`文件夹下
+9. 在`vue`中构建好网页代码后（你应该可以看到本文件夹下多了`data`文件夹），在`工具`->`ESP32 Sketch Data Upload`中，选择FatFS上传网页代码
 
-## 注意事项
-
--   我使用的是arduino 1.8.x的版本，2.x.x的版本目前没有做过测试，请谨慎选择2.x.x的版本
+## 开发
+虽然arduino IDE也可以进行开发代码，但由于此IDE过于老旧，更推荐使用[VS Code](https://code.visualstudio.com) + [Arduino Maker Workshop](https://marketplace.visualstudio.com/items?itemName=TheLastOutpostWorkshop.arduino-maker-workshop)插件进行开发

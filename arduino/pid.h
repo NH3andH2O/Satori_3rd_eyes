@@ -4,17 +4,17 @@
 
 class pid
 {
-	private:
-		double kp, ki, kd;
-		double integral;
-		double lastError;
+  private:
+	double kp, ki, kd;
+	double integral;
+	double lastError;
 
-	public:
-		pid();
+  public:
+	pid();
 
-		void set_pid(double kp, double ki, double kd);
-		void reset();
-		double compute(double target, double current, double dt);
+	void set_pid(double kp, double ki, double kd);
+	void reset();
+	double compute(double target, double current, double dt);
 };
 
 #endif

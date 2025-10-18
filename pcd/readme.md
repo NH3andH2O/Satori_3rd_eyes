@@ -6,26 +6,21 @@
 
 &emsp;&emsp;主要修改内容：
 
-&emsp;&emsp;&emsp;&emsp;- 去除摄像头模组
-
-&emsp;&emsp;&emsp;&emsp;- 添加陀螺仪模组
-
-&emsp;&emsp;&emsp;&emsp;- 舵机IO修改
-
-&emsp;&emsp;&emsp;&emsp;- GC9A01排线顺序修改
-
+&emsp;&emsp;&emsp;&emsp;- 去除摄像头模组\
+&emsp;&emsp;&emsp;&emsp;- 添加陀螺仪模组\
+&emsp;&emsp;&emsp;&emsp;- 舵机IO修改\
+&emsp;&emsp;&emsp;&emsp;- GC9A01排线顺序修改\
 &emsp;&emsp;&emsp;&emsp;- 5v 转 3.3v 电感修改（_4.7uH_ -> _3.9uH_）
 
 ## 在线查看
 https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 
 > [!WARNING]
-> 在线查看为Altium Designer转成嘉立创EDA而来，供方便查看使用，并没有经过检查，如要打板，请使用gerber文件打板！！
+> 在线查看为Altium Designer转成嘉立创EDA而来，供方便查看使用，并没有经过检查，如要打板，请使用gerber文件打板
 
 ## 使用方法
 
-把`3rd_eyes_GERBER.zip`和`GC9A01_GERBER.zip`直接发送给板厂
-
+把`3rd_eyes_GERBER.zip`和`GC9A01_GERBER.zip`直接发送给板厂\
 板厂制作完成后，根据`3rd_eyes_BOM.csv`和`GC9A01_BOM.csv`，将零件焊接到板子上
 
 ## 注意事项
@@ -41,7 +36,7 @@ https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 -  **眼睛（pcd上面的陀螺仪）：** 建议使用6轴陀螺仪，如[JY61P](https://www.wit-motion.cn/proztmz/37.html)
 -  **头部（通过杜邦线连接的陀螺仪）：** 建议使用9轴陀螺仪，如[JY901S](https://www.wit-motion.cn/proztmz/22.html)
 
-陀螺仪使用前，需要使用上位机做出如下设定：
+陀螺仪使用前，需要使用[上位机](https://wit-motion.yuque.com/wumwnr/aqvq6y/qngktvx5grz81zkq)做出如下设定：
 
 -  校正磁场(6轴不需要校正，上位机应该会有校正教程)
 -  将波特率从`9600`更改为`115200`
@@ -49,13 +44,14 @@ https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 -  眼睛陀螺仪更改为垂直安装
 -  只开启角度、角速度、加速度、四元数回传，其他回传关闭
 
-（可以先更改陀螺仪设定，在焊接陀螺仪；也可以先焊接陀螺仪，在上传`witread.ino`后更改陀螺仪设定）
+（可以先更改陀螺仪设定，在焊接陀螺仪；也可以先焊接陀螺仪，在使用`tools\witread`工具后更改陀螺仪设定）
+>[!NOTE]
+>如果不需要使用陀螺仪功能，可以不焊接
 
 ### 头部陀螺仪连接
 
-头部陀螺仪使用厂商附带的弯排针焊接到UART那一侧上面，i2c那一侧不要焊接
-
-杜邦线使用母母接头，连接到`H4`，长度建议选择60cm
+头部陀螺仪使用厂商附带的弯排针焊接到UART那一侧上面，i2c那一侧不要焊接\
+杜邦线使用母母接头，连接到`H4`，长度建议选择60~80cm之间
 
 ### 电源开关选择建议
 
@@ -67,4 +63,6 @@ https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 
 ### 屏幕连接
 
-屏幕选择GC9A01裸屏，然后焊接到`GC9A01`pcd上的`U1`，**注意正反！**
+屏幕选择GC9A01裸屏，然后焊接到`GC9A01`pcd上的`U1`
+> [!WARNING]
+> 焊接时请注意屏幕引脚正反
