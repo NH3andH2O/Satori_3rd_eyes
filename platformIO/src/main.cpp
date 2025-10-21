@@ -14,13 +14,14 @@
 
 #define VERSION "1.1.0"
 
+#include <Arduino.h>
 #include <ESP32Servo.h>
 #include <LovyanGFX.hpp>
 #include <Preferences.h>
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
-#include <FFat.h>
+#include <LittleFS.h>
 #include <ESPmDNS.h>
 #include <ArduinoJson.h>
 #include <driver/uart.h>
@@ -50,12 +51,30 @@
 #define GYROSCOPE_TRACKS_MODE 1
 #define NETWORK_CONTROL_MODE 2
 
-/* 函數宣告 */
+/** 函數宣告 **/
+/* 事件函數宣告 */
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info); // WiFi事件處理函數
+
+/* 回調函數宣告 */
+void TimerReconnectWiFi(TimerHandle_t xTimer); // WiFi重連定時器回調函數
+
+/* 任務函數宣告 */
+void taskNetwork(void *pvParameters);		 // 網絡任務
+void taskWebServer(void *pvParameters);		 // Web服務器任務
+void taskModeManagement(void *pvParameters); // 模式管理任務
+void taskWitGetData(void *arg);				 // 獲取wit數據任務
+void taskWitPProcessingData(void *arg);		 // 處理wit數據任務
+void taskGyroscopeTracking(void *arg);		 // 陀螺儀跟蹤任務
+void taskNetworkControl(void *arg);			 // 網絡控制任務
+void taskNetworkControlGC9A01(void *arg);	 // 網絡控制屏幕任務
+void taskGC9A01(void *arg);					 // GC9A01任務
+void taskEyesMove(void *arg);				 // 眼睛任務
+void taskUART0Read(void *arg);				 // UART0讀取任務
+
+/* 其他函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType); // 佇列創建
 void TaskDeleteSafe(TaskHandle_t *pHandle, uint32_t yieldMs = 0);
 String macToString(const uint8_t mac[6]); // MAC地址轉字符串
-
-/* 結構體定義 */
 
 /* 結構體宣告 */
 eyesMove eyesmove(UPPER_EYELID_PIN, LOWER_EYELID_PIN, EYEBALL_PIN);
@@ -101,6 +120,45 @@ TaskHandle_t taskUART0Read_hamdle;			  // UART0讀取任務
 
 /* 定時器參照 */
 TimerHandle_t wifiReconnectTimer; // WiFi重連定時器
+
+void setup()
+{
+	while (xTaskGetTickCount() < 2000)
+	{
+		; // 等待2秒
+	}
+	ESP_LOGI("UART", "UART0 init...");
+	prefs.begin("preferences", false);
+
+	/* 佇列建立 */
+	ESP_LOGI("quene", "quene create..."); // 打印佇列建立狀態
+
+	queueCreate(&wit_data_quene, 10, sizeof(witData));							 // witData結構體佇列
+	queueCreate(&wit_data_relative_angle_quene, 10, sizeof(witPProcessingData)); // witPProcessingData結構體佇列
+	queueCreate(&eyesmove_data_quene, 10, sizeof(eyesMove_data));				 // eyesMove_data結構體佇列
+	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));					 // GC9A01_data結構體佇列
+	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));					 // WiFi更新佇列
+	queueCreate(&correction_timer_update_quene, 10, sizeof(uint8_t));			 // 角度重置時間器更新佇列
+	queueCreate(&mode_data_quene, 10, sizeof(int8_t));							 // 模式數據佇列
+	queueCreate(&network_control_data_quene, 10, sizeof(network_control_data));	 // 網絡控制佇列
+	queueCreate(&network_control_speed_data_quene, 10, sizeof(double));			 // 網絡控制速度佇列
+
+	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
+
+	ESP_LOGI("wit", "wit init..."); // 打印初始化狀態
+
+	/* 定時器建立 */
+	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
+
+	/* 任務建立 */
+	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_hamdle, 1);				 // 創建UART0讀取任務
+	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);						 // 創建網絡任務
+	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 1);						 // 創建GC9A01任務
+	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 1);					 // 創建眼睛移動任務
+	xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_hamdle, 1); // 創建模式管理任務
+}
+
+void loop() { vTaskDelay(1000); }
 
 /** 事件相關函數 **/
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
@@ -282,13 +340,23 @@ void taskNetwork(void *pvParameters)
 void taskWebServer(void *pvParameters)
 {
 
-	/* FFat啓動 */
-	if (!FFat.begin(true))
+	/* LittleFS啓動 */
+	ESP_LOGI("LittleFS", "Mounting LittleFS...");
+	if (!LittleFS.begin(false, "/littlefs", 10, "littlefs"))
 	{
-		ESP_LOGE("FFat", "FFat failed to start!");
-		vTaskDelete(NULL);
+		ESP_LOGW("LittleFS", "LittleFS mount failed, formatting...");
+		if (!LittleFS.begin(true, "/littlefs", 10, "littlefs"))
+		{
+			ESP_LOGE("LittleFS", "LittleFS format failed!");
+			vTaskDelete(NULL);
+			return;
+		}
+		ESP_LOGI("LittleFS", "LittleFS formatted successfully");
 	}
-	ESP_LOGI("FFat", "FFat file system started");
+	ESP_LOGI("LittleFS", "LittleFS mounted successfully");
+
+	// 顯示檔案系統資訊
+	ESP_LOGI("LittleFS", "Total: %d bytes, Used: %d bytes", LittleFS.totalBytes(), LittleFS.usedBytes());
 
 	/* mDNS啓動 */
 	if (!MDNS.begin("3rdeyes"))
@@ -303,7 +371,7 @@ void taskWebServer(void *pvParameters)
 
 	/* 設置Web服務器路由 */
 	server.addHandler(&ws); // 將WebSocket服務器添加到Web服務器
-	server.serveStatic("/", FFat, "/www/").setDefaultFile("index.html");
+	server.serveStatic("/", LittleFS, "/www/").setDefaultFile("index.html");
 	server.onNotFound(handleNotFound);
 	server.on("/", HTTP_GET, handleRoot);
 	server.on("/api/wifi_config", HTTP_GET, api_wifi_config);
@@ -1000,45 +1068,6 @@ void taskUART0Read(void *arg)
 		}
 	}
 }
-
-void setup()
-{
-	while (xTaskGetTickCount() < 2000)
-	{
-		; // 等待2秒
-	}
-	ESP_LOGI("UART", "UART0 init...");
-	prefs.begin("preferences", false);
-
-	/* 佇列建立 */
-	ESP_LOGI("quene", "quene create..."); // 打印佇列建立狀態
-
-	queueCreate(&wit_data_quene, 10, sizeof(witData));							 // witData結構體佇列
-	queueCreate(&wit_data_relative_angle_quene, 10, sizeof(witPProcessingData)); // witPProcessingData結構體佇列
-	queueCreate(&eyesmove_data_quene, 10, sizeof(eyesMove_data));				 // eyesMove_data結構體佇列
-	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));					 // GC9A01_data結構體佇列
-	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));					 // WiFi更新佇列
-	queueCreate(&correction_timer_update_quene, 10, sizeof(uint8_t));			 // 角度重置時間器更新佇列
-	queueCreate(&mode_data_quene, 10, sizeof(int8_t));							 // 模式數據佇列
-	queueCreate(&network_control_data_quene, 10, sizeof(network_control_data));	 // 網絡控制佇列
-	queueCreate(&network_control_speed_data_quene, 10, sizeof(double));			 // 網絡控制速度佇列
-
-	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
-
-	ESP_LOGI("wit", "wit init..."); // 打印初始化狀態
-
-	/* 定時器建立 */
-	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
-
-	/* 任務建立 */
-	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_hamdle, 1);				 // 創建UART0讀取任務
-	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);						 // 創建網絡任務
-	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 1);						 // 創建GC9A01任務
-	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 1);					 // 創建眼睛移動任務
-	xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_hamdle, 1); // 創建模式管理任務
-}
-
-void loop() { vTaskDelay(1000); }
 
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
 {
