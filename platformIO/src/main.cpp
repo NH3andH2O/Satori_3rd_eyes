@@ -14,6 +14,7 @@
 
 #define VERSION "1.1.0"
 
+/* 第三方程式庫 */
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include <LovyanGFX.hpp>
@@ -25,11 +26,12 @@
 #include <ESPmDNS.h>
 #include <ArduinoJson.h>
 #include <driver/uart.h>
-#include "gc9a01.h"
-#include "eyesMove.h"
-#include "wit.h"
-#include "IMUAngle.h"
-#include "serverResponse.h"
+/* 自定義程式庫 */
+#include <gc9a01.h>
+#include <eyesMove.h>
+#include <wit.h>
+#include <IMUAngle.h>
+#include <serverResponse.h>
 #include "types.h"
 
 #define UPPER_EYELID_PIN 13 // 上眼皮伺服馬達引脚
