@@ -125,10 +125,53 @@ TimerHandle_t wifiReconnectTimer; // WiFi重連定時器
 
 void setup()
 {
+	/* 系統資訊列印 */
+	ESP_LOGI("System", "========================================");
+	ESP_LOGI("System", "3rd Eyes System Starting...");
+	ESP_LOGI("System", "Version: %s", VERSION);
+	ESP_LOGI("System", "========================================");
+	ESP_LOGI("System", "=== ESP32-S3 System Information ===");
+	ESP_LOGI("System", "SDK Version: %s", ESP.getSdkVersion());
+	ESP_LOGI("System", "Chip Model: %s", ESP.getChipModel());
+	ESP_LOGI("System", "Chip Revision: %d", ESP.getChipRevision());
+	ESP_LOGI("System", "CPU Frequency: %d MHz", ESP.getCpuFreqMHz());
+	ESP_LOGI("System", "Flash Size: %d MB", ESP.getFlashChipSize() / 1024 / 1024);
+	ESP_LOGI("System", "Flash Speed: %d MHz", ESP.getFlashChipSpeed() / 1000000);
+	const char *flashModeStr;
+	switch (ESP.getFlashChipMode())
+	{
+		case 0:
+			flashModeStr = "QIO";
+			break;
+		case 1:
+			flashModeStr = "QOUT";
+			break;
+		case 2:
+			flashModeStr = "DIO";
+			break;
+		case 3:
+			flashModeStr = "DOUT";
+			break;
+		default:
+			flashModeStr = "Unknown";
+			break;
+	}
+	ESP_LOGI("System", "Flash Mode: %s", flashModeStr);
+	if (psramFound())
+	{
+		ESP_LOGI("System", "PSRAM Size: %d MB", ESP.getPsramSize() / 1024 / 1024);
+	}
+	else
+	{
+		ESP_LOGI("System", "PSRAM Size: PSRAM Not Enabled");
+	}
+	ESP_LOGI("System", "========================================");
+
 	while (xTaskGetTickCount() < 2000)
 	{
 		; // 等待2秒
 	}
+
 	ESP_LOGI("UART", "UART0 init...");
 	prefs.begin("preferences", false);
 
@@ -146,8 +189,6 @@ void setup()
 	queueCreate(&network_control_speed_data_quene, 10, sizeof(double));			 // 網絡控制速度佇列
 
 	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
-
-	ESP_LOGI("wit", "wit init..."); // 打印初始化狀態
 
 	/* 定時器建立 */
 	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
