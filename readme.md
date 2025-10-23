@@ -21,14 +21,14 @@ https://www.bilibili.com/video/BV1CK7mzvE3U
 
 -   `3d_model`：存放3d模型的地方
 -   `pcd`：存放pcd的地方
--   `arduino`：项目硬件代码
+-   `platformIO`：项目硬件代码
 -   `vue`：项目网页代码
 -   `tools`：工具，用于调试设备中的传感器
 
 ## 使用方法
 
 下载本仓库，阅读各个文件夹下的readme.md\
-推荐阅读顺序：`pcd`->`3d_model`->`vue`->`arduino`
+推荐阅读顺序：`pcd`->`3d_model`->`vue`->`platformIO`
 
 ## 操控方法
 
@@ -37,9 +37,8 @@ https://www.bilibili.com/video/BV1CK7mzvE3U
 
 ## 未来计划
 
--   更改为PlatformIO框架
 -   加入觉之瞳自主动作（眨眼、摇头等）
--   完善陀螺仪跟踪代码（自动校正功能）
+-   加入手柄控制
 
 ## 联系
 
