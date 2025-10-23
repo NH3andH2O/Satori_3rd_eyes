@@ -42,7 +42,7 @@ export default defineConfig({
 		port: 5173,
 	},
 	build: {
-		outDir: '../arduino/data/www',
+		outDir: '../platformIO/data/www',
 		emptyOutDir: true,
 	},
 });
