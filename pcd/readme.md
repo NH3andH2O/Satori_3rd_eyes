@@ -27,7 +27,7 @@ https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 
 ### ESP32-S3选择
 
-除了`ESP32-S3-WROOM-1U-NxRx`需要额外买天线系列的版本，也可以买`ESP32-S3-WROOM-1-NxRx`自带天线系列的版本，自带的天线可以塞得下觉之瞳里面
+建议选择`ESP32-S3-WROOM-1-N16R8`，其他版本的芯片可能需要在`platformIO`更改配置
 
 ### 陀螺仪选择和使用
 

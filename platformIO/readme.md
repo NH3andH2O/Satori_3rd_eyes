@@ -7,3 +7,13 @@
 3. 将开发板连接电脑，点击窗口最下方的`Set upload/monitor/test port`（类似于插头的图标），选择刚刚连接的开发板串口
 4. 点击最左侧`PlatformIO`图标，然后在`PROJECT TASKS`中点击`esp32_s3_n16r8/General/Upload`上传程序
 5. 在`vue`文件夹中构建好网页代码后（你应该可以在本文件夹下看到`data`文件夹），在`PROJECT TASKS`中点击`esp32_s3_n16r8/Platform/Upload Filesystem Image`上传网页程序
+
+## 注意事项
+
+### 关于esp32模组选择
+本项目使用ESP32-S3-WROOM-1-n16r8(16MB QuadSPI Flash、 8MB OctalSPI PSRAM)的模组
+-  如果你购买的模组flash不是16MB的版本，需要修改`partitions\n16r8.csv`分区表配置
+-  如果你购买的模组没有PSRAM，你需要在`platformio.ini`配置文件中删除以下语句：
+   ```
+   -D BOARD_HAS_PSRAM
+   ```
