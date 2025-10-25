@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define VERSION "1.1.0"
+#define VERSION "1.2.0"
 
 /* 第三方程式庫 */
 #include <Arduino.h>
