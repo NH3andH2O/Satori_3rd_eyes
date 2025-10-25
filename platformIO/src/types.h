@@ -1,7 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 #include <Arduino.h>
-#include "wit.h"
+#include <wit.h>
 
 // wit處理數據結構體
 typedef struct

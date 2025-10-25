@@ -41,7 +41,7 @@ String getContentType(const String &path)
 
 void handleRoot(AsyncWebServerRequest *req)
 {
-	AsyncWebServerResponse *res = req->beginResponse(FFat, "/www/index.html", "text/html");
+	AsyncWebServerResponse *res = req->beginResponse(LittleFS, "/www/index.html", "text/html");
 	res->addHeader("Cache-Control", "no-cache");
 	req->send(res);
 }
@@ -57,13 +57,13 @@ void handleNotFound(AsyncWebServerRequest *request)
 		fsPath += "index.html";
 	}
 
-	if (FFat.exists(fsPath))
+	if (LittleFS.exists(fsPath))
 	{
-		request->send(FFat, fsPath, getContentType(fsPath));
+		request->send(LittleFS, fsPath, getContentType(fsPath));
 		return;
 	}
 
-	AsyncWebServerResponse *res = request->beginResponse(FFat, "/www/index.html", "text/html");
+	AsyncWebServerResponse *res = request->beginResponse(LittleFS, "/www/index.html", "text/html");
 	res->addHeader("Cache-Control", "no-cache");
 	request->send(res);
 }

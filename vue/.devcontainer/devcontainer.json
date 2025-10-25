@@ -19,7 +19,9 @@
 			]
 		}
 	},
-	"postCreateCommand": "npm install"
+	"mounts": ["source=node_modules_volume,target=/workspaces/3rd_eyes/vue/node_modules,type=volume"],
+	"postCreateCommand": "sudo chown -R node:node /workspaces/3rd_eyes/vue/node_modules && sudo chown -R node:node /workspaces/3rd_eyes/platformIO/data && npm install"
+
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
