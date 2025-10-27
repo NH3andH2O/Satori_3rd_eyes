@@ -6,9 +6,9 @@
 		<div class="content">
 			<el-form-item :label="$t('mode')" prop="mode">
 				<el-select
-					v-model="mode_form_model.mode"
+					v-model="mode.mode.value"
 					placeholder="Select Mode"
-					:disabled="mode_form_model.isLoading || mode_form_model.isSaving"
+					:disabled="mode.isLoading.value || mode.isSaving.value"
 					style="width: 170px"
 					@change="mode_save"
 				>
@@ -19,7 +19,7 @@
 			</el-form-item>
 		</div>
 		<transition name="slide-toggle">
-			<div v-show="mode_form_model.mode === 2" class="content button" @click="$router.push('/control')">
+			<div v-show="mode.mode.value === 2" class="content button" @click="$router.push('/control')">
 				<el-form-item>
 					<el-button type="success" round>
 						{{ $t('enter_network_control') }}
@@ -31,7 +31,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, reactive } from 'vue';
+import { ref, computed } from 'vue';
 import { useModeRules } from './validators/useModeRules';
 import { useModeSetting } from './composables/useModeSetting';
 import { useI18n } from 'vue-i18n';
@@ -39,10 +39,17 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const mode_form_ref = ref();
 const mode = useModeSetting();
-const mode_form_model = reactive({
-	mode: mode.mode,
-	isLoading: mode.isLoading,
-	isSaving: mode.isSaving,
+
+// 直接綁定到 mode 的響應式屬性，而不是創建新的 reactive
+const mode_form_model = computed({
+	get: () => ({
+		mode: mode.mode.value,
+		isLoading: mode.isLoading.value,
+		isSaving: mode.isSaving.value,
+	}),
+	set: (val) => {
+		mode.mode.value = val.mode;
+	},
 });
 
 const mode_rules = computed(() => useModeRules(t));

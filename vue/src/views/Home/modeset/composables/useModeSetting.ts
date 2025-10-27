@@ -1,9 +1,8 @@
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import { ElMessage } from 'element-plus';
-import i18n from '@/i18n';
 import { storeToRefs } from 'pinia';
 import { useModeStore } from '@/stores/mode';
+import { modeApi, handleApiError, handleApiSuccess } from '@/api';
+import i18n from '@/i18n';
 
 export function useModeSetting() {
 	// 局部 UI 状态
@@ -17,17 +16,12 @@ export function useModeSetting() {
 	async function fetchModeConfig() {
 		isLoading.value = true;
 		try {
-			const resp = await axios.get('/api/mode_config', { timeout: 5000 });
-			const data = resp.data;
-			if (typeof data !== 'object' || data == null || !('mode' in data)) {
-				throw new Error('Invalid response from server');
-			}
+			const data = await modeApi.getConfig();
 			modeStore.patchFromServer({
 				mode: Number(data.mode),
 			});
 		} catch (error: any) {
-			console.error('Failed to fetch mode config:', error);
-			ElMessage.error(i18n.global.t('setting_transmission_failed') + `: ${error?.message || error}`);
+			handleApiError(error, i18n.global.t('setting_transmission_failed'));
 		} finally {
 			isLoading.value = false;
 		}
@@ -36,26 +30,10 @@ export function useModeSetting() {
 	async function update() {
 		isSaving.value = true;
 		try {
-			const payloadBuilders: Record<number, () => any> = {
-				1: () => ({ mode: mode.value }),
-				2: () => ({ mode: mode.value }),
-			};
-			const payload = (
-				payloadBuilders[mode.value] ??
-				(() => {
-					throw new Error(`Unsupported mode value: ${mode.value}`);
-				})
-			)();
-
-			const resp = await axios.post('/api/set_mode_config', payload);
-			if (resp?.data?.success) {
-				ElMessage.success(i18n.global.t('mode_setting_successfully'));
-			} else {
-				throw new Error(resp?.data?.message || 'Unknown error');
-			}
+			await modeApi.setConfig({ mode: mode.value });
+			handleApiSuccess(i18n.global.t('mode_setting_successfully'));
 		} catch (error: any) {
-			console.error('Failed to update mode config:', error);
-			ElMessage.error(i18n.global.t('mode_setting_failed') + `: ${error?.message || error}`);
+			handleApiError(error, i18n.global.t('mode_setting_failed'));
 		} finally {
 			isSaving.value = false;
 		}

@@ -2,7 +2,7 @@
 	<div class="title">
 		<h2>{{ $t('advancedset_title') }}</h2>
 	</div>
-	<el-form :model="advanced_form_model" :rules="advanced_rules" ref="advanced_form_ref" label-position="right" class="custom-form">
+	<el-form :model="formData" :rules="advanced_rules" ref="advanced_form_ref" label-position="right" class="custom-form" @submit.prevent novalidate>
 		<div class="content">
 			<transition name="slide-toggle">
 				<div v-show="mode === 1">
@@ -18,13 +18,13 @@
 							</div>
 						</template>
 						<el-input-number
-							v-model="advanced_form_model.correction_timer"
-							placeholder="Gyroscope Tracking Mode"
-							clearable
+							v-model="advanced.correction_timer.value"
+							placeholder="0"
 							:step="100"
 							:min="0"
 							:max="65535"
-							:disabled="advanced_form_model.isLoading"
+							:step-strictly="false"
+							:disabled="advanced.isLoading.value"
 						>
 							<template #suffix>ms</template>
 						</el-input-number>
@@ -34,7 +34,7 @@
 		</div>
 		<div class="content button">
 			<el-form-item>
-				<el-button round @click="advanced_save" :loading="advanced_form_model.isSaving" :disabled="advanced_form_model.isLoading">
+				<el-button round @click="advanced_save" :loading="advanced.isSaving.value" :disabled="advanced.isLoading.value">
 					{{ $t('save') }}
 				</el-button>
 			</el-form-item>
@@ -53,13 +53,15 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const advanced_form_ref = ref();
 const advanced = useAdvancedSetting();
-const advanced_form_model = reactive({
+
+// 直接使用 advanced 的響應式屬性
+const { mode } = storeToRefs(useModeStore());
+
+// 創建表單數據對象，使用 reactive 包裝來讓 el-form 能夠正確追蹤
+const formData = reactive({
 	correction_timer: advanced.correction_timer,
-	isLoading: advanced.isLoading,
-	isSaving: advanced.isSaving,
 });
 
-const { mode } = storeToRefs(useModeStore());
 const advanced_rules = computed(() => useAdvancedRules(mode, t));
 
 function advanced_save() {

@@ -1,24 +1,25 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { computed, watchEffect, onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, watchEffect, onMounted, onBeforeUnmount, ref } from 'vue';
 import { useWebSocket } from '@/composables/useWebSocket';
+import { useLocalStorage } from '@/composables/useLocalStorage';
 import VirtualJoystick from '@/components/VirtualJoystick.vue';
 import SettingsBottom from '@/components/SettingsBottom.vue';
 import '@/components/BackToPrev.vue';
-
-type MovePayload = { vx: number; vy: number };
-type EyelidPayload = { vy: number };
+import { StorageKeys, APP_CONFIG, WS_MESSAGE_TYPES } from '@/config';
+import type { JoystickMovePayload, EyelidPayload } from '@/types';
 
 const { t } = useI18n();
 const { connect, disconnect, send, isOpen } = useWebSocket();
-const moveLog = ref<MovePayload>({ vx: 0, vy: 0 });
+const moveLog = ref<JoystickMovePayload>({ vx: 0, vy: 0 });
 const eyelidLog = ref<EyelidPayload>({ vy: 0 });
 const SettingVisible = ref(false);
 
-const show_help = ref(localStorage.getItem('show_help') === null ? true : localStorage.getItem('show_help') === 'true');
-const move_X_invert = ref(localStorage.getItem('move_X_invert') === 'true');
-const move_Y_invert = ref(localStorage.getItem('move_Y_invert') === 'true');
-const eyelid_Y_invert = ref(localStorage.getItem('eyelid_Y_invert') === 'true');
+// 使用 useLocalStorage 替代直接操作 localStorage
+const show_help = useLocalStorage(StorageKeys.SHOW_HELP, true);
+const move_X_invert = useLocalStorage(StorageKeys.MOVE_X_INVERT, false);
+const move_Y_invert = useLocalStorage(StorageKeys.MOVE_Y_INVERT, false);
+const eyelid_Y_invert = useLocalStorage(StorageKeys.EYELID_Y_INVERT, false);
 
 const width = ref(window.innerWidth);
 function handleResize() {
@@ -26,22 +27,6 @@ function handleResize() {
 }
 
 const isMobile = computed(() => width.value <= 768);
-
-watch(move_X_invert, (newVal) => {
-	localStorage.setItem('move_X_invert', String(newVal));
-});
-
-watch(move_Y_invert, (newVal) => {
-	localStorage.setItem('move_Y_invert', String(newVal));
-});
-
-watch(eyelid_Y_invert, (newVal) => {
-	localStorage.setItem('eyelid_Y_invert', String(newVal));
-});
-
-watch(show_help, (newVal) => {
-	localStorage.setItem('show_help', String(newVal));
-});
 
 watchEffect(() => {
 	document.title = t('controlTitle');
@@ -58,7 +43,7 @@ onBeforeUnmount(() => {
 });
 
 // rAF 合併：同一幀只送最新一次
-let movePending: MovePayload | null = null;
+let movePending: JoystickMovePayload | null = null;
 let moveRafId = 0;
 let moveIsEnded = false;
 
@@ -75,7 +60,7 @@ function move_flushPending() {
 			// 如果已經結束，則不再發送移動訊號
 			moveIsEnded = false;
 		} else {
-			send?.('joystick/move/move', movePending);
+			send?.(WS_MESSAGE_TYPES.JOYSTICK_MOVE, movePending);
 		}
 	}
 	movePending = null;
@@ -91,14 +76,14 @@ function eyelid_flushPending() {
 			// 如果已經結束，則不再發送移動訊號
 			eyelidIsEnded = false;
 		} else {
-			send?.('joystick/eyelid/move', eyelidPending);
+			send?.(WS_MESSAGE_TYPES.JOYSTICK_EYELID, eyelidPending);
 		}
 	}
 	eyelidPending = null;
 	eyelidRafId = 0;
 }
 
-function move_onMove(p: MovePayload) {
+function move_onMove(p: JoystickMovePayload) {
 	// 反轉處理
 	const vx = move_X_invert.value ? -p.vx : p.vx;
 	const vy = move_Y_invert.value ? p.vy : -p.vy;
@@ -113,7 +98,7 @@ function move_onMove(p: MovePayload) {
 	}
 }
 
-function eyelid_onMove(p: MovePayload) {
+function eyelid_onMove(p: JoystickMovePayload) {
 	// 反轉處理
 	const vy = eyelid_Y_invert.value ? p.vy : -p.vy;
 
@@ -130,25 +115,25 @@ function eyelid_onMove(p: MovePayload) {
 function move_onEnd() {
 	// 送出結束訊號
 	moveIsEnded = true;
-	send?.('joystick/move/end', {});
+	send?.(WS_MESSAGE_TYPES.JOYSTICK_MOVE_END, {});
 }
 
 function eyelid_onEnd() {
 	// 送出結束訊號
 	eyelidIsEnded = true;
-	send?.('joystick/eyelid/end', {});
+	send?.(WS_MESSAGE_TYPES.JOYSTICK_EYELID_END, {});
 }
 </script>
 
 <template>
 	<section class="control-move" ref="controlEl">
 		<VirtualJoystick
-			mode="dynamic"
-			:size="140"
-			color="#22c55e"
-			:deadzone="0.12"
-			:throttle="60"
-			:scale="100"
+			:mode="APP_CONFIG.joystick.move.mode"
+			:size="APP_CONFIG.joystick.move.size"
+			:color="APP_CONFIG.joystick.move.color"
+			:deadzone="APP_CONFIG.joystick.move.deadzone"
+			:throttle="APP_CONFIG.joystick.move.throttle"
+			:scale="APP_CONFIG.joystick.move.scale"
 			:invertYPositive="true"
 			@move="move_onMove"
 			@end="move_onEnd"
@@ -156,12 +141,12 @@ function eyelid_onEnd() {
 	</section>
 	<section class="control-eyelid" ref="controlEl">
 		<VirtualJoystick
-			mode="dynamic"
-			:size="140"
-			color="#f548fdc5"
-			:deadzone="0.12"
-			:throttle="60"
-			:scale="100"
+			:mode="APP_CONFIG.joystick.eyelid.mode"
+			:size="APP_CONFIG.joystick.eyelid.size"
+			:color="APP_CONFIG.joystick.eyelid.color"
+			:deadzone="APP_CONFIG.joystick.eyelid.deadzone"
+			:throttle="APP_CONFIG.joystick.eyelid.throttle"
+			:scale="APP_CONFIG.joystick.eyelid.scale"
 			:invertYPositive="true"
 			@move="eyelid_onMove"
 			@end="eyelid_onEnd"

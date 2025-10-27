@@ -1,10 +1,9 @@
 import { ref, onMounted } from 'vue';
-import i18n from '@/i18n';
-import axios from 'axios';
-import { ElMessage } from 'element-plus';
 import { storeToRefs } from 'pinia';
 import { useModeStore } from '@/stores/mode';
 import { useCorrectionStore } from '@/stores/correction';
+import { advancedApi, handleApiError, handleApiSuccess } from '@/api';
+import i18n from '@/i18n';
 
 export function useAdvancedSetting() {
 	/* 局部 UI 状态 */
@@ -20,17 +19,12 @@ export function useAdvancedSetting() {
 	async function fetchAdvancedConfig() {
 		isLoading.value = true;
 		try {
-			const resp = await axios.get('/api/advanced_config', { timeout: 5000 });
-			const data = resp.data;
-			if (typeof data !== 'object' || data == null) {
-				throw new Error('Invalid response from server');
-			}
+			const data = await advancedApi.getConfig();
 			correctionStore.patchFromServer({
 				correction_timer: typeof data.correction_timer === 'number' ? data.correction_timer : undefined,
 			});
 		} catch (error: any) {
-			console.error('Failed to fetch advanced config:', error);
-			ElMessage.error(i18n.global.t('setting_transmission_failed') + `: ${error?.message || error}`);
+			handleApiError(error, i18n.global.t('setting_transmission_failed'));
 		} finally {
 			isLoading.value = false;
 		}
@@ -49,15 +43,10 @@ export function useAdvancedSetting() {
 				})
 			)();
 
-			const resp = await axios.post('/api/set_advanced_config', payload);
-			if (resp?.data?.success) {
-				ElMessage.success(i18n.global.t('advanced_setting_successfully'));
-			} else {
-				throw new Error(resp?.data?.message || 'Unknown error');
-			}
+			await advancedApi.setConfig(payload);
+			handleApiSuccess(i18n.global.t('advanced_setting_successfully'));
 		} catch (error: any) {
-			console.error('Failed to update advanced config:', error);
-			ElMessage.error(i18n.global.t('advanced_setting_failed') + `: ${error?.message || error}`);
+			handleApiError(error, i18n.global.t('advanced_setting_failed'));
 		} finally {
 			isSaving.value = false;
 		}

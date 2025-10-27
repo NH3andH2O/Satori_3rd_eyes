@@ -8,5 +8,6 @@ export function useWebSocket() {
 		on: wsService.on.bind(wsService),
 		off: wsService.off.bind(wsService),
 		send: wsService.send.bind(wsService),
+		resetReconnect: wsService.resetReconnect.bind(wsService),
 	};
 }
