@@ -41,17 +41,21 @@ apiClient.interceptors.response.use(
 	(response: AxiosResponse) => {
 		console.log(`API 響應: ${response.config.url}`, response.data);
 
-		// 統一處理業務邏輯錯誤（僅針對有 success 字段的響應）
-		if (response.data && typeof response.data === 'object' && 'success' in response.data) {
-			if (!response.data.success) {
-				const errorMessage = response.data.message || '請求失敗';
-				console.error('API 業務錯誤:', errorMessage);
-				// 不在這裡彈出錯誤，讓調用者處理
+		// 統一處理業務邏輯錯誤
+		const data = response.data;
+
+		// 檢查是否有標準的 API 響應格式
+		if (data && typeof data === 'object' && 'success' in data && 'code' in data) {
+			// 檢查 success 是否為 false 或 code 不為 0
+			if (!data.success || data.code !== 0) {
+				const errorMessage = data.message || '請求失敗';
+				console.error('API 業務錯誤:', errorMessage, 'code:', data.code);
+
 				return Promise.reject({
 					message: errorMessage,
-					code: 'BUSINESS_ERROR',
+					code: data.code,
 					status: response.status,
-					details: response.data,
+					details: data,
 				} as ApiError);
 			}
 		}

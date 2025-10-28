@@ -1,10 +1,20 @@
 /**
- * API 響應通用類型
+ * API GET 請求響應類型（帶 data）
  */
 export interface ApiResponse<T = any> {
 	success: boolean;
-	message?: string;
-	data?: T;
+	code: number;
+	message: string;
+	data: T;
+}
+
+/**
+ * API POST 請求響應類型（不帶 data）
+ */
+export interface ApiPostResponse {
+	success: boolean;
+	code: number;
+	message: string;
 }
 
 /**

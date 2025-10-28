@@ -381,7 +381,7 @@ void api_advanced_config(AsyncWebServerRequest *request)
 void api_set_advanced_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
 {
 	/* 檢查請求方法 */
-	if (request->method() == HTTP_POST)
+	if (request->method() != HTTP_POST)
 	{
 		request->send(405, "text/plain", "Method Not Allowed");
 		return;
