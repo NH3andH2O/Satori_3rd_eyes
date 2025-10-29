@@ -50,6 +50,24 @@ void handleNotFound(AsyncWebServerRequest *request)
 {
 	const String urlPath = request->url();
 
+	if (request->method() == HTTP_OPTIONS)
+	{
+		AsyncWebServerResponse *response = request->beginResponse(204);
+		response->addHeader("Access-Control-Allow-Origin", "*");
+		response->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+		response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+		request->send(response);
+		return;
+	}
+
+	if (urlPath.startsWith("/api/"))
+	{
+		AsyncWebServerResponse *response = request->beginResponse(404, "application/json", "{\"success\":false,\"message\":\"API not found\"}");
+		response->addHeader("Access-Control-Allow-Origin", "*");
+		request->send(response);
+		return;
+	}
+
 	String fsPath = "/www" + urlPath;
 
 	if (fsPath.endsWith("/"))
