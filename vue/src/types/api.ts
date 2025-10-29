@@ -1,7 +1,7 @@
 /**
  * API GET 請求響應類型（帶 data）
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
 	success: boolean;
 	code: number;
 	message: string;
@@ -24,7 +24,7 @@ export interface ApiError {
 	message: string;
 	code?: string | number;
 	status?: number;
-	details?: any;
+	details?: unknown;
 }
 
 /**

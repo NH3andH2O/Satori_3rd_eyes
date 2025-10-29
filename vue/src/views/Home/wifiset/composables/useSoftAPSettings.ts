@@ -30,7 +30,7 @@ export function useSoftAPSettings() {
 				...config.value,
 				...data,
 			};
-		} catch (error: any) {
+		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('setting_transmission_failed'));
 		} finally {
 			config.value.isLoading = false;
@@ -55,7 +55,7 @@ export function useSoftAPSettings() {
 		try {
 			await softAPApi.setConfig(newConfig);
 			handleApiSuccess(i18n.global.t('softAP_setting_successfully'));
-		} catch (error: any) {
+		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('softAP_setting_failed'));
 		} finally {
 			config.value.isSaving = false;

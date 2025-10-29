@@ -94,7 +94,8 @@ apiClient.interceptors.response.use(
 					apiError.message = '服務不可用';
 					break;
 				default:
-					apiError.message = (error.response.data as any)?.message || `請求失敗 (${error.response.status})`;
+					const responseData = error.response.data as { message?: string } | undefined;
+					apiError.message = responseData?.message || `請求失敗 (${error.response.status})`;
 			}
 		} else if (error.request) {
 			// 請求已發送但沒有收到響應
@@ -116,8 +117,18 @@ apiClient.interceptors.response.use(
 /**
  * 統一錯誤處理函數
  */
-export function handleApiError(error: ApiError | Error | any, customMessage?: string): void {
-	const errorMessage = customMessage || (error as ApiError)?.message || error?.message || '未知錯誤';
+export function handleApiError(error: unknown, customMessage?: string): void {
+	let errorMessage = customMessage;
+
+	if (!errorMessage) {
+		if (error && typeof error === 'object' && 'message' in error) {
+			errorMessage = String(error.message);
+		} else if (error instanceof Error) {
+			errorMessage = error.message;
+		} else {
+			errorMessage = '未知錯誤';
+		}
+	}
 
 	console.error('API 錯誤處理:', errorMessage, error);
 

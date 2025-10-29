@@ -1,8 +1,15 @@
-export function useWiFiRules(form: any, t: Function) {
+interface WifiForm {
+	is_wifi: boolean;
+}
+
+type TranslateFunction = (key: string) => string;
+type CallbackFunction = (error?: Error) => void;
+
+export function useWiFiRules(form: WifiForm, t: TranslateFunction) {
 	return {
 		ssid: [
 			{
-				validator: (_: any, value: string, callback: Function) => {
+				validator: (_: unknown, value: string, callback: CallbackFunction) => {
 					if (!form.is_wifi) return callback();
 					if (!value) {
 						return callback(new Error(t('wifi_ssid_empty')));

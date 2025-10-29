@@ -26,6 +26,7 @@
 							:step-strictly="false"
 							:disabled="advanced.isLoading.value"
 						>
+							<!-- eslint-disable-next-line vue/singleline-html-element-content-newline -->
 							<template #suffix> ms </template>
 						</el-input-number>
 					</el-form-item>

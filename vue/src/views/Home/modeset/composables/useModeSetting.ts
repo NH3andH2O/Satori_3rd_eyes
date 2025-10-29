@@ -20,7 +20,7 @@ export function useModeSetting() {
 			modeStore.patchFromServer({
 				mode: Number(data.mode),
 			});
-		} catch (error: any) {
+		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('setting_transmission_failed'));
 		} finally {
 			isLoading.value = false;
@@ -32,7 +32,7 @@ export function useModeSetting() {
 		try {
 			await modeApi.setConfig({ mode: mode.value });
 			handleApiSuccess(i18n.global.t('mode_setting_successfully'));
-		} catch (error: any) {
+		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('mode_setting_failed'));
 		} finally {
 			isSaving.value = false;

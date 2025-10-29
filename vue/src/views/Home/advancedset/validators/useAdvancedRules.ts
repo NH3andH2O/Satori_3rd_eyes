@@ -4,7 +4,7 @@ export function useAdvancedRules(modeRef: Ref<number>, t: (k: string) => string)
 	return {
 		correction_timer: [
 			{
-				validator: async (_: any, value: any) => {
+				validator: async (_: unknown, value: unknown) => {
 					// 只在模式 1 時進行校驗
 					if (unref(modeRef) !== 1) {
 						return Promise.resolve();

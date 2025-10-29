@@ -23,7 +23,7 @@ export function useAdvancedSetting() {
 			correctionStore.patchFromServer({
 				correction_timer: typeof data.correction_timer === 'number' ? data.correction_timer : undefined,
 			});
-		} catch (error: any) {
+		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('setting_transmission_failed'));
 		} finally {
 			isLoading.value = false;
@@ -33,7 +33,7 @@ export function useAdvancedSetting() {
 	async function update() {
 		isSaving.value = true;
 		try {
-			const payloadBuilders: Record<number, () => any> = {
+			const payloadBuilders: Record<number, () => Partial<{ correction_timer: number }>> = {
 				1: () => ({ correction_timer: correction_timer.value }),
 			};
 			const payload = (
@@ -45,7 +45,7 @@ export function useAdvancedSetting() {
 
 			await advancedApi.setConfig(payload);
 			handleApiSuccess(i18n.global.t('advanced_setting_successfully'));
-		} catch (error: any) {
+		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('advanced_setting_failed'));
 		} finally {
 			isSaving.value = false;

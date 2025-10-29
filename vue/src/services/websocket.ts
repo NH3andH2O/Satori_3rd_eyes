@@ -4,7 +4,7 @@ import type { WebSocketMessage, WebSocketConfig } from '@/types';
 import { APP_CONFIG } from '@/config';
 
 // 靈活的事件映射類型
-type EventMap = Record<string, any>;
+type EventMap = Record<string, unknown>;
 
 class WebSocketService {
 	private ws: WebSocket | null = null;
@@ -157,15 +157,15 @@ class WebSocketService {
 		return this.ws?.readyState === WebSocket.OPEN;
 	}
 
-	on(type: string, handler: (payload: any) => void): void {
+	on(type: string, handler: (payload: unknown) => void): void {
 		this.emitter.on(type, handler);
 	}
 
-	off(type: string, handler: (payload: any) => void): void {
+	off(type: string, handler: (payload: unknown) => void): void {
 		this.emitter.off(type, handler);
 	}
 
-	send<T = any>(type: string, payload: T): void {
+	send<T = unknown>(type: string, payload: T): void {
 		const msg: WebSocketMessage<T> = { type, payload };
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.ws.send(JSON.stringify(msg));

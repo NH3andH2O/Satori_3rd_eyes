@@ -1,7 +1,7 @@
 /**
  * WebSocket 消息類型
  */
-export interface WebSocketMessage<T = any> {
+export interface WebSocketMessage<T = unknown> {
 	type: string;
 	payload: T;
 }
@@ -62,7 +62,7 @@ export interface ReconnectFailedEvent {
 export interface WebSocketEvents {
 	open: undefined;
 	close: CloseEvent;
-	error: Event | Error | any;
+	error: Event | Error;
 	'message:*': WebSocketMessage;
 	'reconnect:attempt': ReconnectAttemptEvent;
 	'reconnect:failed': ReconnectFailedEvent;

@@ -72,13 +72,7 @@ export default [
 			'vue/require-default-prop': 'off',
 			'vue/require-explicit-emits': 'warn',
 			'vue/html-indent': ['warn', 'tab'],
-			'vue/max-attributes-per-line': [
-				'warn',
-				{
-					singleline: 3,
-					multiline: 1,
-				},
-			],
+			'vue/max-attributes-per-line': 'off',
 		},
 	},
 

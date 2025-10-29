@@ -28,7 +28,7 @@ export function useWifiSettings() {
 				...config.value,
 				...data,
 			};
-		} catch (error: any) {
+		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('setting_transmission_failed'));
 		} finally {
 			config.value.isLoading = false;
@@ -46,7 +46,7 @@ export function useWifiSettings() {
 		try {
 			await wifiApi.setConfig({ is_wifi, ssid, password });
 			handleApiSuccess(i18n.global.t('wifi_setting_successfully'));
-		} catch (error: any) {
+		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('setting_transmission_failed'));
 		} finally {
 			config.value.isSaving = false;
