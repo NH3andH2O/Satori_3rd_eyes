@@ -2,7 +2,7 @@
 	<div class="title">
 		<h2>{{ $t('advancedset_title') }}</h2>
 	</div>
-	<el-form :model="formData" :rules="advanced_rules" ref="advanced_form_ref" label-position="right" class="custom-form" @submit.prevent novalidate>
+	<el-form ref="advanced_form_ref" :model="formData" :rules="advanced_rules" label-position="right" class="custom-form" novalidate @submit.prevent>
 		<div class="content">
 			<transition name="slide-toggle">
 				<div v-show="mode === 1">
@@ -26,7 +26,7 @@
 							:step-strictly="false"
 							:disabled="advanced.isLoading.value"
 						>
-							<template #suffix>ms</template>
+							<template #suffix> ms </template>
 						</el-input-number>
 					</el-form-item>
 				</div>
@@ -34,7 +34,7 @@
 		</div>
 		<div class="content button">
 			<el-form-item>
-				<el-button round @click="advanced_save" :loading="advanced.isSaving.value" :disabled="advanced.isLoading.value">
+				<el-button round :loading="advanced.isSaving.value" :disabled="advanced.isLoading.value" @click="advanced_save">
 					{{ $t('save') }}
 				</el-button>
 			</el-form-item>

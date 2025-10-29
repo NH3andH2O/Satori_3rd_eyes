@@ -2,7 +2,7 @@
 	<div class="title">
 		<h2>{{ $t('modeset_title') }}</h2>
 	</div>
-	<el-form :model="mode_form_model" :rules="mode_rules" ref="mode_form_ref" label-position="right" class="custom-form">
+	<el-form ref="mode_form_ref" :model="mode_form_model" :rules="mode_rules" label-position="right" class="custom-form">
 		<div class="content">
 			<el-form-item :label="$t('mode')" prop="mode">
 				<el-select
@@ -12,7 +12,7 @@
 					style="width: 170px"
 					@change="mode_save"
 				>
-					<el-option label="" :value="0" v-show="false" />
+					<el-option v-show="false" label="" :value="0" />
 					<el-option :label="$t('gyroscope_tracks_mode')" :value="1" />
 					<el-option :label="$t('network_control_mode')" :value="2" />
 				</el-select>

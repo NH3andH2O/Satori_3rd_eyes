@@ -43,7 +43,7 @@ function wifi_save() {
 			</el-icon>
 		</el-tooltip>
 	</div>
-	<el-form :model="wifi.config.value" :rules="wifi_rules" ref="wifi_form_ref" label-position="right" class="custom-form">
+	<el-form ref="wifi_form_ref" :model="wifi.config.value" :rules="wifi_rules" label-position="right" class="custom-form">
 		<div class="content">
 			<el-form-item :label="$t('enable_wifi')">
 				<el-switch v-model="wifi.config.value.is_wifi" :disabled="wifi.config.value.isLoading" />
@@ -76,7 +76,7 @@ function wifi_save() {
 		</div>
 		<div class="content button">
 			<el-form-item>
-				<el-button round @click="wifi_save" :loading="wifi.config.value.isSaving" :disabled="wifi.config.value.isLoading">
+				<el-button round :loading="wifi.config.value.isSaving" :disabled="wifi.config.value.isLoading" @click="wifi_save">
 					{{ $t('save') }}
 				</el-button>
 			</el-form-item>
@@ -91,7 +91,7 @@ function wifi_save() {
 			</el-icon>
 		</el-tooltip>
 	</div>
-	<el-form :model="softAP.config.value" :rules="softAP_rules" ref="softap_form_ref" label-position="right" class="custom-form">
+	<el-form ref="softap_form_ref" :model="softAP.config.value" :rules="softAP_rules" label-position="right" class="custom-form">
 		<div class="content">
 			<el-form-item :label="$t('softAP_name')">
 				<el-input
@@ -137,7 +137,7 @@ function wifi_save() {
 		</div>
 		<div class="content button">
 			<el-form-item>
-				<el-button round @click="softAP_save" :loading="softAP.config.value.isSaving" :disabled="softAP.config.value.isLoading">
+				<el-button round :loading="softAP.config.value.isSaving" :disabled="softAP.config.value.isLoading" @click="softAP_save">
 					{{ $t('save') }}
 				</el-button>
 			</el-form-item>

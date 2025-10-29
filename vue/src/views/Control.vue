@@ -126,7 +126,7 @@ function eyelid_onEnd() {
 </script>
 
 <template>
-	<section class="control-move" ref="controlEl">
+	<section ref="controlEl" class="control-move">
 		<VirtualJoystick
 			:mode="APP_CONFIG.joystick.move.mode"
 			:size="APP_CONFIG.joystick.move.size"
@@ -134,12 +134,12 @@ function eyelid_onEnd() {
 			:deadzone="APP_CONFIG.joystick.move.deadzone"
 			:throttle="APP_CONFIG.joystick.move.throttle"
 			:scale="APP_CONFIG.joystick.move.scale"
-			:invertYPositive="true"
+			:invert-y-positive="true"
 			@move="move_onMove"
 			@end="move_onEnd"
 		/>
 	</section>
-	<section class="control-eyelid" ref="controlEl">
+	<section ref="controlEl" class="control-eyelid">
 		<VirtualJoystick
 			:mode="APP_CONFIG.joystick.eyelid.mode"
 			:size="APP_CONFIG.joystick.eyelid.size"
@@ -147,7 +147,7 @@ function eyelid_onEnd() {
 			:deadzone="APP_CONFIG.joystick.eyelid.deadzone"
 			:throttle="APP_CONFIG.joystick.eyelid.throttle"
 			:scale="APP_CONFIG.joystick.eyelid.scale"
-			:invertYPositive="true"
+			:invert-y-positive="true"
 			@move="eyelid_onMove"
 			@end="eyelid_onEnd"
 		/>
@@ -156,8 +156,12 @@ function eyelid_onEnd() {
 	<BackToPrev :visibility-height="0" return-to="/" />
 	<el-dialog v-model="show_help" width="500" align-center :title="t('tutorial')">
 		<div class="setting-content">
-			<p v-if="isMobile">{{ t('control_help_mobile') }}</p>
-			<p v-else>{{ t('control_help_desktop') }}</p>
+			<p v-if="isMobile">
+				{{ t('control_help_mobile') }}
+			</p>
+			<p v-else>
+				{{ t('control_help_desktop') }}
+			</p>
 		</div>
 	</el-dialog>
 	<el-dialog v-model="SettingVisible" width="500" align-center :title="t('setting')">
@@ -184,7 +188,9 @@ function eyelid_onEnd() {
 			</div>
 			<h3>{{ t('help') }}</h3>
 			<div class="setting-item">
-				<el-button type="primary" round plain @click="show_help = true">{{ t('help_button') }}</el-button>
+				<el-button type="primary" round plain @click="show_help = true">
+					{{ t('help_button') }}
+				</el-button>
 			</div>
 		</div>
 	</el-dialog>

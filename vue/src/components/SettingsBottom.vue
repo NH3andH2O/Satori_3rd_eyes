@@ -5,10 +5,10 @@
 				<div
 					class="backtop-like"
 					:style="{ right: `${right}px`, bottom: `${bottom}px`, zIndex: zIndex }"
-					@click="emit('click')"
 					role="button"
 					:aria-label="$t('back')"
 					tabindex="0"
+					@click="emit('click')"
 					@keydown.enter.prevent="emit('click')"
 					@keydown.space.prevent="emit('click')"
 				>

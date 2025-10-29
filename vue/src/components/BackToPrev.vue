@@ -9,10 +9,10 @@
 						bottom: `${bottom}px`,
 						zIndex: zIndex,
 					}"
-					@click="handleClick"
 					role="button"
 					:aria-label="t('back')"
 					tabindex="0"
+					@click="handleClick"
 					@keydown.enter.prevent="handleClick"
 					@keydown.space.prevent="handleClick"
 				>
