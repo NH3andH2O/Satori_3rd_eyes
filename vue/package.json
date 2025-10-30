@@ -30,6 +30,7 @@
 		"eslint-plugin-import": "^2.32.0",
 		"eslint-plugin-prettier": "^5.5.4",
 		"eslint-plugin-vue": "^10.5.1",
+		"kill-port": "^2.0.1",
 		"nipplejs": "^0.10.2",
 		"pinia": "^3.0.3",
 		"prettier": "^3.6.2",

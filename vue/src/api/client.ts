@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiError } from '@/types';
 import { ElMessage } from 'element-plus';
+import { mapErrorCodeToNumber } from '@/utils/errorCodeMapper';
 
 /**
  * 創建 Axios 實例
@@ -63,12 +64,15 @@ apiClient.interceptors.response.use(
 		return response;
 	},
 	(error: AxiosError) => {
-		console.error('API 響應錯誤:', error);
+		console.error('API response error:', error);
+
+		// 將 Axios 錯誤代碼轉換為數字
+		const numericCode = mapErrorCodeToNumber(error.code, error.response?.status);
 
 		const apiError: ApiError = {
-			message: '網絡錯誤',
+			message: 'Network Error: ',
 			status: error.response?.status,
-			code: error.code,
+			code: numericCode, // 使用轉換後的數字代碼
 			details: error.response?.data,
 		};
 
@@ -125,13 +129,13 @@ export function handleApiError(error: unknown, customMessage?: string): void {
 	if (!errorMessage) {
 		if (error && typeof error === 'object' && 'message' in error) {
 			errorMessage = String(error.message);
-			// 嘗試獲取錯誤代碼
+			// 嘗試獲取錯誤代碼（現在應該是數字）
 			if ('code' in error) {
 				errorCode = error.code as string | number;
 			}
 			// 嘗試獲取 HTTP 狀態碼
 			if ('status' in error && !errorCode) {
-				errorCode = `HTTP ${error.status}`;
+				errorCode = error.status as number;
 			}
 		} else if (error instanceof Error) {
 			errorMessage = error.message;
@@ -144,7 +148,7 @@ export function handleApiError(error: unknown, customMessage?: string): void {
 			if ('code' in error) {
 				errorCode = error.code as string | number;
 			} else if ('status' in error) {
-				errorCode = `HTTP ${error.status}`;
+				errorCode = error.status as number;
 			}
 		}
 	}
@@ -152,7 +156,7 @@ export function handleApiError(error: unknown, customMessage?: string): void {
 	console.error('API 錯誤處理:', errorMessage, error);
 
 	// 構建完整的錯誤消息（包含錯誤代碼）
-	const fullMessage = errorCode ? `(${errorCode}) ${errorMessage}` : errorMessage;
+	const fullMessage = errorCode !== undefined ? `[${errorCode}] ${errorMessage}` : errorMessage;
 
 	// 使用 Element Plus 顯示錯誤消息
 	ElMessage.error({
