@@ -119,24 +119,47 @@ apiClient.interceptors.response.use(
  */
 export function handleApiError(error: unknown, customMessage?: string): void {
 	let errorMessage = customMessage;
+	let errorCode: string | number | undefined;
 
+	// 提取錯誤信息和錯誤代碼
 	if (!errorMessage) {
 		if (error && typeof error === 'object' && 'message' in error) {
 			errorMessage = String(error.message);
+			// 嘗試獲取錯誤代碼
+			if ('code' in error) {
+				errorCode = error.code as string | number;
+			}
+			// 嘗試獲取 HTTP 狀態碼
+			if ('status' in error && !errorCode) {
+				errorCode = `HTTP ${error.status}`;
+			}
 		} else if (error instanceof Error) {
 			errorMessage = error.message;
 		} else {
 			errorMessage = '未知錯誤';
 		}
+	} else {
+		// 即使有自定義消息，也嘗試提取錯誤代碼
+		if (error && typeof error === 'object') {
+			if ('code' in error) {
+				errorCode = error.code as string | number;
+			} else if ('status' in error) {
+				errorCode = `HTTP ${error.status}`;
+			}
+		}
 	}
 
 	console.error('API 錯誤處理:', errorMessage, error);
 
+	// 構建完整的錯誤消息（包含錯誤代碼）
+	const fullMessage = errorCode ? `(${errorCode}) ${errorMessage}` : errorMessage;
+
 	// 使用 Element Plus 顯示錯誤消息
 	ElMessage.error({
-		message: errorMessage,
-		duration: 3000,
+		message: fullMessage,
+		duration: 5000, // 增加顯示時間以便閱讀完整信息
 		showClose: true,
+		dangerouslyUseHTMLString: false, // 防止 XSS 攻擊
 	});
 }
 

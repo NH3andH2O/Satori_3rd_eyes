@@ -19,6 +19,7 @@ export default defineConfig({
 			'@api': resolve(__dirname, 'src/api'),
 			'@config': resolve(__dirname, 'src/config'),
 			'@stores': resolve(__dirname, 'src/stores'),
+			'@utils': resolve(__dirname, 'src/utils'),
 		},
 	},
 	plugins: [
