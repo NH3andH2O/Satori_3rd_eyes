@@ -31,7 +31,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import { useModeRules } from './validators/useModeRules';
 import { useModeSetting } from './composables/useModeSetting';
 import { useI18n } from 'vue-i18n';
@@ -54,7 +54,9 @@ const mode_form_model = computed({
 
 const mode_rules = computed(() => useModeRules(t));
 
-function mode_save() {
+async function mode_save() {
+	// 等待 DOM 更新，確保 v-model 已經更新了值
+	await nextTick();
 	mode_form_ref.value?.validate((valid: boolean) => {
 		if (valid) {
 			mode.update();
