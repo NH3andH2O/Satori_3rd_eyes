@@ -21,6 +21,26 @@ function getLocaleFromBrowser(): string {
 	return 'en'; // fallback
 }
 
+/**
+ * 將 i18n locale 轉換為 HTML lang 屬性格式
+ */
+function localeToHtmlLang(locale: string): string {
+	const map: Record<string, string> = {
+		'zh-TW': 'zh-TW',
+		'zh-CN': 'zh-CN',
+		en: 'en',
+	};
+	return map[locale] || 'en';
+}
+
+/**
+ * 更新 HTML lang 屬性
+ */
+export function updateHtmlLang(locale: string): void {
+	const htmlLang = localeToHtmlLang(locale);
+	document.documentElement.setAttribute('lang', htmlLang);
+}
+
 const i18n = createI18n({
 	legacy: false,
 	globalInjection: true,
@@ -32,5 +52,8 @@ const i18n = createI18n({
 		en,
 	},
 });
+
+// 初始化時設置 HTML lang 屬性
+updateHtmlLang(i18n.global.locale.value);
 
 export default i18n;
