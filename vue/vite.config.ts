@@ -49,5 +49,6 @@ export default defineConfig({
 	build: {
 		outDir: '../platformIO/data/www',
 		emptyOutDir: true,
+		sourcemap: true,
 	},
 });

@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiError } from '@/types';
 import { ElMessage } from 'element-plus';
-import { mapErrorCodeToNumber } from '@/utils/errorCodeMapper';
+import { mapErrorCodeToNumber, getErrorDescription } from '@/utils/errorCodeMapper';
 
 /**
  * 創建 Axios 實例
@@ -153,10 +153,17 @@ export function handleApiError(error: unknown, customMessage?: string): void {
 		}
 	}
 
-	console.error('API 錯誤處理:', errorMessage, error);
-
-	// 構建完整的錯誤消息（包含錯誤代碼）
-	const fullMessage = errorCode !== undefined ? `[${errorCode}] ${errorMessage}` : errorMessage;
+	// 構建完整的錯誤消息（包含錯誤代碼和具體描述）
+	let fullMessage = errorMessage;
+	if (errorCode !== undefined) {
+		// 如果錯誤代碼是數字，獲取具體的錯誤描述
+		if (typeof errorCode === 'number') {
+			const errorDescription = getErrorDescription(errorCode);
+			fullMessage = `[${errorCode}] ${errorMessage}: ${errorDescription}`;
+		} else {
+			fullMessage = `[${errorCode}] ${errorMessage}`;
+		}
+	}
 
 	// 使用 Element Plus 顯示錯誤消息
 	ElMessage.error({

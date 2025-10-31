@@ -56,4 +56,47 @@ export default {
 	eyelid_inverted_controls: 'Invert Eyelid Controls',
 	help: 'Help',
 	help_button: 'Show Tutorial',
+	// Error code descriptions
+	errors: {
+		// Axios errors
+		'-1': 'Network connection failed',
+		'-2': 'Request connection aborted',
+		'-3': 'Request timeout',
+		'-4': 'Request canceled',
+		'-10': 'Invalid request option value',
+		'-11': 'Invalid request option',
+		'-12': 'Invalid URL',
+		'-20': 'Invalid response format',
+		'-21': 'Bad request',
+		'-30': 'Too many redirects',
+		'-40': 'Unsupported feature',
+		'-41': 'Deprecated feature',
+		// HTTP status codes
+		'-100': 'Invalid request parameters',
+		'-101': 'Unauthorized, please login again',
+		'-103': 'Access denied',
+		'-104': 'Requested resource not found',
+		'-105': 'Method not allowed',
+		'-108': 'Request timeout',
+		'-109': 'Request conflict',
+		'-122': 'Unprocessable entity',
+		'-129': 'Too many requests',
+		'-200': 'Internal server error',
+		'-201': 'Not implemented',
+		'-202': 'Bad gateway',
+		'-203': 'Service unavailable',
+		'-204': 'Gateway timeout',
+		'-999': 'Unknown error',
+		// Business logic errors
+		// General errors
+		'10001': 'Invalid JSON format',
+		// WiFi errors
+		'10101': 'SSID cannot be empty when WiFi is enabled',
+		// SoftAP errors
+		'10201': 'SoftAP password mismatch',
+		'10202': 'Invalid SoftAP password',
+		// Mode errors
+		'10301': 'Invalid mode',
+		default: 'Error code: {code}',
+	},
 };
