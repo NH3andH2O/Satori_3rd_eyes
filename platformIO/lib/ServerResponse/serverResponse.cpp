@@ -420,6 +420,7 @@ void api_set_advanced_config(AsyncWebServerRequest *request, uint8_t *data, size
 
 	prefs.putUInt("correction", correction_timer);
 
-	request->send(200, "application/json", "{\"success\":true}");
+	/* 發送成功響應 */
+	sendJsonResponse(request, 200, true, ServerError::ERR_OK);
 	return;
 }

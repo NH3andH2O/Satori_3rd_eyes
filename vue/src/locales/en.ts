@@ -87,6 +87,10 @@ export default {
 		'-203': 'Service unavailable',
 		'-204': 'Gateway timeout',
 		'-999': 'Unknown error',
+		// Custom codes
+		// Mode errors
+		'-10301': 'Invalid mode',
+
 		// Business logic errors
 		// General errors
 		'10001': 'Invalid JSON format',

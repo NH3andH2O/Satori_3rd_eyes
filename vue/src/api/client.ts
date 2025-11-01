@@ -26,11 +26,11 @@ apiClient.interceptors.request.use(
 		//   config.headers.Authorization = `Bearer ${token}`;
 		// }
 
-		console.log(`API 請求: ${config.method?.toUpperCase()} ${config.url}`);
+		console.log(`API request: ${config.method?.toUpperCase()} ${config.url}`);
 		return config;
 	},
 	(error: AxiosError) => {
-		console.error('請求攔截器錯誤:', error);
+		console.error('API request interceptor error:', error);
 		return Promise.reject(error);
 	},
 );
@@ -40,7 +40,7 @@ apiClient.interceptors.request.use(
  */
 apiClient.interceptors.response.use(
 	(response: AxiosResponse) => {
-		console.log(`API 響應: ${response.config.url}`, response.data);
+		console.log(`API response: ${response.config.url}`, response.data);
 
 		// 統一處理業務邏輯錯誤
 		const data = response.data;
@@ -50,7 +50,7 @@ apiClient.interceptors.response.use(
 			// 檢查 success 是否為 false 或 code 不為 0
 			if (!data.success || data.code !== 0) {
 				const errorMessage = data.message || '請求失敗';
-				console.error('API 業務錯誤:', errorMessage, 'code:', data.code);
+				console.error('API business error:', errorMessage, 'code:', data.code);
 
 				return Promise.reject({
 					message: errorMessage,
@@ -159,7 +159,7 @@ export function handleApiError(error: unknown, customMessage?: string): void {
 		// 如果錯誤代碼是數字，獲取具體的錯誤描述
 		if (typeof errorCode === 'number') {
 			const errorDescription = getErrorDescription(errorCode);
-			fullMessage = `[${errorCode}] ${errorMessage}: ${errorDescription}`;
+			fullMessage = `${errorMessage}: ${errorDescription} [${errorCode}]`;
 		} else {
 			fullMessage = `[${errorCode}] ${errorMessage}`;
 		}

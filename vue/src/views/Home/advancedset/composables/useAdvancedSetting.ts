@@ -3,6 +3,8 @@ import { storeToRefs } from 'pinia';
 import { useModeStore } from '@/stores/mode';
 import { useCorrectionStore } from '@/stores/correction';
 import { advancedApi, handleApiError, handleApiSuccess } from '@/api';
+import { AppError } from '@/utils/AppError';
+import { getErrorDescription } from '@/utils/errorCodeMapper';
 import i18n from '@/i18n';
 
 export function useAdvancedSetting() {
@@ -36,12 +38,15 @@ export function useAdvancedSetting() {
 			const payloadBuilders: Record<number, () => Partial<{ correction_timer: number }>> = {
 				1: () => ({ correction_timer: correction_timer.value }),
 			};
-			const payload = (
-				payloadBuilders[mode.value] ??
-				(() => {
-					throw new Error(`Unsupported mode value: ${mode.value}`);
-				})
-			)();
+
+			const payloadBuilder = payloadBuilders[mode.value];
+			if (!payloadBuilder) {
+				const errorCode = -10301;
+				const errorMessage = getErrorDescription(errorCode);
+				throw new AppError(errorCode, errorMessage);
+			}
+
+			const payload = payloadBuilder();
 
 			await advancedApi.setConfig(payload);
 			handleApiSuccess(i18n.global.t('advanced_setting_successfully'));
