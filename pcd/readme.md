@@ -53,6 +53,9 @@ https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 头部陀螺仪使用厂商附带的弯排针焊接到UART那一侧上面，i2c那一侧不要焊接\
 杜邦线使用母母接头，连接到`H4`，长度建议选择60~80cm之间
 
+<img src="https://github.com/user-attachments/assets/d17616e4-5e87-48f3-a36b-859f3634cc94" width="300" />
+
+
 ### 电源开关选择建议
 
 建议使用7mm键帽的开关
