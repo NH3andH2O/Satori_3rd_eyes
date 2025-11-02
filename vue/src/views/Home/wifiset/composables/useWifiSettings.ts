@@ -29,7 +29,7 @@ export function useWifiSettings() {
 				...data,
 			};
 		} catch (error: unknown) {
-			handleApiError(error, i18n.global.t('setting_transmission_failed'));
+			handleApiError(error, i18n.global.t('wifiset.LAN.state.get_failed'));
 		} finally {
 			config.value.isLoading = false;
 		}
@@ -45,9 +45,9 @@ export function useWifiSettings() {
 		const { is_wifi, ssid, password } = config.value;
 		try {
 			await wifiApi.setConfig({ is_wifi, ssid, password });
-			handleApiSuccess(i18n.global.t('wifi_setting_successfully'));
+			handleApiSuccess(i18n.global.t('wifiset.LAN.state.set_successfully'));
 		} catch (error: unknown) {
-			handleApiError(error, i18n.global.t('setting_transmission_failed'));
+			handleApiError(error, i18n.global.t('wifiset.LAN.state.set_failed'));
 		} finally {
 			config.value.isSaving = false;
 		}

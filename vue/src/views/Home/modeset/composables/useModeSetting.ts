@@ -21,7 +21,7 @@ export function useModeSetting() {
 				mode: Number(data.mode),
 			});
 		} catch (error: unknown) {
-			handleApiError(error, i18n.global.t('setting_transmission_failed'));
+			handleApiError(error, i18n.global.t('modeset.state.get_failed'));
 		} finally {
 			isLoading.value = false;
 		}
@@ -31,9 +31,9 @@ export function useModeSetting() {
 		isSaving.value = true;
 		try {
 			await modeApi.setConfig({ mode: mode.value });
-			handleApiSuccess(i18n.global.t('mode_setting_successfully'));
+			handleApiSuccess(i18n.global.t('modeset.state.set_successfully'));
 		} catch (error: unknown) {
-			handleApiError(error, i18n.global.t('mode_setting_failed'));
+			handleApiError(error, i18n.global.t('modeset.state.set_failed'));
 		} finally {
 			isSaving.value = false;
 		}

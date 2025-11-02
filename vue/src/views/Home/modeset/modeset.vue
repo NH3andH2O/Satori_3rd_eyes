@@ -1,10 +1,10 @@
 <template>
 	<div class="title">
-		<h2>{{ $t('modeset_title') }}</h2>
+		<h2>{{ $t('modeset.title') }}</h2>
 	</div>
 	<el-form ref="mode_form_ref" :model="mode_form_model" :rules="mode_rules" label-position="right" class="custom-form">
 		<div class="content">
-			<el-form-item :label="$t('mode')" prop="mode">
+			<el-form-item :label="$t('modeset.mode')" prop="mode">
 				<el-select
 					v-model="mode.mode.value"
 					placeholder="Select Mode"
@@ -13,8 +13,8 @@
 					@change="mode_save"
 				>
 					<el-option v-show="false" label="" :value="0" />
-					<el-option :label="$t('gyroscope_tracks_mode')" :value="1" />
-					<el-option :label="$t('network_control_mode')" :value="2" />
+					<el-option :label="$t('modeset.mode_info.gyroscope_tracks')" :value="1" />
+					<el-option :label="$t('modeset.mode_info.network_control')" :value="2" />
 				</el-select>
 			</el-form-item>
 		</div>
@@ -22,7 +22,7 @@
 			<div v-show="mode.mode.value === 2" class="content button" @click="$router.push('/control')">
 				<el-form-item>
 					<el-button type="success" round>
-						{{ $t('enter_network_control') }}
+						{{ $t('modeset.enter_network_control') }}
 					</el-button>
 				</el-form-item>
 			</div>
@@ -37,6 +37,8 @@ import { useModeSetting } from './composables/useModeSetting';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+const tModeErrors = (key: string) => t(`modeset.errors.${key}`);
+
 const mode_form_ref = ref();
 const mode = useModeSetting();
 
@@ -52,7 +54,7 @@ const mode_form_model = computed({
 	},
 });
 
-const mode_rules = computed(() => useModeRules(t));
+const mode_rules = computed(() => useModeRules(tModeErrors));
 
 async function mode_save() {
 	// 等待 DOM 更新，確保 v-model 已經更新了值

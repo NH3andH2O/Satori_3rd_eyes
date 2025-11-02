@@ -1,7 +1,7 @@
 <template>
 	<transition name="el-fade-in">
 		<div v-if="visible">
-			<el-tooltip :content="t('setting')" placement="left" :effect="isDark ? 'dark' : 'light'">
+			<el-tooltip :content="t('component_setting')" placement="left" :effect="isDark ? 'dark' : 'light'">
 				<div
 					class="backtop-like"
 					:style="{ right: `${right}px`, bottom: `${bottom}px`, zIndex: zIndex }"

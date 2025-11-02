@@ -1,64 +1,151 @@
 export default {
-	pageTitle: '3rdEyes',
-	controlTitle: '3rdEyes Control',
-	title: '3rdEyes Settings',
-	wifiset_title: 'WiFi Settings',
-	LAN_setting: 'LAN setting',
-	LAN_setting_help: 'Connect 3rdEyes to your home network or mobile hotspot for direct access to 3rdEyes',
-	enable_wifi: 'Connect WiFi',
-	wifi_ssid: 'WiFi SSID:',
-	wifi_password: 'Password:',
-	wifi_ssid_empty: 'WiFi SSID cannot be empty',
-	save: 'Save',
-	softAP_setting: 'hotspot Settings',
-	softAP_setting_help: 'Set up 3rdEyes as a wireless hotspot, allowing you to connect via mobile or computer for configuration.',
-	softAP_name: 'Name:',
-	change_password: 'Change Password',
-	password: 'Password:',
-	password_info: 'Leave blank for no password',
-	password_confirm: 'Confirm:',
-	password_confirm_no_colon: 'Confirm Password',
-	password_length_short: 'Password must be at least 8 characters long',
-	password_length_long: 'Password must not exceed 63 characters',
-	password_invalid_chars: 'Password contains invalid characters',
-	password_not_match: 'Passwords do not match',
-	wifi_setting_successfully: 'WiFi setting successfully',
-	wifi_setting_failed: 'WiFi setting failed',
-	softAP_setting_successfully: 'Hotspot setting successfully',
-	softAP_setting_failed: 'Hotspot setting failed',
-	setting_transmission_failed: 'Unable to connect to server',
-	modeset_title: 'Mode Settings',
-	mode: 'Mode:',
-	mode_empty: 'Mode cannot be empty',
-	mode_invalid: 'Mode invalid',
-	correction_time_invalid_number: 'Static correction time must be a valid number',
-	correction_time_negative: 'Static correction time cannot be less than 0',
-	correction_time_over_range: 'Static correction time cannot exceed 65535',
-	gyroscope_tracks_mode: 'Gyroscope Tracking Mode',
-	network_control_mode: 'Network Control Mode',
-	enter_network_control: 'Enter Control Interface',
-	correction_time: 'Static Correction Time:',
-	correction_time_help:
-		'When 3rdEyes is stationary, the gyroscope resets its initial orientation to correct angle deviations. Setting to 0 means no static correction.',
-	mode_setting_successfully: 'Mode setting successfully',
-	mode_setting_failed: 'Mode setting failed',
-	advancedset_title: 'Advanced Settings',
-	advanced_setting_failed: 'Advanced setting failed',
-	advanced_setting_successfully: 'Advanced setting successfully',
-	tutorial: 'Tutorial',
-	control_help_desktop: 'Swipe on the screen to control 3rdEyes. The left half controls eyelid size, and the right half controls eye movement.',
-	control_help_mobile: 'Swipe on the screen to control 3rdEyes. The upper half controls eyelid size, and the lower half controls eye movement.',
-	back: 'Back',
-	setting: 'Settings',
-	move_inverted_controls: 'Invert Eye Movement Controls',
-	invert_Xaxis: 'Invert X-Axis',
-	invert_Yaxis: 'Invert Y-Axis',
-	eyelid_inverted_controls: 'Invert Eyelid Controls',
-	help: 'Help',
-	help_button: 'Show Tutorial',
-	// Error code descriptions
+	/* 首頁 */
+	homepage: {
+		page_title: '3rdEyes',
+		title: '3rdEyes Settings',
+	},
+
+	/* WiFi 設定 */
+	wifiset: {
+		title: 'WiFi Settings',
+
+		/* 局域網設定 */
+		LAN: {
+			title: 'LAN Settings',
+			title_help: 'Connect 3rdEyes to your home network or mobile hotspot for direct access to 3rdEyes',
+			wifi_enable: 'Connect LAN',
+			ssid: 'WiFi Name:',
+			password: 'WiFi Password:',
+			save: 'Save',
+
+			/* 狀態 */
+			state: {
+				get_failed: 'WiFi get failed',
+				set_successfully: 'WiFi set successfully',
+				set_failed: 'WiFi set failed',
+			},
+
+			/* 錯誤訊息 */
+			errors: {
+				ssid_empty: 'WiFi cannot be empty',
+			},
+		},
+
+		/* 熱點模式設定 */
+		softAP: {
+			title: 'Hotspot Settings',
+			title_help: '3rdEyes can be configured as a wireless hotspot, allowing you to connect via mobile or computer.',
+			softAP_name: 'Hotspot Name:',
+			change_password: 'Change Password',
+			password: 'Password:',
+			password_info: 'Leave blank for no password',
+			password_confirm: 'Confirm Password:',
+			password_confirm_info: 'Confirm Password',
+			save: 'Save',
+
+			/* 狀態 */
+			state: {
+				get_failed: 'Hotspot get failed',
+				set_successfully: 'Hotspot set successfully',
+				set_failed: 'Hotspot set failed',
+			},
+
+			/* 錯誤訊息 */
+			errors: {
+				password_length_short: 'Password must be at least 8 characters long',
+				password_length_long: 'Password must not exceed 63 characters',
+				password_invalid_chars: 'Password contains invalid characters',
+				password_not_match: 'Passwords do not match',
+			},
+		},
+	},
+
+	/* 模式設定 */
+	modeset: {
+		title: 'Mode Settings',
+		mode: 'Mode:',
+		mode_info: {
+			gyroscope_tracks: 'Gyroscope Tracking Mode',
+			network_control: 'Network Control Mode',
+		},
+		enter_network_control: 'Enter Control Interface',
+		save: 'Save',
+
+		/* 狀態 */
+		state: {
+			get_failed: 'Mode get failed',
+			set_successfully: 'Mode set successfully',
+			set_failed: 'Mode set failed',
+		},
+
+		/* 錯誤訊息 */
+		errors: {
+			mode_empty: 'Mode cannot be empty',
+			mode_invalid: 'Mode invalid',
+		},
+	},
+
+	/* 進階設定 */
+	advancedset: {
+		title: 'Advanced Settings',
+		correction_time: 'Static Correction Time:',
+		correction_time_help:
+			'When 3rdEyes is stationary, the gyroscope resets its initial orientation to correct angle deviations. Setting to 0 means no static correction.',
+		save: 'Save',
+
+		/* 狀態 */
+		state: {
+			get_failed: 'Advanced Settings get failed',
+			set_successfully: 'Advanced Settings set successfully',
+			set_failed: 'Advanced Settings set failed',
+		},
+
+		/* 錯誤訊息 */
+		errors: {
+			correction_time_invalid_number: 'Static correction time must be a valid number',
+			correction_time_negative: 'Static correction time cannot be less than 0',
+			correction_time_over_range: 'Static correction time cannot exceed 65535',
+		},
+	},
+
+	/* 控制設定 */
+	control_set: {
+		title: 'setting',
+
+		/* 眼球移動翻轉控制 */
+		move_inverted: {
+			title: 'Invert Eye Movement Controls',
+			invert_Xaxis: 'Invert X-Axis',
+			invert_Yaxis: 'Invert Y-Axis',
+		},
+
+		/* 眼睛張開大小翻轉控制 */
+		eyelid_inverted: {
+			title: 'Invert Eyelid Controls',
+			invert_Yaxis: 'Invert Y-Axis',
+		},
+
+		help: {
+			title: 'Help',
+			tutorial_button: 'Show Tutorial',
+
+			/* 教學 */
+			tutorial: {
+				title: 'Tutorial',
+				desktop: 'Swipe on the screen to control 3rdEyes. The left half controls eyelid size, and the right half controls eye movement.',
+				mobile: 'Swipe on the screen to control 3rdEyes. The upper half controls eyelid size, and the lower half controls eye movement.',
+			},
+		},
+	},
+
+	/* 元件 */
+	component_setting: 'Settings',
+	component_back: 'Back',
+
+	/* 錯誤代碼描述 */
 	errors: {
-		// Axios errors
+		/** 前端錯誤 **/
+		/* Axios 錯誤 */
 		'-1': 'Network connection failed',
 		'-2': 'Request connection aborted',
 		'-3': 'Request timeout',
@@ -71,7 +158,8 @@ export default {
 		'-30': 'Too many redirects',
 		'-40': 'Unsupported feature',
 		'-41': 'Deprecated feature',
-		// HTTP status codes
+
+		/* HTTP 狀態碼 */
 		'-100': 'Invalid request parameters',
 		'-101': 'Unauthorized, please login again',
 		'-103': 'Access denied',
@@ -87,19 +175,19 @@ export default {
 		'-203': 'Service unavailable',
 		'-204': 'Gateway timeout',
 		'-999': 'Unknown error',
-		// Custom codes
-		// Mode errors
+
+		/* 模式錯誤 */
 		'-10301': 'Invalid mode',
 
-		// Business logic errors
-		// General errors
+		/** 後端錯誤 **/
+		/* 通用錯誤 */
 		'10001': 'Invalid JSON format',
-		// WiFi errors
+		/* WiFi 錯誤 */
 		'10101': 'SSID cannot be empty when WiFi is enabled',
-		// SoftAP errors
+		/* SoftAP 錯誤 */
 		'10201': 'SoftAP password mismatch',
 		'10202': 'Invalid SoftAP password',
-		// Mode errors
+		/* 模式錯誤 */
 		'10301': 'Invalid mode',
 		default: 'Error code: {code}',
 	},

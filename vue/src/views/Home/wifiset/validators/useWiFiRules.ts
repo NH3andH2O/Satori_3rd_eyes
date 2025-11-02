@@ -12,7 +12,7 @@ export function useWiFiRules(form: WifiForm, t: TranslateFunction) {
 				validator: (_: unknown, value: string, callback: CallbackFunction) => {
 					if (!form.is_wifi) return callback();
 					if (!value) {
-						return callback(new Error(t('wifi_ssid_empty')));
+						return callback(new Error(t('ssid_empty')));
 					}
 					callback();
 				},

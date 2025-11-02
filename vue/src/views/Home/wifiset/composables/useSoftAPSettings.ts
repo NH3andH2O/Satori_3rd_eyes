@@ -31,7 +31,7 @@ export function useSoftAPSettings() {
 				...data,
 			};
 		} catch (error: unknown) {
-			handleApiError(error, i18n.global.t('setting_transmission_failed'));
+			handleApiError(error, i18n.global.t('wifiset.softAP.state.get_failed'));
 		} finally {
 			config.value.isLoading = false;
 		}
@@ -54,9 +54,9 @@ export function useSoftAPSettings() {
 
 		try {
 			await softAPApi.setConfig(newConfig);
-			handleApiSuccess(i18n.global.t('softAP_setting_successfully'));
+			handleApiSuccess(i18n.global.t('wifiset.softAP.state.set_successfully'));
 		} catch (error: unknown) {
-			handleApiError(error, i18n.global.t('softAP_setting_failed'));
+			handleApiError(error, i18n.global.t('wifiset.softAP.state.set_failed'));
 		} finally {
 			config.value.isSaving = false;
 		}

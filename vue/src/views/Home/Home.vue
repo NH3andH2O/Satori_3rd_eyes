@@ -8,13 +8,13 @@ import advancedset from '@/views/Home/advancedset/advancedset.vue';
 const { t } = useI18n();
 
 watchEffect(() => {
-	document.title = t('pageTitle');
+	document.title = t('homepage.page_title');
 });
 </script>
 
 <template>
 	<div class="title">
-		<h1>{{ $t('title') }}</h1>
+		<h1>{{ $t('homepage.title') }}</h1>
 	</div>
 	<el-row :gutter="24">
 		<el-col :sx="24" :md="8">

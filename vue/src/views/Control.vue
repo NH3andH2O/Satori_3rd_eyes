@@ -29,7 +29,7 @@ function handleResize() {
 const isMobile = computed(() => width.value <= 768);
 
 watchEffect(() => {
-	document.title = t('controlTitle');
+	document.title = t('controlpage.page_title') as string;
 });
 
 onMounted(() => {
@@ -154,42 +154,42 @@ function eyelid_onEnd() {
 	</section>
 	<SettingsBottom :visibility-height="0" :bottom="110" @click="SettingVisible = true" />
 	<BackToPrev :visibility-height="0" return-to="/" />
-	<el-dialog v-model="show_help" width="500" align-center :title="t('tutorial')">
+	<el-dialog v-model="show_help" width="500" align-center :title="t('control_set.help.tutorial.title')">
 		<div class="setting-content">
 			<p v-if="isMobile">
-				{{ t('control_help_mobile') }}
+				{{ t('control_set.help.tutorial.mobile') }}
 			</p>
 			<p v-else>
-				{{ t('control_help_desktop') }}
+				{{ t('control_set.help.tutorial.desktop') }}
 			</p>
 		</div>
 	</el-dialog>
-	<el-dialog v-model="SettingVisible" width="500" align-center :title="t('setting')">
+	<el-dialog v-model="SettingVisible" width="500" align-center :title="t('control_set.title')">
 		<div class="setting-content">
-			<h3>{{ t('move_inverted_controls') }}</h3>
+			<h3>{{ t('control_set.move_inverted.title') }}</h3>
 			<el-row>
 				<el-col :span="12">
 					<div class="setting-item">
-						<p>{{ t('invert_Xaxis') }}</p>
+						<p>{{ t('control_set.move_inverted.invert_Xaxis') }}</p>
 						<el-switch v-model="move_X_invert" />
 					</div>
 				</el-col>
 				<el-col :span="12">
 					<div class="setting-item">
-						<p>{{ t('invert_Yaxis') }}</p>
+						<p>{{ t('control_set.move_inverted.invert_Yaxis') }}</p>
 						<el-switch v-model="move_Y_invert" />
 					</div>
 				</el-col>
 			</el-row>
-			<h3>{{ t('eyelid_inverted_controls') }}</h3>
+			<h3>{{ t('control_set.eyelid_inverted.title') }}</h3>
 			<div class="setting-item">
-				<p>{{ t('invert_Yaxis') }}</p>
+				<p>{{ t('control_set.eyelid_inverted.invert_Yaxis') }}</p>
 				<el-switch v-model="eyelid_Y_invert" />
 			</div>
-			<h3>{{ t('help') }}</h3>
+			<h3>{{ t('control_set.help.title') }}</h3>
 			<div class="setting-item">
 				<el-button type="primary" round plain @click="show_help = true">
-					{{ t('help_button') }}
+					{{ t('control_set.help.tutorial_button') }}
 				</el-button>
 			</div>
 		</div>

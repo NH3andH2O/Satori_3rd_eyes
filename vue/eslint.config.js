@@ -75,14 +75,4 @@ export default [
 			'vue/max-attributes-per-line': 'off',
 		},
 	},
-
-	// Prettier 配置
-	{
-		plugins: {
-			prettier,
-		},
-		rules: {
-			'prettier/prettier': 'warn',
-		},
-	},
 ];

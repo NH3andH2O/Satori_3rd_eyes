@@ -1,6 +1,6 @@
 <template>
 	<div class="title">
-		<h2>{{ $t('advancedset_title') }}</h2>
+		<h2>{{ $t('advancedset.title') }}</h2>
 	</div>
 	<el-form ref="advanced_form_ref" :model="formData" :rules="advanced_rules" label-position="right" class="custom-form" novalidate @submit.prevent>
 		<div class="content">
@@ -9,12 +9,12 @@
 					<el-form-item prop="correction_timer">
 						<template #label>
 							<div style="display: flex; align-items: center; gap: 4px">
-								<el-tooltip :content="t('correction_time_help')" placement="top">
+								<el-tooltip :content="t('advancedset.correction_time_help')" placement="top">
 									<el-icon size="16" color="slategray">
 										<QuestionFilled />
 									</el-icon>
 								</el-tooltip>
-								{{ $t('correction_time') }}
+								{{ $t('advancedset.correction_time') }}
 							</div>
 						</template>
 						<el-input-number
@@ -36,7 +36,7 @@
 		<div class="content button">
 			<el-form-item>
 				<el-button round :loading="advanced.isSaving.value" :disabled="advanced.isLoading.value" @click="advanced_save">
-					{{ $t('save') }}
+					{{ $t('advancedset.save') }}
 				</el-button>
 			</el-form-item>
 		</div>
@@ -52,6 +52,8 @@ import { useAdvancedSetting } from './composables/useAdvancedSetting';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+const tAdvancedErrors = (key: string) => t(`advancedset.errors.${key}`);
+
 const advanced_form_ref = ref();
 const advanced = useAdvancedSetting();
 
@@ -63,7 +65,7 @@ const formData = reactive({
 	correction_timer: advanced.correction_timer,
 });
 
-const advanced_rules = computed(() => useAdvancedRules(mode, t));
+const advanced_rules = computed(() => useAdvancedRules(mode, tAdvancedErrors));
 
 function advanced_save() {
 	advanced_form_ref.value?.validate((valid: boolean) => {
