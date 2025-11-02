@@ -1,5 +1,3 @@
-import { Setting } from '@element-plus/icons-vue';
-
 export default {
 	/* 首頁 */
 	homepage: {
