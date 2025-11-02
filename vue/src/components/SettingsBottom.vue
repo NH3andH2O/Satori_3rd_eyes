@@ -6,7 +6,7 @@
 					class="backtop-like"
 					:style="{ right: `${right}px`, bottom: `${bottom}px`, zIndex: zIndex }"
 					role="button"
-					:aria-label="$t('back')"
+					:aria-label="$t('component_setting')"
 					tabindex="0"
 					@click="emit('click')"
 					@keydown.enter.prevent="emit('click')"

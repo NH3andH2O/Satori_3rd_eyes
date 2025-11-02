@@ -10,7 +10,7 @@
 						zIndex: zIndex,
 					}"
 					role="button"
-					:aria-label="t('back')"
+					:aria-label="t('component_back')"
 					tabindex="0"
 					@click="handleClick"
 					@keydown.enter.prevent="handleClick"

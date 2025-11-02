@@ -26,8 +26,15 @@ class WebSocketService {
 		this.maxReconnectDelay = wsConfig.maxReconnectDelay;
 	}
 
-	// 根據 http/https 選擇 ws/wss
+	// 根據環境變量或 http/https 選擇 ws URL
 	private get url(): string {
+		// 開發環境優先使用環境變量配置的 WebSocket URL
+		const envWsUrl = import.meta.env.VITE_WS_URL;
+		if (envWsUrl) {
+			return envWsUrl;
+		}
+
+		// 生產環境根據當前協議自動選擇 ws/wss
 		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 		const host = window.location.host;
 		return `${protocol}//${host}/ws`;
@@ -54,13 +61,13 @@ class WebSocketService {
 		}
 
 		if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-			console.error('WS: 已達最大重連次數');
+			console.error('WS: The maximum reconnection attempts have been reached.');
 			this.emitter.emit('reconnect:failed', { attempts: this.reconnectAttempts });
 			return;
 		}
 
 		const delay = this.getReconnectDelay();
-		console.log(`WS: ${delay}ms 後嘗試重連 (第 ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts} 次)`);
+		console.log(`WS: ${delay}ms attempt to reconnect (${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
 
 		this.emitter.emit('reconnect:attempt', {
 			attempt: this.reconnectAttempts + 1,
@@ -89,7 +96,7 @@ class WebSocketService {
 			this.ws = new WebSocket(this.url);
 
 			this.ws.onopen = () => {
-				console.log('WS: 連接成功');
+				console.log('WS: connected');
 				this.reconnectAttempts = 0; // 重置重連計數
 				this.emitter.emit('open', undefined);
 			};
@@ -107,12 +114,12 @@ class WebSocketService {
 			};
 
 			this.ws.onerror = (e: Event) => {
-				console.error('WS: 連接錯誤', e);
+				console.error('WS: connection error', e);
 				this.emitter.emit('error', e);
 			};
 
 			this.ws.onclose = (e: CloseEvent) => {
-				console.log('WS: 連接關閉', e.code, e.reason);
+				console.log('WS: close', e.code, e.reason);
 				this.emitter.emit('close', e);
 				this.ws = null;
 
@@ -122,7 +129,7 @@ class WebSocketService {
 				}
 			};
 		} catch (err) {
-			console.error('WS: 創建連接失敗', err);
+			console.error('WS: connection failed', err);
 			this.emitter.emit('error', err);
 			// 創建失敗也嘗試重連
 			if (this.shouldReconnect && !this.manualClose) {
