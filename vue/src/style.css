@@ -29,7 +29,7 @@ body {
 	place-items: center;
 	min-width: 320px;
 	min-height: 100vh;
-	background: linear-gradient(to bottom, #fa0ffac5 0%, #dad8d8 400px, #ffffff 100%);
+	background: linear-gradient(to bottom, #fa0ffac5 0%, #d4d3d3 400px, #d4d3d3 100%);
 	color: rgba(0, 0, 0, 0.87);
 }
 
