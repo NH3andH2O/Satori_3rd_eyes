@@ -3,7 +3,7 @@ import type { RouteRecordRaw } from 'vue-router';
 
 const routes: Array<RouteRecordRaw> = [
 	{ path: '/', name: 'Home', component: () => import('@/views/Home/Home.vue') },
-	{ path: '/control', name: 'Control', component: () => import('@/views/Control.vue') },
+	{ path: '/control', name: 'Control', component: () => import('@/views/Control/Control.vue') },
 ];
 
 const router = createRouter({

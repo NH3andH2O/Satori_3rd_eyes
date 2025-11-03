@@ -9,6 +9,8 @@
 #include <LittleFS.h>
 #include <verify.h>
 #include <wit.h>
+#include <Template.h>
+#include "Errorcodes.h"
 #include "../../src/types.h"
 
 extern Preferences prefs; // 偏好設置實例

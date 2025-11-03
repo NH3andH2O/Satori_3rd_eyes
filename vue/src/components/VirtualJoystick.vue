@@ -164,7 +164,7 @@ watch(
 
 <template>
 	<!-- 你可以给这个容器设定固定/自适应大小和背景网格等 -->
-	<div ref="zoneRef" class="vj-zone"></div>
+	<div ref="zoneRef" class="vj-zone" />
 </template>
 
 <style scoped>

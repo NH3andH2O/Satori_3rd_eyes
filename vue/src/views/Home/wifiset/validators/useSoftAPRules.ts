@@ -1,10 +1,18 @@
-export function useSoftAPRules(form: any, t: Function) {
+interface SoftAPForm {
+	is_change_password: boolean;
+	password: string;
+}
+
+type TranslateFunction = (key: string) => string;
+type CallbackFunction = (error?: Error) => void;
+
+export function useSoftAPRules(form: SoftAPForm, t: TranslateFunction) {
 	const printableASCII = /^[\x20-\x7E]+$/;
 
 	return {
 		password: [
 			{
-				validator: (_: any, value: string, callback: Function) => {
+				validator: (_: unknown, value: string, callback: CallbackFunction) => {
 					if (!form.is_change_password) return callback();
 
 					if (value.length < 8 && value.length !== 0) {
@@ -24,7 +32,7 @@ export function useSoftAPRules(form: any, t: Function) {
 		],
 		password_confirm: [
 			{
-				validator: (_: any, value: string, callback: Function) => {
+				validator: (_: unknown, value: string, callback: CallbackFunction) => {
 					if (!form.is_change_password) return callback();
 
 					if (value !== form.password) {

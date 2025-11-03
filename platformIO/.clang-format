@@ -1,5 +1,4 @@
 BasedOnStyle: LLVM
-Standard:Cpp17
 
 # 缩进
 UseTab: Always
@@ -7,6 +6,7 @@ IndentWidth: 4
 TabWidth: 4
 ContinuationIndentWidth: 4
 AlwaysBreakAfterDefinition: true
+NamespaceIndentation: All
 
 # 换行规则
 BreakBeforeBraces: Allman

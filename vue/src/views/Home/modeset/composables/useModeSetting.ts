@@ -1,9 +1,8 @@
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import { ElMessage } from 'element-plus';
-import i18n from '@/i18n';
+import { ref, onMounted, inject } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useModeStore } from '@/stores/mode';
+import { modeApi, handleApiError, handleApiSuccess } from '@/api';
+import i18n from '@/i18n';
 
 export function useModeSetting() {
 	// 局部 UI 状态
@@ -14,48 +13,32 @@ export function useModeSetting() {
 	const modeStore = useModeStore();
 	const { mode } = storeToRefs(modeStore);
 
+	// 注入父组件提供的更新方法
+	const updateLoadingState = inject<((component: string, isLoading: boolean) => void) | undefined>('updateLoadingState');
+
 	async function fetchModeConfig() {
 		isLoading.value = true;
+		updateLoadingState?.('modeset', true);
 		try {
-			const resp = await axios.get('/api/mode_config', { timeout: 5000 });
-			const data = resp.data;
-			if (typeof data !== 'object' || data == null || !('mode' in data)) {
-				throw new Error('Invalid response from server');
-			}
+			const data = await modeApi.getConfig();
 			modeStore.patchFromServer({
 				mode: Number(data.mode),
 			});
-		} catch (error: any) {
-			console.error('Failed to fetch mode config:', error);
-			ElMessage.error(i18n.global.t('setting_transmission_failed') + `: ${error?.message || error}`);
+		} catch (error: unknown) {
+			handleApiError(error, i18n.global.t('modeset.state.get_failed'));
 		} finally {
 			isLoading.value = false;
+			updateLoadingState?.('modeset', false);
 		}
 	}
 
 	async function update() {
 		isSaving.value = true;
 		try {
-			const payloadBuilders: Record<number, () => any> = {
-				1: () => ({ mode: mode.value }),
-				2: () => ({ mode: mode.value }),
-			};
-			const payload = (
-				payloadBuilders[mode.value] ??
-				(() => {
-					throw new Error(`Unsupported mode value: ${mode.value}`);
-				})
-			)();
-
-			const resp = await axios.post('/api/set_mode_config', payload);
-			if (resp?.data?.success) {
-				ElMessage.success(i18n.global.t('mode_setting_successfully'));
-			} else {
-				throw new Error(resp?.data?.message || 'Unknown error');
-			}
-		} catch (error: any) {
-			console.error('Failed to update mode config:', error);
-			ElMessage.error(i18n.global.t('mode_setting_failed') + `: ${error?.message || error}`);
+			await modeApi.setConfig({ mode: mode.value });
+			handleApiSuccess(i18n.global.t('modeset.state.set_successfully'));
+		} catch (error: unknown) {
+			handleApiError(error, i18n.global.t('modeset.state.set_failed'));
 		} finally {
 			isSaving.value = false;
 		}

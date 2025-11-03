@@ -27,4 +27,7 @@ declare module 'vue' {
     SettingsBottom: typeof import('./src/components/SettingsBottom.vue')['default']
     VirtualJoystick: typeof import('./src/components/VirtualJoystick.vue')['default']
   }
+  export interface GlobalDirectives {
+    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
+  }
 }

@@ -1,10 +1,11 @@
-import { ref, onMounted } from 'vue';
-import i18n from '@/i18n';
-import axios from 'axios';
-import { ElMessage } from 'element-plus';
+import { ref, onMounted, inject } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useModeStore } from '@/stores/mode';
 import { useCorrectionStore } from '@/stores/correction';
+import { advancedApi, handleApiError, handleApiSuccess } from '@/api';
+import { AppError } from '@/utils/AppError';
+import { getErrorDescription } from '@/utils/errorCodeMapper';
+import i18n from '@/i18n';
 
 export function useAdvancedSetting() {
 	/* 局部 UI 状态 */
@@ -17,47 +18,45 @@ export function useAdvancedSetting() {
 	const { mode } = storeToRefs(modeStore);
 	const { correction_timer } = storeToRefs(correctionStore);
 
+	// 注入父组件提供的更新方法
+	const updateLoadingState = inject<((component: string, isLoading: boolean) => void) | undefined>('updateLoadingState');
+
 	async function fetchAdvancedConfig() {
 		isLoading.value = true;
+		updateLoadingState?.('advancedset', true);
 		try {
-			const resp = await axios.get('/api/advanced_config', { timeout: 5000 });
-			const data = resp.data;
-			if (typeof data !== 'object' || data == null) {
-				throw new Error('Invalid response from server');
-			}
+			const data = await advancedApi.getConfig();
 			correctionStore.patchFromServer({
 				correction_timer: typeof data.correction_timer === 'number' ? data.correction_timer : undefined,
 			});
-		} catch (error: any) {
-			console.error('Failed to fetch advanced config:', error);
-			ElMessage.error(i18n.global.t('setting_transmission_failed') + `: ${error?.message || error}`);
+		} catch (error: unknown) {
+			handleApiError(error, i18n.global.t('advancedset.state.get_failed'));
 		} finally {
 			isLoading.value = false;
+			updateLoadingState?.('advancedset', false);
 		}
 	}
 
 	async function update() {
 		isSaving.value = true;
 		try {
-			const payloadBuilders: Record<number, () => any> = {
+			const payloadBuilders: Record<number, () => Partial<{ correction_timer: number }>> = {
 				1: () => ({ correction_timer: correction_timer.value }),
 			};
-			const payload = (
-				payloadBuilders[mode.value] ??
-				(() => {
-					throw new Error(`Unsupported mode value: ${mode.value}`);
-				})
-			)();
 
-			const resp = await axios.post('/api/set_advanced_config', payload);
-			if (resp?.data?.success) {
-				ElMessage.success(i18n.global.t('advanced_setting_successfully'));
-			} else {
-				throw new Error(resp?.data?.message || 'Unknown error');
+			const payloadBuilder = payloadBuilders[mode.value];
+			if (!payloadBuilder) {
+				const errorCode = -10301;
+				const errorMessage = getErrorDescription(errorCode);
+				throw new AppError(errorCode, errorMessage);
 			}
-		} catch (error: any) {
-			console.error('Failed to update advanced config:', error);
-			ElMessage.error(i18n.global.t('advanced_setting_failed') + `: ${error?.message || error}`);
+
+			const payload = payloadBuilder();
+
+			await advancedApi.setConfig(payload);
+			handleApiSuccess(i18n.global.t('advancedset.state.set_successfully'));
+		} catch (error: unknown) {
+			handleApiError(error, i18n.global.t('advancedset.state.set_failed'));
 		} finally {
 			isSaving.value = false;
 		}

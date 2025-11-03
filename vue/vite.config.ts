@@ -15,6 +15,11 @@ export default defineConfig({
 			'@composables': resolve(__dirname, 'src/composables'),
 			'@assets': resolve(__dirname, 'src/assets'),
 			'@components': resolve(__dirname, 'src/components'),
+			'@types': resolve(__dirname, 'src/types'),
+			'@api': resolve(__dirname, 'src/api'),
+			'@config': resolve(__dirname, 'src/config'),
+			'@stores': resolve(__dirname, 'src/stores'),
+			'@utils': resolve(__dirname, 'src/utils'),
 		},
 	},
 	plugins: [
@@ -44,5 +49,6 @@ export default defineConfig({
 	build: {
 		outDir: '../platformIO/data/www',
 		emptyOutDir: true,
+		sourcemap: true,
 	},
 });

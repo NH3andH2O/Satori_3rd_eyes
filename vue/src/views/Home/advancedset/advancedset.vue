@@ -1,32 +1,33 @@
 <template>
 	<div class="title">
-		<h2>{{ $t('advancedset_title') }}</h2>
+		<h2>{{ $t('advancedset.title') }}</h2>
 	</div>
-	<el-form :model="advanced_form_model" :rules="advanced_rules" ref="advanced_form_ref" label-position="right" class="custom-form">
+	<el-form ref="advanced_form_ref" :model="formData" :rules="advanced_rules" label-position="right" class="custom-form" novalidate @submit.prevent>
 		<div class="content">
 			<transition name="slide-toggle">
 				<div v-show="mode === 1">
 					<el-form-item prop="correction_timer">
 						<template #label>
 							<div style="display: flex; align-items: center; gap: 4px">
-								<el-tooltip :content="t('correction_time_help')" placement="top">
+								<el-tooltip :content="t('advancedset.correction_time_help')" placement="top">
 									<el-icon size="16" color="slategray">
 										<QuestionFilled />
 									</el-icon>
 								</el-tooltip>
-								{{ $t('correction_time') }}
+								{{ $t('advancedset.correction_time') }}
 							</div>
 						</template>
 						<el-input-number
-							v-model="advanced_form_model.correction_timer"
-							placeholder="Gyroscope Tracking Mode"
-							clearable
+							v-model="advanced.correction_timer.value"
+							placeholder="0"
 							:step="100"
 							:min="0"
 							:max="65535"
-							:disabled="advanced_form_model.isLoading"
+							:step-strictly="false"
+							:disabled="advanced.isLoading.value"
 						>
-							<template #suffix>ms</template>
+							<!-- eslint-disable-next-line vue/singleline-html-element-content-newline -->
+							<template #suffix> ms </template>
 						</el-input-number>
 					</el-form-item>
 				</div>
@@ -34,8 +35,8 @@
 		</div>
 		<div class="content button">
 			<el-form-item>
-				<el-button round @click="advanced_save" :loading="advanced_form_model.isSaving" :disabled="advanced_form_model.isLoading">
-					{{ $t('save') }}
+				<el-button round :loading="advanced.isSaving.value" :disabled="advanced.isLoading.value" @click="advanced_save">
+					{{ $t('advancedset.save') }}
 				</el-button>
 			</el-form-item>
 		</div>
@@ -51,16 +52,20 @@ import { useAdvancedSetting } from './composables/useAdvancedSetting';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+const tAdvancedErrors = (key: string) => t(`advancedset.errors.${key}`);
+
 const advanced_form_ref = ref();
 const advanced = useAdvancedSetting();
-const advanced_form_model = reactive({
+
+// 直接使用 advanced 的響應式屬性
+const { mode } = storeToRefs(useModeStore());
+
+// 創建表單數據對象，使用 reactive 包裝來讓 el-form 能夠正確追蹤
+const formData = reactive({
 	correction_timer: advanced.correction_timer,
-	isLoading: advanced.isLoading,
-	isSaving: advanced.isSaving,
 });
 
-const { mode } = storeToRefs(useModeStore());
-const advanced_rules = computed(() => useAdvancedRules(mode, t));
+const advanced_rules = computed(() => useAdvancedRules(mode, tAdvancedErrors));
 
 function advanced_save() {
 	advanced_form_ref.value?.validate((valid: boolean) => {
