@@ -30,7 +30,7 @@ export function useAdvancedSetting() {
 				correction_timer: typeof data.correction_timer === 'number' ? data.correction_timer : undefined,
 			});
 		} catch (error: unknown) {
-			handleApiError(error, i18n.global.t('setting_transmission_failed'));
+			handleApiError(error, i18n.global.t('advancedset.state.get_failed'));
 		} finally {
 			isLoading.value = false;
 			updateLoadingState?.('advancedset', false);
@@ -54,9 +54,9 @@ export function useAdvancedSetting() {
 			const payload = payloadBuilder();
 
 			await advancedApi.setConfig(payload);
-			handleApiSuccess(i18n.global.t('advanced_setting_successfully'));
+			handleApiSuccess(i18n.global.t('advancedset.state.set_successfully'));
 		} catch (error: unknown) {
-			handleApiError(error, i18n.global.t('advanced_setting_failed'));
+			handleApiError(error, i18n.global.t('advancedset.state.set_failed'));
 		} finally {
 			isSaving.value = false;
 		}
