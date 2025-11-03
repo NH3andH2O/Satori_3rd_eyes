@@ -4,7 +4,7 @@ import { useSoftAPSettings } from './composables/useSoftAPSettings';
 import { useWiFiRules } from './validators/useWiFiRules';
 import { useSoftAPRules } from './validators/useSoftAPRules';
 import { useI18n } from 'vue-i18n';
-import { ref, computed } from 'vue';
+import { ref, computed, watch, inject } from 'vue';
 
 const { t } = useI18n();
 const tLanErrors = (key: string) => t(`wifiset.LAN.errors.${key}`);
@@ -16,6 +16,19 @@ const wifi = useWifiSettings();
 const softAP = useSoftAPSettings();
 const wifi_rules = computed(() => useWiFiRules(wifi.config.value, tLanErrors));
 const softAP_rules = computed(() => useSoftAPRules(softAP.config.value, tSoftAPErrors));
+
+// 注入父组件提供的更新方法
+const updateLoadingState = inject<((component: string, isLoading: boolean) => void) | undefined>('updateLoadingState');
+
+// 监听两个配置的加载状态，当都加载完成时通知父组件
+watch(
+	[() => wifi.config.value.isLoading, () => softAP.config.value.isLoading],
+	([wifiLoading, softAPLoading]) => {
+		const isLoading = wifiLoading || softAPLoading;
+		updateLoadingState?.('wifiset', isLoading);
+	},
+	{ immediate: true }
+);
 
 function softAP_save() {
 	softap_form_ref.value?.validate((valid: boolean) => {

@@ -110,6 +110,36 @@ export default {
 	controlpage: {
 		page_title: '覺之瞳控制',
 		title: '覺之瞳控制界面',
+
+		/* 加載狀態 */
+		loading: {
+			checking_mode: '正在檢查模式設定...',
+			connecting_ws: '正在連接控制服務...',
+			mode_check_failed: '模式檢查失敗',
+			ws_timeout: 'WebSocket 連接超時',
+		},
+
+		/* API 錯誤 */
+		api_error: {
+			title: '連接錯誤',
+			message: '無法連接到伺服器，請檢查網絡連接',
+		},
+
+		/* 模式錯誤 */
+		mode_error: {
+			title: '模式錯誤',
+			message: '當前模式不是網絡控制模式，請先切換到網絡控制模式',
+			back_button: '返回首頁',
+		},
+
+		/* WebSocket 錯誤 */
+		ws_error: {
+			title: 'WebSocket 錯誤',
+		},
+
+		/* WebSocket 狀態 */
+		ws_disconnected: 'WebSocket 連接已斷開',
+		ws_reconnected: 'WebSocket 重新連接成功',
 	},
 
 	/* 控制設定 */

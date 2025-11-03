@@ -108,6 +108,42 @@ export default {
 		},
 	},
 
+	/* 控制界面 */
+	controlpage: {
+		page_title: '3rdEyes Control',
+		title: '3rdEyes Control Interface',
+
+		/* 加載狀態 */
+		loading: {
+			checking_mode: 'Checking mode settings...',
+			connecting_ws: 'Connecting to control service...',
+			mode_check_failed: 'Mode check failed',
+			ws_timeout: 'WebSocket connection timeout',
+		},
+
+		/* API 錯誤 */
+		api_error: {
+			title: 'Connection Error',
+			message: 'Unable to connect to server, please check network connection',
+		},
+
+		/* 模式錯誤 */
+		mode_error: {
+			title: 'Mode Error',
+			message: 'Current mode is not Network Control mode. Please switch to Network Control mode first.',
+			back_button: 'Back to Home',
+		},
+
+		/* WebSocket 錯誤 */
+		ws_error: {
+			title: 'WebSocket Error',
+		},
+
+		/* WebSocket 狀態 */
+		ws_disconnected: 'WebSocket connection disconnected',
+		ws_reconnected: 'WebSocket reconnected successfully',
+	},
+
 	/* 控制設定 */
 	control_set: {
 		title: 'setting',

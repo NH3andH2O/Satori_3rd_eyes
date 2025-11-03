@@ -106,6 +106,42 @@ export default {
 		},
 	},
 
+	/* 控制界面 */
+	controlpage: {
+		page_title: '觉之瞳控制',
+		title: '觉之瞳控制界面',
+
+		/* 加载状态 */
+		loading: {
+			checking_mode: '正在检查模式设置...',
+			connecting_ws: '正在连接控制服务...',
+			mode_check_failed: '模式检查失败',
+			ws_timeout: 'WebSocket 连接超时',
+		},
+
+		/* API 错误 */
+		api_error: {
+			title: '连接错误',
+			message: '无法连接到服务器，请检查网络连接',
+		},
+
+		/* 模式错误 */
+		mode_error: {
+			title: '模式错误',
+			message: '当前模式不是网络控制模式，请先切换到网络控制模式',
+			back_button: '返回首页',
+		},
+
+		/* WebSocket 错误 */
+		ws_error: {
+			title: 'WebSocket 错误',
+		},
+
+		/* WebSocket 状态 */
+		ws_disconnected: 'WebSocket 连接已断开',
+		ws_reconnected: 'WebSocket 重新连接成功',
+	},
+
 	/* 控制設定 */
 	control_set: {
 		title: '设置',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { watchEffect } from 'vue';
+import { watchEffect, ref, provide, computed } from 'vue';
 import wifiset from '@/views/Home/wifiset/wifiset.vue';
 import modeset from '@/views/Home/modeset/modeset.vue';
 import advancedset from '@/views/Home/advancedset/advancedset.vue';
@@ -10,6 +10,25 @@ const { t } = useI18n();
 watchEffect(() => {
 	document.title = t('homepage.page_title');
 });
+
+// 跟踪每个卡片的加载状态
+const loadingStates = ref({
+	modeset: true,
+	advancedset: true,
+	wifiset: true,
+});
+
+// 计算所有卡片是否都加载完成
+const isAllLoaded = computed(() => {
+	return !Object.values(loadingStates.value).some((state) => state === true);
+});
+
+// 提供更新加载状态的方法给子组件
+const updateLoadingState = (component: keyof typeof loadingStates.value, isLoading: boolean) => {
+	loadingStates.value[component] = isLoading;
+};
+
+provide('updateLoadingState', updateLoadingState);
 </script>
 
 <template>
@@ -18,17 +37,29 @@ watchEffect(() => {
 	</div>
 	<el-row :gutter="24">
 		<el-col :sx="24" :md="8">
-			<div class="grid-content semi-transparent">
+			<div
+				v-loading="!isAllLoaded"
+				element-loading-background="rgba(0, 0, 0, 0.3)"
+				class="grid-content semi-transparent card-wrapper"
+			>
 				<modeset />
 			</div>
 		</el-col>
 		<el-col :sx="24" :md="8">
-			<div class="grid-content semi-transparent">
+			<div
+				v-loading="!isAllLoaded"
+				element-loading-background="rgba(0, 0, 0, 0.3)"
+				class="grid-content semi-transparent card-wrapper"
+			>
 				<advancedset />
 			</div>
 		</el-col>
 		<el-col :sx="24" :md="8">
-			<div class="grid-content semi-transparent">
+			<div
+				v-loading="!isAllLoaded"
+				element-loading-background="rgba(0, 0, 0, 0.3)"
+				class="grid-content semi-transparent card-wrapper"
+			>
 				<wifiset />
 			</div>
 		</el-col>
@@ -36,3 +67,8 @@ watchEffect(() => {
 </template>
 
 <style src="@/styles/page.css" scoped></style>
+<style scoped>
+.card-wrapper {
+	position: relative;
+}
+</style>

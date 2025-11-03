@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, inject } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useModeStore } from '@/stores/mode';
 import { modeApi, handleApiError, handleApiSuccess } from '@/api';
@@ -13,8 +13,12 @@ export function useModeSetting() {
 	const modeStore = useModeStore();
 	const { mode } = storeToRefs(modeStore);
 
+	// 注入父组件提供的更新方法
+	const updateLoadingState = inject<((component: string, isLoading: boolean) => void) | undefined>('updateLoadingState');
+
 	async function fetchModeConfig() {
 		isLoading.value = true;
+		updateLoadingState?.('modeset', true);
 		try {
 			const data = await modeApi.getConfig();
 			modeStore.patchFromServer({
@@ -24,6 +28,7 @@ export function useModeSetting() {
 			handleApiError(error, i18n.global.t('modeset.state.get_failed'));
 		} finally {
 			isLoading.value = false;
+			updateLoadingState?.('modeset', false);
 		}
 	}
 

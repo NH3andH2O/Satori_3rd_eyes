@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, inject } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useModeStore } from '@/stores/mode';
 import { useCorrectionStore } from '@/stores/correction';
@@ -18,8 +18,12 @@ export function useAdvancedSetting() {
 	const { mode } = storeToRefs(modeStore);
 	const { correction_timer } = storeToRefs(correctionStore);
 
+	// 注入父组件提供的更新方法
+	const updateLoadingState = inject<((component: string, isLoading: boolean) => void) | undefined>('updateLoadingState');
+
 	async function fetchAdvancedConfig() {
 		isLoading.value = true;
+		updateLoadingState?.('advancedset', true);
 		try {
 			const data = await advancedApi.getConfig();
 			correctionStore.patchFromServer({
@@ -29,6 +33,7 @@ export function useAdvancedSetting() {
 			handleApiError(error, i18n.global.t('setting_transmission_failed'));
 		} finally {
 			isLoading.value = false;
+			updateLoadingState?.('advancedset', false);
 		}
 	}
 
