@@ -78,25 +78,47 @@ class wit
 {
   private:
 	/* 協議 */
-	const uint8_t WIT_UNLOCK[5] = {
-		0XFF, 0XAA, 0X69, 0X88, 0XB5,
-	}; // 解鎖協議
+	static constexpr uint8_t WIT_UNLOCK[5] = {0xFF, 0xAA, 0x69, 0x88, 0xB5};		  // 解鎖
+	static constexpr uint8_t WIT_SAVE[5] = {0xFF, 0xAA, 0x00, 0x00, 0x00};			  // 保存
+	static constexpr uint8_t WIT_READ_DATA[5] = {0xFF, 0xAA, 0x27, 0x00, 0x00};		  // 讀取數據
+	static constexpr uint8_t WIT_SET_RRATE_200HZ[5] = {0xFF, 0xAA, 0x03, 0x0B, 0x00}; // 設置速率200Hz
+	static constexpr uint8_t WIT_SET_BAUD_4800[5] = {0xFF, 0xAA, 0x04, 0x01, 0x00};	  // 設置波特率4800
+	static constexpr uint8_t WIT_SET_BAUD_9600[5] = {0xFF, 0xAA, 0x04, 0x02, 0x00};	  // 設置波特率9600
+	static constexpr uint8_t WIT_SET_BAUD_19200[5] = {0xFF, 0xAA, 0x04, 0x03, 0x00};  // 設置波特率19200
+	static constexpr uint8_t WIT_SET_BAUD_38400[5] = {0xFF, 0xAA, 0x04, 0x04, 0x00};  // 設置波特率38400
+	static constexpr uint8_t WIT_SET_BAUD_57600[5] = {0xFF, 0xAA, 0x04, 0x05, 0x00};  // 設置波特率57600
+	static constexpr uint8_t WIT_SET_BAUD_115200[5] = {0xFF, 0xAA, 0x04, 0x06, 0x00}; // 設置波特率115200
+	static constexpr uint8_t WIT_SET_BAUD_230400[5] = {0xFF, 0xAA, 0x04, 0x07, 0x00}; // 設置波特率230400
+	static constexpr uint8_t WIT_SET_RSW[5] = {0xFF, 0xAA, 0x02, 0x0E, 0x02};		  // 設置输出内容
+	static constexpr uint8_t WIT_SET_ORIENT_H[5] = {0xFF, 0xAA, 0x23, 0x00, 0x00};	  // 設置水平安裝
+	static constexpr uint8_t WIT_SET_ORIENT_V[5] = {0xFF, 0xAA, 0x23, 0x01, 0x00};	  // 設置垂直安裝
+	static constexpr uint8_t WIT_SET_AXIS_6[5] = {0xFF, 0xAA, 0x24, 0x01, 0x00};	  // 設置6軸
+	static constexpr uint8_t WIT_SET_AXIS_9[5] = {0xFF, 0xAA, 0x24, 0x00, 0x00};	  // 設置9軸
+
+	static constexpr uint32_t BAUD_RATES[7] = {4800, 9600, 19200, 38400, 57600, 115200, 230400}; // 測試波特率
 
 	/* 計時器 */
-	const uint16_t initTimeout = 10000; // 初始化超時時間
-	const uint16_t dataTimeout = 10;	// 數據超時時間
+	static constexpr uint16_t initTimeout = 250; // 初始化超時時間
+	static constexpr uint16_t dataTimeout = 10;	 // 數據超時時間
 
 	/* 參數變數 */
 	uint8_t serialPort;
 	uint8_t rxPin;
 	uint8_t txPin;
+	uint8_t axis;
+	uint8_t orient;
 	uint32_t baudRate;
 
 	/* Serial端口指標 */
 	HardwareSerial *hwSerial = NULL;
 
+	/* 内部函數 */
+	const uint8_t *GetWitBaudCommand(uint32_t baud);			  // 獲取設置波特率指令
+	uint8_t wit_check_baudrate(uint32_t baudRate);				  // 檢查波特率
+	void wit_send_command(const uint8_t *command, size_t length); // 發送指令
+
   public:
-	wit(uint8_t serialPort, uint8_t rxPin, uint8_t txPin, uint32_t baudRate);
+	wit(uint8_t serialPort, uint8_t rxPin, uint8_t txPin, uint32_t baudRate, uint8_t axis, uint8_t orient);
 	int8_t wit_init();		  // 初始化Wit模組
 	witData wit_get_data();	  // 獲取數據
 	void wit_flush();		  // 清除數據

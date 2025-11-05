@@ -80,8 +80,8 @@ String macToString(const uint8_t mac[6]); // MAC地址轉字符串
 /* 結構體宣告 */
 eyesMove eyesmove(UPPER_EYELID_PIN, LOWER_EYELID_PIN, EYEBALL_PIN);
 
-wit witEyes(SERIAL1, witEyes_RX_PIN, witEyes_TX_PIN, 115200); // wit眼睛模組
-wit witHead(SERIAL2, witHead_RX_PIN, witHead_TX_PIN, 115200); // wit頭部模組
+wit witEyes(SERIAL1, witEyes_RX_PIN, witEyes_TX_PIN, 115200, 6, 1); // wit眼睛模組
+wit witHead(SERIAL2, witHead_RX_PIN, witHead_TX_PIN, 115200, 9, 0); // wit頭部模組
 
 GC9A01 gc9a01(GC9A01_SDA_PIN, GC9A01_SCL_PIN, GC9A01_CS_PIN, GC9A01_DC_PIN, GC9A01_RST_PIN, GC9A01_BLK_PIN); // GC9A01實例
 
@@ -438,7 +438,7 @@ void taskWebServer(void *pvParameters)
 /* 模式管理任務 */
 void taskModeManagement(void *pvParameters)
 {
-	int8_t mode = prefs.getInt("mode", 0); // 獲取當前模式
+	int8_t mode = prefs.getInt("mode", 1); // 獲取當前模式
 	uint8_t task_register = 0;			   // 任務寄存器
 	ESP_LOGI("mode", "Current mode: %d", mode);
 	/* 高 <-------> 低
