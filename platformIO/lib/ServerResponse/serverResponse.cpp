@@ -182,11 +182,15 @@ void api_wifi_config(AsyncWebServerRequest *request)
 		request->send(405, "text/plain", "Method Not Allowed");
 		return;
 	}
+
+	/* 獲取WiFi配置 */
+	AppConfig::WiFiConfig wifiConfig = config.getWiFiConfig();
+
 	/* 構建JSON */
 	JsonDocument doc;
-	doc["is_wifi"] = prefs.getBool("iswifi", false);
-	doc["ssid"] = prefs.getString("wifi_ssid", "");
-	doc["password"] = prefs.getString("wifi_password", "");
+	doc["is_wifi"] = wifiConfig.is_enabled;
+	doc["ssid"] = wifiConfig.ssid;
+	doc["password"] = wifiConfig.password;
 
 	/* 發送響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK, "", &doc);
@@ -226,9 +230,11 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 	}
 
 	/* 存儲WiFi配置 */
-	prefs.putString("wifi_ssid", ssid);
-	prefs.putString("wifi_password", password);
-	prefs.putBool("iswifi", is_wifi);
+	AppConfig::WiFiConfig wifiConfig;
+	wifiConfig.ssid = ssid;
+	wifiConfig.password = password;
+	wifiConfig.is_enabled = is_wifi;
+	config.setWiFiConfig(wifiConfig);
 
 	ESP_LOGI("server", "WiFi config updated: SSID=%s, Enabled=%d", ssid, is_wifi);
 
@@ -249,10 +255,13 @@ void api_softAP_config(AsyncWebServerRequest *request)
 		request->send(405, "text/plain", "Method Not Allowed");
 	}
 
+	/* 獲取SoftAP配置 */
+	AppConfig::SoftAPConfig softAPConfig = config.getSoftAPConfig();
+
 	/* 構建JSON */
 	JsonDocument doc;
-	doc["ssid"] = prefs.getString("ssid", DEFAULT_SSID);
-	doc["password"] = prefs.getString("password", "");
+	doc["ssid"] = softAPConfig.ssid;
+	doc["password"] = softAPConfig.password;
 
 	/* 發送響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK, "", &doc);
@@ -297,25 +306,27 @@ void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t
 	}
 
 	/* 存儲SoftAP配置 */
+	AppConfig::SoftAPConfig softAPConfig;
 	if (ssid[0] == '\0')
 	{
-		prefs.putString("ssid", DEFAULT_SSID);
+		softAPConfig.ssid = DEFAULT_SSID;
 	}
 	else
 	{
-		prefs.putString("ssid", ssid);
+		softAPConfig.ssid = ssid;
 	}
 	if (is_change_password)
 	{
 		if (strlen(password) > 0)
 		{
-			prefs.putString("password", password);
+			softAPConfig.password = password;
 		}
 		else
 		{
-			prefs.remove("password"); // 如果密碼為空，則刪除密碼
+			softAPConfig.password = "";
 		}
 	}
+	config.setSoftAPConfig(softAPConfig);
 
 	/* 發送成功響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);
@@ -335,9 +346,12 @@ void api_mode_config(AsyncWebServerRequest *request)
 		request->send(405, "text/plain", "Method Not Allowed");
 	}
 
+	/* 獲取模式配置 */
+	AppConfig::ModeConfig modeConfig = config.getModeConfig();
+
 	/* 構建JSON */
 	JsonDocument doc;
-	doc["mode"] = prefs.getInt("mode", 1);
+	doc["mode"] = modeConfig.mode;
 
 	/* 發送響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK, "", &doc);
@@ -371,7 +385,10 @@ void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 		return;
 	}
 
-	prefs.putInt("mode", mode);
+	/* 存儲模式配置 */
+	AppConfig::ModeConfig modeConfig;
+	modeConfig.mode = mode;
+	config.setModeConfig(modeConfig);
 	xQueueSend(mode_data_quene, &mode, 0); // 發送模式數據
 
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);
@@ -387,9 +404,12 @@ void api_advanced_config(AsyncWebServerRequest *request)
 		request->send(405, "text/plain", "Method Not Allowed");
 	}
 
+	/* 獲取高級設置 */
+	AppConfig::AdvancedConfig advancedConfig = config.getAdvancedConfig();
+
 	/* 構建JSON */
 	JsonDocument doc;
-	doc["correction_timer"] = prefs.getUInt("correction", 2000);
+	doc["correction_timer"] = advancedConfig.correction_timer;
 
 	/* 發送響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK, "", &doc);
@@ -418,7 +438,10 @@ void api_set_advanced_config(AsyncWebServerRequest *request, uint8_t *data, size
 	/* 獲取配置 */
 	uint16_t correction_timer = doc["correction_timer"] | 2000;
 
-	prefs.putUInt("correction", correction_timer);
+	/* 存儲配置 */
+	AppConfig::AdvancedConfig advancedConfig;
+	advancedConfig.correction_timer = correction_timer;
+	config.setAdvancedConfig(advancedConfig);
 
 	/* 發送成功響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);

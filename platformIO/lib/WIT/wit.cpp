@@ -1,11 +1,70 @@
 #include "wit.h"
 
-wit::wit(uint8_t serialPort, uint8_t rxPin, uint8_t txPin, uint32_t baudRate)
+wit::wit(uint8_t serialPort, uint8_t rxPin, uint8_t txPin, uint32_t baudRate, uint8_t axis, uint8_t orient)
 {
 	this->serialPort = serialPort;
 	this->rxPin = rxPin;
 	this->txPin = txPin;
 	this->baudRate = baudRate;
+	this->axis = axis;
+	this->orient = orient;
+}
+
+const uint8_t *wit::GetWitBaudCommand(uint32_t baud)
+{
+	switch (baud)
+	{
+		case 4800:
+			return WIT_SET_BAUD_4800;
+		case 9600:
+			return WIT_SET_BAUD_9600;
+		case 19200:
+			return WIT_SET_BAUD_19200;
+		case 38400:
+			return WIT_SET_BAUD_38400;
+		case 57600:
+			return WIT_SET_BAUD_57600;
+		case 115200:
+			return WIT_SET_BAUD_115200;
+		case 230400:
+			return WIT_SET_BAUD_230400;
+		default:
+			return nullptr; // 不支援的波特率
+	}
+}
+
+uint8_t wit::wit_check_baudrate(uint32_t baudRate)
+{
+	uint64_t startTime = xTaskGetTickCount(); // 開始時間
+
+	/* 檢查波特率 */
+	this->hwSerial->begin(baudRate, SERIAL_8N1, this->rxPin, this->txPin); // Serial初始化
+	wit_send_command(WIT_READ_DATA, 5);									   // 讀取數據指令發送
+	ESP_LOGV("WIT", "Checking WIT module baud rate: %d", baudRate);
+	while (xTaskGetTickCount() - startTime < initTimeout) // 設置波特率
+	{
+		/* wit感測器安裝檢測 */
+		if (this->hwSerial->available() >= 1) // 資料讀取
+		{
+			if (this->hwSerial->read() == 0x55) // 協議頭檢測
+			{
+				ESP_LOGV("WIT", "WIT(rx:%d, tx:%d) module baud rate %d check successful.", this->rxPin, this->txPin, baudRate);
+				return 1;
+			}
+		}
+	}
+	this->hwSerial->end(); // Serial結束
+	ESP_LOGV("WIT", "WIT(rx:%d, tx:%d) module baud rate %d check failed.", this->rxPin, this->txPin, baudRate);
+	return 0;
+}
+
+void wit::wit_send_command(const uint8_t *command, size_t length)
+{
+	if (!this->hwSerial)
+	{
+		return;
+	}
+	this->hwSerial->write(command, length); // 發送指令
 }
 
 int8_t wit::wit_init()
@@ -21,27 +80,66 @@ int8_t wit::wit_init()
 	}
 
 	/* Serial初始化 */
-	if (hwSerial)
+	if (!this->hwSerial)
 	{
-		this->hwSerial->begin(baudRate, SERIAL_8N1, rxPin, txPin); // Serial初始化
-		u64_t startTime = xTaskGetTickCount();					   // 開始時間
-		while (xTaskGetTickCount() - startTime < initTimeout)	   // 超時計時器開始計時
+		ESP_LOGE("WIT", "WIT(%d, %d) module initialization failed; Serial initialization error.", this->rxPin, this->txPin);
+		return SERIAL_INIT_ERROR; // Serial初始化錯誤
+	}
+
+	/* 波特率檢查 */
+	if (!wit_check_baudrate(this->baudRate)) // 檢查目標波特率失敗
+	{
+		/* 自動波特率檢查 */
+		for (auto baud : BAUD_RATES)
 		{
-			/* wit感測器安裝檢測 */
-			if (this->hwSerial->available() >= 2) // 資料讀取
+			if (wit_check_baudrate(baud)) // 找到非目標波特率
 			{
-				if (this->hwSerial->read() == 0x55) // 協議頭檢測
-				{
-					if (this->hwSerial->read() == 0x53) // 角度數據頭檢測
-					{
-						return 0; // 初始化成功
-					}
-				}
+				wit_send_command(this->WIT_UNLOCK, 5); // 解鎖
+				vTaskDelay(200);
+				wit_send_command(GetWitBaudCommand(this->baudRate), 5); // 設置波特率
+				break;
 			}
 		}
-		return WIT_INIT_ERROR; // 初始化超時
+		this->hwSerial->end(); // Serial結束
+
+		/* 波特率設置後檢查 */
+		if (!wit_check_baudrate(baudRate))
+		{
+			ESP_LOGE("WIT", "WIT(%d, %d) module initialization failed; baud rate check error.", this->rxPin, this->txPin);
+			return WIT_INIT_ERROR; // 初始化检查錯誤
+		}
 	}
-	return SERIAL_INIT_ERROR; // Serial初始化錯誤
+
+	/* 其他參數設置初始化 */
+	vTaskDelay(250);
+	wit_send_command(this->WIT_UNLOCK, 5); // 解鎖
+	vTaskDelay(250);
+	wit_send_command(this->WIT_SET_RRATE_200HZ, 5); // 設置速率200Hz
+	vTaskDelay(250);
+	wit_send_command(this->WIT_SET_RSW, 5); // 設置输出内容
+	vTaskDelay(250);
+	if (this->orient == 0)
+	{
+		wit_send_command(this->WIT_SET_ORIENT_H, 5); // 設置水平安裝
+	}
+	else
+	{
+		wit_send_command(this->WIT_SET_ORIENT_V, 5); // 設置垂直安裝
+	}
+	vTaskDelay(250);
+	if (this->axis == 6)
+	{
+		wit_send_command(this->WIT_SET_AXIS_6, 5); // 設置6軸
+	}
+	else if (this->axis == 9)
+	{
+		wit_send_command(this->WIT_SET_AXIS_9, 5); // 設置9軸
+	}
+	vTaskDelay(250);
+	wit_send_command(this->WIT_SAVE, 5); // 保存
+	ESP_LOGI("WIT", "WIT(%d, %d) module initialized successfully; baud: %d; axes: %d; orientation: %s", this->rxPin, this->txPin, this->baudRate,
+			 this->axis, (this->orient == 0) ? "horizontal" : "vertical");
+	return 0; // 初始化成功
 }
 
 witData wit::wit_get_data()

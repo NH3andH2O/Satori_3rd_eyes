@@ -36,15 +36,11 @@ https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 -  **眼睛（pcd上面的陀螺仪）：** 建议使用6轴陀螺仪，如[JY61P](https://www.wit-motion.cn/proztmz/37.html)
 -  **头部（通过杜邦线连接的陀螺仪）：** 建议使用9轴陀螺仪，如[JY901S](https://www.wit-motion.cn/proztmz/22.html)
 
-陀螺仪使用前，需要使用[上位机](https://wit-motion.yuque.com/wumwnr/aqvq6y/qngktvx5grz81zkq)做出如下设定：
+目前主程序会自动设定陀螺仪的部分配置，但是以下配置无法自动设定，需要使用[上位机](https://wit-motion.yuque.com/wumwnr/aqvq6y/qngktvx5grz81zkq)设定：
 
 -  校正磁场(6轴不需要校正，上位机应该会有校正教程)
--  将波特率从`9600`更改为`115200`
--  回传率更改为`200`
--  眼睛陀螺仪更改为垂直安装
--  只开启角度、角速度、加速度、四元数回传，其他回传关闭
 
-（可以先更改陀螺仪设定，在焊接陀螺仪；也可以先焊接陀螺仪，在使用`tools\witread`工具后更改陀螺仪设定）
+先上传主程序进行陀螺仪自动设定，在上传`tools\witread`工具，以便使用上位机设定
 >[!NOTE]
 >如果不需要使用陀螺仪功能，可以不焊接
 
@@ -63,6 +59,8 @@ https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 ### 舵机连接
 
 舵机选择 MG90S 180度的舵机，分别连接到`H1`~`H3`
+> [!WARNING]
+> 品牌必须为TIANKONGRC，并且注意所配摇臂为不代加强筋型号
 
 ### 屏幕连接
 
