@@ -9,14 +9,9 @@
 如果需要獲得頭部陀螺儀（透過杜邦線連線的陀螺儀）的原始資訊，請保留 #define serial2
 */
 
-#define serialPort 9600
+#define serialPort 115200
 /*
 波特率相關
-陀螺儀預設出產時為9600，需要在上位機修改波特率為115200後，把
-#define serialPort 9600
-更改為
-#define serialPort 115200
-在重新上傳程式碼，才可以繼續使用上位機通訊
 */
 
 void setup() {
