@@ -17,7 +17,7 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include <LovyanGFX.hpp>
-#include <Preferences.h>
+#include <Config.h>
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
@@ -85,7 +85,7 @@ wit witHead(SERIAL2, witHead_RX_PIN, witHead_TX_PIN, 115200, 9, 0); // wit頭部
 
 GC9A01 gc9a01(GC9A01_SDA_PIN, GC9A01_SCL_PIN, GC9A01_CS_PIN, GC9A01_DC_PIN, GC9A01_RST_PIN, GC9A01_BLK_PIN); // GC9A01實例
 
-Preferences prefs; // 偏好設置實例
+AppConfig::Config config; // 配置實例
 
 AsyncWebServer server(80); // Web服務器
 AsyncWebSocket ws("/ws");  // WebSocket服務器
@@ -172,7 +172,6 @@ void setup()
 	}
 
 	ESP_LOGI("UART", "UART0 init...");
-	prefs.begin("preferences", false);
 
 	/* 佇列建立 */
 	ESP_LOGI("quene", "quene create..."); // 打印佇列建立狀態
@@ -276,8 +275,9 @@ void TimerReconnectWiFi(TimerHandle_t xTimer)
 {
 	if (WiFi.status() != WL_CONNECTED)
 	{
+		const AppConfig::WiFiConfig wificonfig = config.getWiFiConfig(); // 獲取WiFi配置
 		ESP_LOGI("wifi", "Attempting reconnect...");
-		WiFi.begin(prefs.getString("wifi_ssid", "").c_str(), prefs.getString("wifi_password", "").c_str());
+		WiFi.begin(wificonfig.ssid.c_str(), wificonfig.password.c_str());
 	}
 }
 
@@ -292,9 +292,9 @@ void taskNetwork(void *pvParameters)
 	WiFi.setAutoReconnect(false);
 	WiFi.mode(WIFI_AP_STA);
 	WiFi.softAPdisconnect();
-	if (prefs.getString("password", "").length() > 0)
+	if (config.getSoftAPConfig().password.length() > 0)
 	{
-		if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID), prefs.getString("password", "")))
+		if (!WiFi.softAP(config.getSoftAPConfig().ssid.c_str(), config.getSoftAPConfig().password.c_str()))
 		{
 			ESP_LOGE("wifi", "Failed to start SoftAP");
 			vTaskDelete(NULL);
@@ -303,7 +303,7 @@ void taskNetwork(void *pvParameters)
 	}
 	else
 	{
-		if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID)))
+		if (!WiFi.softAP(config.getSoftAPConfig().ssid.c_str()))
 		{
 			ESP_LOGE("wifi", "Failed to start SoftAP");
 			vTaskDelete(NULL);
@@ -320,12 +320,14 @@ void taskNetwork(void *pvParameters)
 		/* wifi更新 */
 		if (is_wifiUpdate == 1) // 如果WiFi需要更新
 		{
+			AppConfig::WiFiConfig wificonfig = config.getWiFiConfig(); // 獲取WiFi配置
+
 			is_wifiUpdate = 0;				// 重置WiFi更新標誌
 			if (xTaskGetTickCount() > 5000) // 判斷初始化還是更新
 			{
 				ESP_LOGI("wifi", "Updating WiFi connection...");
 			}
-			if (prefs.getBool("iswifi", false) && prefs.getString("wifi_ssid", "").length() > 0 && prefs.getString("wifi_password", "").length() > 0)
+			if (wificonfig.is_enabled && wificonfig.ssid.length() > 0 && wificonfig.password.length() > 0)
 			{
 
 				/* 斷開當前wifi */
@@ -336,7 +338,7 @@ void taskNetwork(void *pvParameters)
 				}
 
 				/* 連接新的wifi */
-				WiFi.begin(prefs.getString("wifi_ssid", "").c_str(), prefs.getString("wifi_password", "").c_str()); // 連接WiFi
+				WiFi.begin(wificonfig.ssid.c_str(), wificonfig.password.c_str()); // 連接WiFi
 			}
 			else
 			{
@@ -349,6 +351,8 @@ void taskNetwork(void *pvParameters)
 		/* softAP更新 */
 		else if (is_wifiUpdate == 2)
 		{
+			AppConfig::SoftAPConfig softapconfig = config.getSoftAPConfig(); // 獲取SoftAP配置
+
 			is_wifiUpdate = 0; // 重置WiFi更新標誌
 			ESP_LOGI("wifi", "Updating SoftAP configuration...");
 
@@ -357,9 +361,9 @@ void taskNetwork(void *pvParameters)
 			WiFi.softAPdisconnect();
 
 			/* 重新啓動SoftAP */
-			if (prefs.getString("password", "").length() > 0)
+			if (softapconfig.password.length() > 0)
 			{
-				if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID), prefs.getString("password", "")))
+				if (!WiFi.softAP(softapconfig.ssid.c_str(), softapconfig.password.c_str()))
 				{
 					ESP_LOGE("wifi", "Failed to start SoftAP");
 					return;
@@ -367,7 +371,7 @@ void taskNetwork(void *pvParameters)
 			}
 			else
 			{
-				if (!WiFi.softAP(prefs.getString("ssid", DEFAULT_SSID)))
+				if (!WiFi.softAP(config.getSoftAPConfig().ssid.c_str()))
 				{
 					ESP_LOGE("wifi", "Failed to start SoftAP");
 					return;
@@ -438,8 +442,8 @@ void taskWebServer(void *pvParameters)
 /* 模式管理任務 */
 void taskModeManagement(void *pvParameters)
 {
-	int8_t mode = prefs.getInt("mode", 1); // 獲取當前模式
-	uint8_t task_register = 0;			   // 任務寄存器
+	int8_t mode = config.getModeConfig().mode; // 獲取當前模式
+	uint8_t task_register = 0;				   // 任務寄存器
 	ESP_LOGI("mode", "Current mode: %d", mode);
 	/* 高 <-------> 低
 	|  |  |  |  |  |  | 陀螺儀跟蹤任務 | 獲取數據任務 | */
@@ -588,9 +592,9 @@ void taskWitPProcessingData(void *arg)
 
 	uint8_t read_count = 0; // 讀取計數
 
-	uint16_t reset_reference_timer = prefs.getUInt("correction", 2000); // 重置参考角度時間器
-	uint64_t reset_reference_time = 0;									// 重置参考角度時間
-	uint8_t is_reset_reference_timer_update = 0;						// 重置参考角度時間器更新標誌
+	uint16_t reset_reference_timer = config.getAdvancedConfig().correction_timer; // 重置参考角度時間器
+	uint64_t reset_reference_time = 0;											  // 重置参考角度時間
+	uint8_t is_reset_reference_timer_update = 0;								  // 重置参考角度時間器更新標誌
 
 	/* 抛棄前10次數據 */
 	while (read_count < 10)
@@ -711,9 +715,9 @@ void taskWitPProcessingData(void *arg)
 		{
 			if (is_reset_reference_timer_update == 1)
 			{
-				reset_reference_timer = prefs.getUInt("correction", 2000); // 更新重置参考角度時間器
-				reset_reference_time = xTaskGetTickCount();				   // 更新重置参考角度時間
-				is_reset_reference_timer_update = 0;					   // 重置重置参考角度時間器更新標誌
+				reset_reference_timer = config.getAdvancedConfig().correction_timer; // 更新重置参考角度時間器
+				reset_reference_time = xTaskGetTickCount();							 // 更新重置参考角度時間
+				is_reset_reference_timer_update = 0;								 // 重置重置参考角度時間器更新標誌
 			}
 		}
 
