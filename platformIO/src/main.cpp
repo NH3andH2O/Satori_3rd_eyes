@@ -106,18 +106,18 @@ QueueHandle_t network_control_data_quene;		// 網絡數據佇列
 QueueHandle_t network_control_speed_data_quene; // 網絡控制速度數據佇列
 
 /* 任務參照 */
-TaskHandle_t taskWitEyesGetData_hamdle;		  // 獲取wit眼睛數據任務
-TaskHandle_t taskWitHeadGetData_hamdle;		  // 獲取wit頭部數據任務
-TaskHandle_t taskWitPProcessingData_hamdle;	  // 處理wit數據任務
-TaskHandle_t taskGyroscopeTracking_hamdle;	  // 陀螺儀跟蹤任務
-TaskHandle_t taskNetworkControl_hamdle;		  // 網絡控制任務
-TaskHandle_t taskNetworkControlGC9A01_hamdle; // 網絡控制屏幕任務
-TaskHandle_t taskGC9A01_hamdle;				  // GC9A01任務
-TaskHandle_t taskEyesMove_hamdle;			  // 眼睛任務
-TaskHandle_t taskWebServer_hamdle;			  // Web服務器任務
-TaskHandle_t taskNetwork_hamdle;			  // 網絡任務
-TaskHandle_t taskModeManagement_hamdle;		  // 模式管理任務
-TaskHandle_t taskUART0Read_hamdle;			  // UART0讀取任務
+TaskHandle_t taskWitEyesGetData_handle;		  // 獲取wit眼睛數據任務
+TaskHandle_t taskWitHeadGetData_handle;		  // 獲取wit頭部數據任務
+TaskHandle_t taskWitPProcessingData_handle;	  // 處理wit數據任務
+TaskHandle_t taskGyroscopeTracking_handle;	  // 陀螺儀跟蹤任務
+TaskHandle_t taskNetworkControl_handle;		  // 網絡控制任務
+TaskHandle_t taskNetworkControlGC9A01_handle; // 網絡控制屏幕任務
+TaskHandle_t taskGC9A01_handle;				  // GC9A01任務
+TaskHandle_t taskEyesMove_handle;			  // 眼睛任務
+TaskHandle_t taskWebServer_handle;			  // Web服務器任務
+TaskHandle_t taskNetwork_handle;			  // 網絡任務
+TaskHandle_t taskModeManagement_handle;		  // 模式管理任務
+TaskHandle_t taskUART0Read_handle;			  // UART0讀取任務
 
 /* 定時器參照 */
 TimerHandle_t wifiReconnectTimer; // WiFi重連定時器
@@ -192,11 +192,11 @@ void setup()
 	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
 
 	/* 任務建立 */
-	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_hamdle, 1);				 // 創建UART0讀取任務
-	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_hamdle, 0);						 // 創建網絡任務
-	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_hamdle, 1);						 // 創建GC9A01任務
-	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_hamdle, 1);					 // 創建眼睛移動任務
-	xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_hamdle, 1); // 創建模式管理任務
+	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_handle, 1);				 // 創建UART0讀取任務
+	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_handle, 0);						 // 創建網絡任務
+	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_handle, 1);						 // 創建GC9A01任務
+	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_handle, 1);					 // 創建眼睛移動任務
+	xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_handle, 1); // 創建模式管理任務
 }
 
 void loop() { vTaskDelay(1000); }
@@ -312,7 +312,7 @@ void taskNetwork(void *pvParameters)
 	}
 
 	/* 伺服器任務創建 */
-	xTaskCreatePinnedToCore(taskWebServer, "taskWebServer", 4096, NULL, 1, &taskWebServer_hamdle, 0); // 創建網絡任務
+	xTaskCreatePinnedToCore(taskWebServer, "taskWebServer", 4096, NULL, 1, &taskWebServer_handle, 0); // 創建網絡任務
 
 	while (1)
 	{
@@ -467,36 +467,36 @@ void taskModeManagement(void *pvParameters)
 		/* 切換任務模式 */
 		if (task_register & 0x01) // 獲取數據任務
 		{
-			xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_hamdle, 1); // 創建獲取數據任務
-			xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_hamdle, 1); // 創建獲取數據任務
-			xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_hamdle,
+			xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_handle, 1); // 創建獲取數據任務
+			xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_handle, 1); // 創建獲取數據任務
+			xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_handle,
 									1); // 創建數據處理任務
 		}
 		else
 		{
-			TaskDeleteSafe(&taskWitEyesGetData_hamdle);		// 刪除獲取數據任務
-			TaskDeleteSafe(&taskWitHeadGetData_hamdle);		// 刪除獲取數據任務
-			TaskDeleteSafe(&taskWitPProcessingData_hamdle); // 刪除數據處理任務
+			TaskDeleteSafe(&taskWitEyesGetData_handle);		// 刪除獲取數據任務
+			TaskDeleteSafe(&taskWitHeadGetData_handle);		// 刪除獲取數據任務
+			TaskDeleteSafe(&taskWitPProcessingData_handle); // 刪除數據處理任務
 		}
 		if (task_register & 0x02) // 陀螺儀跟蹤任務
 		{
-			xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_hamdle,
+			xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_handle,
 									1); // 創建陀螺儀跟蹤任務
 		}
 		else
 		{
-			TaskDeleteSafe(&taskGyroscopeTracking_hamdle); // 刪除陀螺儀跟蹤任務
+			TaskDeleteSafe(&taskGyroscopeTracking_handle); // 刪除陀螺儀跟蹤任務
 		}
 		if (task_register & 0x04) // 網絡控制任務
 		{
-			xTaskCreatePinnedToCore(taskNetworkControl, "taskNetworkControl", 4096, NULL, 1, &taskNetworkControl_hamdle, 1); // 創建網絡控制任務
-			xTaskCreatePinnedToCore(taskNetworkControlGC9A01, "taskNetworkControlGC9A01", 4096, NULL, 1, &taskNetworkControlGC9A01_hamdle,
+			xTaskCreatePinnedToCore(taskNetworkControl, "taskNetworkControl", 4096, NULL, 1, &taskNetworkControl_handle, 1); // 創建網絡控制任務
+			xTaskCreatePinnedToCore(taskNetworkControlGC9A01, "taskNetworkControlGC9A01", 4096, NULL, 1, &taskNetworkControlGC9A01_handle,
 									1); // 創建網絡控制屏幕任務
 		}
 		else
 		{
-			TaskDeleteSafe(&taskNetworkControl_hamdle);		  // 刪除網絡控制任務
-			TaskDeleteSafe(&taskNetworkControlGC9A01_hamdle); // 刪除網絡控制屏幕任務
+			TaskDeleteSafe(&taskNetworkControl_handle);		  // 刪除網絡控制任務
+			TaskDeleteSafe(&taskNetworkControlGC9A01_handle); // 刪除網絡控制屏幕任務
 		}
 
 		/* 等待模式數據 */
