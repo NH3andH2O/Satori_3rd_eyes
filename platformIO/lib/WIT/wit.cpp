@@ -40,7 +40,7 @@ uint8_t wit::wit_check_baudrate(uint32_t baudRate)
 	/* 檢查波特率 */
 	this->hwSerial->begin(baudRate, SERIAL_8N1, this->rxPin, this->txPin); // Serial初始化
 	wit_send_command(WIT_READ_DATA, 5);									   // 讀取數據指令發送
-	ESP_LOGI("WIT", "Checking WIT module baud rate: %d", baudRate);
+	ESP_LOGV("WIT", "Checking WIT module baud rate: %d", baudRate);
 	while (xTaskGetTickCount() - startTime < initTimeout) // 設置波特率
 	{
 		/* wit感測器安裝檢測 */
@@ -48,13 +48,13 @@ uint8_t wit::wit_check_baudrate(uint32_t baudRate)
 		{
 			if (this->hwSerial->read() == 0x55) // 協議頭檢測
 			{
-				ESP_LOGI("WIT", "WIT(rx:%d, tx:%d) module baud rate %d check successful.", this->rxPin, this->txPin, baudRate);
+				ESP_LOGV("WIT", "WIT(rx:%d, tx:%d) module baud rate %d check successful.", this->rxPin, this->txPin, baudRate);
 				return 1;
 			}
 		}
 	}
 	this->hwSerial->end(); // Serial結束
-	ESP_LOGI("WIT", "WIT(rx:%d, tx:%d) module baud rate %d check failed.", this->rxPin, this->txPin, baudRate);
+	ESP_LOGV("WIT", "WIT(rx:%d, tx:%d) module baud rate %d check failed.", this->rxPin, this->txPin, baudRate);
 	return 0;
 }
 

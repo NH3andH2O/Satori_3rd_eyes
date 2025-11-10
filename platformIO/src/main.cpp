@@ -516,24 +516,7 @@ void taskWitGetData(void *arg)
 
 	/* 初始化wit */
 	int8_t wit_status = myWit->wit_init(); // 初始化wit眼睛模組
-	vTaskSuspendAll();
-	switch (wit_status)
-	{
-		case 0:
-			ESP_LOGI("wit", "%s init success", wit_name.c_str()); // 打印初始化成功
-			break;
-		case WIT_INIT_ERROR:
-			ESP_LOGE("wit", "%s init error", wit_name.c_str()); // 打印初始化錯誤
-			break;
-		case SERIAL_INIT_ERROR:
-			ESP_LOGE("wit", "%s serial init error", wit_name.c_str()); // 打印Serial初始化錯誤
-			break;
-		default:
-			ESP_LOGE("wit", "%s init unknown error", wit_name.c_str()); // 打印未知錯誤
-			break;
-	}
-	xTaskResumeAll();
-	while (wit_status) // 失敗進入死循環
+	while (wit_status)					   // 失敗進入死循環
 	{
 		vTaskDelay(1000);
 	}
