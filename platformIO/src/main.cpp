@@ -192,7 +192,7 @@ void setup()
 	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
 
 	/* 任務建立 */
-	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_handle, 1);				 // 創建UART0讀取任務
+	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_handle, 0);				 // 創建UART0讀取任務
 	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_handle, 0);						 // 創建網絡任務
 	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_handle, 1);						 // 創建GC9A01任務
 	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_handle, 1);					 // 創建眼睛移動任務
