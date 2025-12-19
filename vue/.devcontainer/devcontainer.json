@@ -16,7 +16,10 @@
 				"GitHub.copilot-chat",
 				"yzhang.markdown-all-in-one",
 				"bierner.markdown-preview-github-styles"
-			]
+			],
+			"settings": {
+				"http.useLocalProxyConfiguration": false
+			}
 		}
 	},
 	"mounts": ["source=node_modules_volume,target=/workspaces/3rd_eyes/vue/node_modules,type=volume"],
