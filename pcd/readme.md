@@ -20,14 +20,22 @@ https://oshwhub.com/nh3_h2o/satori_3rd_eyes
 
 ## 使用方法
 
-把`3rd_eyes_GERBER.zip`和`GC9A01_GERBER.zip`直接发送给板厂\
-板厂制作完成后，根据`3rd_eyes_BOM.csv`和`GC9A01_BOM.csv`，将零件焊接到板子上
+把`3rd_eyes_GERBER.zip`、`GC9A01_GERBER.zip`和`hand_shank.zip`直接发送给板厂\
+板厂制作完成后，根据`3rd_eyes_BOM.csv`、`GC9A01_BOM.csv`和`hand_shank_BOM.csv`，将零件焊接到板子上
 
 ## 注意事项
 
 ### ESP32-S3选择
 
 建议选择`ESP32-S3-WROOM-1-N16R8`，其他版本的芯片可能需要在`platformIO`更改配置
+
+### ESP32-C6选择
+
+建议选择`ESP32-C6-WROOM-1-N8`，其他版本的芯片可能需要在`platformIO`更改配置
+
+### hand_shank usb-jtag焊接建议
+
+除非需要开发，否则USB2、D6、F2、R20、R17可以不用焊接
 
 ### 陀螺仪选择和使用
 
