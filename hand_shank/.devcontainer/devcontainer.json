@@ -10,21 +10,43 @@
 				"idf.espIdfPath": "/opt/esp/idf",
 				"idf.toolsPath": "/opt/esp",
 				"idf.gitPath": "/usr/bin/git",
-				"http.useLocalProxyConfiguration": false
+				"idf.port": "ttyACM0",
+				"idf.openOcdConfigs": [
+					"board/esp32c6-builtin.cfg"
+				],
+				"idf.pythonInstallPath": "/opt/esp/python_env/idf5.5_py3.12_env/bin/python",
+				"http.useLocalProxyConfiguration": false,
+				"C_Cpp.intelliSenseCachePath": "/tmp/vscode-cpptools-cache",
+				"C_Cpp.default.browse.databaseFilename": "/tmp/vscode-browse-db/vc.db",
+				"C_Cpp.workspaceParsingPriority": "low",
+				"files.watcherExclude": {
+					"**/build/**": true,
+					"**/.espressif/**": true,
+					"**/managed_components/**": true
+				},
+				"search.exclude": {
+					"**/build/**": true,
+					"**/.espressif/**": true,
+					"**/managed_components/**": true
+				}
 			},
 			"extensions": [
 				"espressif.esp-idf-extension",
 				"espressif.esp-idf-web",
 				"ms-vscode.cpptools",
-				"twxs.cmake"
+				"twxs.cmake",
+				"GitHub.copilot-chat"
 			]
 		}
 	},
 	"mounts": [
 		"source=espidf_build_cache,target=${containerWorkspaceFolder}/build,type=volume",
-		"source=espidf_components_cache,target=${containerWorkspaceFolder}/managed_components,type=volume"
+		"source=espidf_components_cache,target=${containerWorkspaceFolder}/managed_components,type=volume",
+		"source=cpptools_cache,target=/tmp/vscode-cpptools-cache,type=volume",
+		"source=cpptools_browse_db,target=/tmp/vscode-browse-db,type=volume"
 	],
 	"runArgs": [
-		"--privileged"
+		"--privileged",
+		"--mount=type=bind,source=/dev/bus/usb,target=/dev/bus/usb,bind-propagation=rshared"
 	]
 }
