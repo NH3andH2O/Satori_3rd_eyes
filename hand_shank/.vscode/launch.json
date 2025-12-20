@@ -1,0 +1,19 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Eclipse CDT GDB Adapter",
+			"type": "gdbtarget",
+			"request": "attach",
+			"program": "${workspaceFolder}/build/${command:espIdf.getProjectName}.elf",
+			"gdb": "${command:espIdf.getToolchainGdb}",
+			"runOpenOCD": true,
+			"verbose": true,
+			"initCommands": [
+				"mon reset halt",
+				"maintenance flush register-cache",
+				"thb app_main"
+			]
+		}
+	]
+}

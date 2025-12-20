@@ -1,0 +1,19 @@
+{
+    "idf.flashType": "JTAG",
+    "idf.openOcdDebugLevel": 2,
+    "idf.openOcdLaunchArgs": [
+        "-d2",
+        "-f",
+        "board/esp32c6-builtin.cfg",
+        "-c",
+        "adapter speed 2000",
+        "-c",
+        "init",
+        "-c",
+        "reset halt",
+        "-c",
+        "esp appimage_offset 0x10000",
+        "-c",
+        "esp32c6 configure -rtos FreeRTOS"
+    ]
+}

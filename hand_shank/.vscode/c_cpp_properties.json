@@ -1,0 +1,20 @@
+{
+	"configurations": [
+		{
+			"name": "ESP-IDF",
+			"compileCommands": "${workspaceFolder}/build/compile_commands.json",
+			"intelliSenseMode": "clang-x64",
+			"includePath": [
+				"${workspaceFolder}"
+			],
+			"browse": {
+				"path": [
+					"${workspaceFolder}/main",
+					"${workspaceFolder}/components"
+				],
+				"limitSymbolsToIncludedHeaders": true
+			}
+		}
+	],
+	"version": 4
+}
