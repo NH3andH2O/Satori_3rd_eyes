@@ -14,7 +14,7 @@ static TaskHandle_t Handle_TaskBatteryDisplay = nullptr;
 static QueueHandle_t Queue_BatteryLevel = nullptr;
 
 static const char *TAG = "BatteryMonitor"; // 日志標籤
-static uint32_t period_ms = 2000; // 讀取週期
+static uint32_t period_ms = 2000;		   // 讀取週期
 
 enum BatteryLevel
 {
@@ -182,7 +182,7 @@ static void TaskBatteryRead(void *pvParameters)
 		vTaskDelay(pdMS_TO_TICKS(50));
 	} while (!voltage_stats.valid);
 	batteryVoltage = (voltage_stats.avg_mV / 1000.0f) * BAT_GAIN;
-	for(uint8_t i = 0; i < 5; i++)
+	for (uint8_t i = 0; i < 5; i++)
 	{
 		batttery_level = updateBatteryLevel(batteryVoltage, batttery_level);
 	}
@@ -193,7 +193,8 @@ static void TaskBatteryRead(void *pvParameters)
 	{
 		/* 讀取電池電壓 */
 		voltage_stats = readVoltageAvgWithVariance(PIN_BATTERY);
-		if (!voltage_stats.valid){
+		if (!voltage_stats.valid)
+		{
 			ESP_LOGW(TAG, "Voltage reading invalid due to high variance.");
 			vTaskDelay(pdMS_TO_TICKS(period_ms));
 			continue;
@@ -203,7 +204,8 @@ static void TaskBatteryRead(void *pvParameters)
 
 		/* 傳遞電池電壓 */
 		ESP_LOGD(TAG, "Battery Voltage: %.2f V", batteryVoltage);
-		if (batttery_level != last_battery_level) {
+		if (batttery_level != last_battery_level)
+		{
 			xQueueSend(Queue_BatteryLevel, &batttery_level, 0);
 			last_battery_level = batttery_level;
 		}
@@ -228,33 +230,33 @@ static void TaskBatteryDisplay(void *pvParameters)
 		/* 根據電池電量顯示 */
 		switch (battery_level)
 		{
-		case BAT_75:	// 75%
-			digitalWrite(PIN_BAT_LED1, HIGH);
-			digitalWrite(PIN_BAT_LED2, HIGH);
-			xQueueReceive(Queue_BatteryLevel, &battery_level, portMAX_DELAY);
-			break;
-		case BAT_50:	// 50%
-			digitalWrite(PIN_BAT_LED1, !(digitalRead(PIN_BAT_LED1)));
-			digitalWrite(PIN_BAT_LED2, HIGH);
-			xQueueReceive(Queue_BatteryLevel, &battery_level, 500);
-			break;
-		case BAT_25:	// 25%
-			digitalWrite(PIN_BAT_LED1, LOW);
-			digitalWrite(PIN_BAT_LED2, HIGH);
-			xQueueReceive(Queue_BatteryLevel, &battery_level, portMAX_DELAY);
-			break;
-		case BAT_5:		// 5%
-			digitalWrite(PIN_BAT_LED1, LOW);
-			digitalWrite(PIN_BAT_LED2, !(digitalRead(PIN_BAT_LED2)));
-			xQueueReceive(Queue_BatteryLevel, &battery_level, 500);
-			break;
-		case BAT_0:		// 0%
-			digitalWrite(PIN_BAT_LED1, LOW);
-			digitalWrite(PIN_BAT_LED2, !(digitalRead(PIN_BAT_LED2)));
-			xQueueReceive(Queue_BatteryLevel, &battery_level, 100);
-			break;
-		default:
-			break;
+			case BAT_75: // 75%
+				digitalWrite(PIN_BAT_LED1, HIGH);
+				digitalWrite(PIN_BAT_LED2, HIGH);
+				xQueueReceive(Queue_BatteryLevel, &battery_level, portMAX_DELAY);
+				break;
+			case BAT_50: // 50%
+				digitalWrite(PIN_BAT_LED1, !(digitalRead(PIN_BAT_LED1)));
+				digitalWrite(PIN_BAT_LED2, HIGH);
+				xQueueReceive(Queue_BatteryLevel, &battery_level, 500);
+				break;
+			case BAT_25: // 25%
+				digitalWrite(PIN_BAT_LED1, LOW);
+				digitalWrite(PIN_BAT_LED2, HIGH);
+				xQueueReceive(Queue_BatteryLevel, &battery_level, portMAX_DELAY);
+				break;
+			case BAT_5: // 5%
+				digitalWrite(PIN_BAT_LED1, LOW);
+				digitalWrite(PIN_BAT_LED2, !(digitalRead(PIN_BAT_LED2)));
+				xQueueReceive(Queue_BatteryLevel, &battery_level, 500);
+				break;
+			case BAT_0: // 0%
+				digitalWrite(PIN_BAT_LED1, LOW);
+				digitalWrite(PIN_BAT_LED2, !(digitalRead(PIN_BAT_LED2)));
+				xQueueReceive(Queue_BatteryLevel, &battery_level, 100);
+				break;
+			default:
+				break;
 		}
 	}
 }
@@ -283,5 +285,4 @@ void battery_monitor_stop()
 		vTaskDelete(Handle_TaskBatteryDisplay);
 		Handle_TaskBatteryDisplay = nullptr;
 	}
-
 }
