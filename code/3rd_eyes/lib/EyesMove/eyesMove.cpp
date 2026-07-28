@@ -53,11 +53,26 @@ void eyesMove::eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angl
 	x_angle = constrain(x_angle, -55, 55); // x角度
 
 	/* 眼皮輸出角度确定 */
-	uint8_t upper_eyelid_angle = this->UPPER_EYELID_ANGLE_MAX - eyelid_angle -
+	// 上眼皮：从MID开始，根据eyelid_angle和y_angle调整
+	uint8_t upper_eyelid_angle = this->UPPER_EYELID_ANGLE_MID +
+								 map(eyelid_angle, 0, 80, this->UPPER_EYELID_ANGLE_MAX - this->UPPER_EYELID_ANGLE_MID,
+									 this->UPPER_EYELID_ANGLE_MIN - this->UPPER_EYELID_ANGLE_MID) -
 								 map(y_angle, 0, 80, 0, this->UPPER_EYELID_ANGLE_MAX - this->UPPER_EYELID_ANGLE_MIN); // 上眼皮角度
-	uint8_t lower_eyelid_angle = this->LOWER_EYELID_ANGLE_MIN + eyelid_angle -
+	// 下眼皮：从MID开始，根据eyelid_angle和y_angle调整
+	uint8_t lower_eyelid_angle = this->LOWER_EYELID_ANGLE_MID +
+								 map(eyelid_angle, 0, 80, this->LOWER_EYELID_ANGLE_MIN - this->LOWER_EYELID_ANGLE_MID,
+									 this->LOWER_EYELID_ANGLE_MAX - this->LOWER_EYELID_ANGLE_MID) -
 								 map(y_angle, 0, 80, 0, this->LOWER_EYELID_ANGLE_MAX - this->LOWER_EYELID_ANGLE_MIN); // 下眼皮角度
-	uint8_t eyeball_angle = (this->EYEBALL_ANGLE_MAX + this->EYEBALL_ANGLE_MIN) / 2 + x_angle;						  // 眼球角度
+	// 眼球：从MID开始，根据x_angle正负分别映射到MAX或MIN（考虑不对称范围）
+	uint8_t eyeball_angle;
+	if (x_angle >= 0)
+	{
+		eyeball_angle = this->EYEBALL_ANGLE_MID + map(x_angle, 0, 55, 0, this->EYEBALL_ANGLE_MAX - this->EYEBALL_ANGLE_MID); // 正向：MID->MAX
+	}
+	else
+	{
+		eyeball_angle = this->EYEBALL_ANGLE_MID + map(x_angle, -55, 0, this->EYEBALL_ANGLE_MIN - this->EYEBALL_ANGLE_MID, 0); // 负向：MIN->MID
+	}
 
 	/* 眼皮輸出 */
 	this->eyesMove_servo(upper_eyelid_angle, lower_eyelid_angle, eyeball_angle); // 設置眼皮角度

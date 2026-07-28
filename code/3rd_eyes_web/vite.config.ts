@@ -47,7 +47,7 @@ export default defineConfig({
 		port: 5173,
 	},
 	build: {
-		outDir: '../platformIO/data/www',
+		outDir: '../3rd_eyes/data/www',
 		emptyOutDir: true,
 		sourcemap: true,
 	},
