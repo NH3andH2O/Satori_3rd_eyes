@@ -21,14 +21,13 @@ https://www.bilibili.com/video/BV1CK7mzvE3U
 
 -   `3d_model`：存放3d模型的地方
 -   `pcd`：存放pcd的地方
--   `platformIO`：项目硬件代码
--   `vue`：项目网页代码
+-   `code`：存放代码的地方
 -   `tools`：工具，用于调试设备中的传感器
 
 ## 使用方法
 
 下载本仓库，阅读各个文件夹下的readme.md\
-推荐阅读顺序：`pcd`->`3d_model`->`vue`->`platformIO`
+推荐阅读顺序：`pcd`->`3d_model`->`code`
 
 ## 操控方法
 
