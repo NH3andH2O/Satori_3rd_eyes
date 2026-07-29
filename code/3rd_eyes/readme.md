@@ -8,6 +8,15 @@
 4. 点击最左侧`PlatformIO`图标，然后在`PROJECT TASKS`中点击`esp32_s3_n16r8/General/Upload`上传程序
 5. 在`vue`文件夹中构建好网页代码后（你应该可以在本文件夹下看到`data`文件夹），在`PROJECT TASKS`中点击`esp32_s3_n16r8/Platform/Upload Filesystem Image`上传网页程序
 
+## 串口调试命令
+
+本项目在 UART0 上提供了简单的串口调试命令，默认波特率为 `115200`。你可以通过 PlatformIO 的串口监视器或其他串口工具发送命令，命令末尾回车即可。
+
+可用命令如下：
+
+- `help`：显示当前支持的串口命令。
+- `reset`：重启设备。
+
 ## 注意事项
 
 ### 关于esp32模组选择
