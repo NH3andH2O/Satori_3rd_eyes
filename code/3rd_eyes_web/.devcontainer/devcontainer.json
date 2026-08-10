@@ -15,7 +15,8 @@
 				"GitHub.copilot",
 				"GitHub.copilot-chat",
 				"yzhang.markdown-all-in-one",
-				"bierner.markdown-preview-github-styles"
+				"bierner.markdown-preview-github-styles",
+				"vicanent.gcmp"
 			],
 			"settings": {
 				"http.useLocalProxyConfiguration": false

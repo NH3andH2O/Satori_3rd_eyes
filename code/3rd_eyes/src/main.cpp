@@ -1062,7 +1062,8 @@ void taskUART0Read(void *arg)
 		{
 			if (event.type == UART_DATA)
 			{
-				uint16_t len = uart_read_bytes(UART_NUM_0, data, event.size, portMAX_DELAY);
+				uint16_t read_size = event.size < BUF_SIZE ? event.size : BUF_SIZE - 1;
+				uint16_t len = uart_read_bytes(UART_NUM_0, data, read_size, portMAX_DELAY);
 				if (len > 0)
 				{
 					data[len] = '\0';
@@ -1078,7 +1079,49 @@ void taskUART0Read(void *arg)
 					}
 					else if (data_str == "help") // 幫助指令
 					{
-						ESP_LOGI("UART", "\nAvailable commands:\nreset - Restart the device\nhelp - Show this help message");
+						ESP_LOGI("UART", "\nAvailable commands:\nreset - Restart the device\nhelp - Show this help message\nmode [number] - Show or change "
+										 "the operating mode");
+					}
+					else if (data_str == "mode" || data_str.startsWith("mode "))
+					{
+						String mode_value = data_str.substring(4);
+						mode_value.trim();
+
+						if (mode_value.length() == 0)
+						{
+							AppConfig::ModeConfig mode_config = config.getModeConfig();
+							ESP_LOGI("UART", "Current mode: %d", static_cast<int>(mode_config.mode));
+						}
+						else
+						{
+							bool is_number = true;
+							for (size_t i = 0; i < mode_value.length() && is_number; i++)
+							{
+								is_number = isDigit(mode_value.charAt(i));
+							}
+
+							if (!is_number)
+							{
+								ESP_LOGE("UART", "Invalid mode command. Usage: mode <number>");
+							}
+							else
+							{
+								long mode_value_number = mode_value.toInt();
+								if (mode_value_number < 1 || mode_value_number > 2)
+								{
+									ESP_LOGE("UART", "Invalid mode value: %ld. Valid values are %d or %d", mode_value_number, GYROSCOPE_TRACKS_MODE,
+												 NETWORK_CONTROL_MODE);
+								}
+								else
+								{
+									int8_t mode = static_cast<int8_t>(mode_value_number);
+									AppConfig::ModeConfig mode_config = config.getModeConfig();
+									mode_config.mode = static_cast<uint8_t>(mode);
+									config.setModeConfig(mode_config);
+									xQueueSend(mode_data_quene, &mode, 0);
+								}
+							}
+						}
 					}
 					else
 					{
