@@ -7,7 +7,7 @@ namespace AppConfig
 {
 	struct WiFiConfig
 	{
-		uint8_t is_enabled;
+		bool is_enabled;
 		String ssid;
 		String password;
 	};
@@ -21,6 +21,19 @@ namespace AppConfig
 	struct ModeConfig
 	{
 		uint8_t mode;
+	};
+
+	struct ServoConfig
+	{
+		uint8_t max_upper_eyelid_pin;
+		uint8_t mid_upper_eyelid_pin;
+		uint8_t min_upper_eyelid_pin;
+		uint8_t max_lower_eyelid_pin;
+		uint8_t mid_lower_eyelid_pin;
+		uint8_t min_lower_eyelid_pin;
+		uint8_t max_eyeball_pin;
+		uint8_t mid_eyeball_pin;
+		uint8_t min_eyeball_pin;
 	};
 
 	struct AdvancedConfig
@@ -45,5 +58,8 @@ namespace AppConfig
 
 		AdvancedConfig getAdvancedConfig();
 		void setAdvancedConfig(const AdvancedConfig &config);
+
+		ServoConfig getServoConfig();
+		void setServoConfig(const ServoConfig &config);
 	};
-}
+} // namespace AppConfig

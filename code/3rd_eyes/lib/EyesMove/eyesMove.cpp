@@ -34,6 +34,14 @@ void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_a
 	this->eyeball_servo.write(eyeball_angle);
 }
 
+void eyesMove::eyesMove_servo_debug(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_angle, uint8_t eyeball_angle)
+{
+	/* 眼皮輸出 */
+	this->upper_eyelid_servo.write(upper_eyelid_angle);
+	this->lower_eyelid_servo.write(lower_eyelid_angle);
+	this->eyeball_servo.write(eyeball_angle);
+}
+
 void eyesMove::eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle)
 {
 	/* 眼睛張開輸入超限更正 */

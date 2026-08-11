@@ -66,6 +66,7 @@ class eyesMove
 
 	void eyesMove_angle_set(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle);
 	void eyesMove_angle_pid(double kp, double ki, double kd);
+	void eyesMove_servo_debug(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_angle, uint8_t eyeball_angle);
 	uint8_t eyesMove_update();
 
 	// 初始化眼睛
