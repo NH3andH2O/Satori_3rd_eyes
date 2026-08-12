@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch, defineProps, defineEmits } from 'vue';
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
 
 // 注意：类型引入可选
 // @ts-ignore
