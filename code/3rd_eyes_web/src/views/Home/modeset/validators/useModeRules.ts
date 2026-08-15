@@ -3,8 +3,7 @@ export function useModeRules(t: (key: string) => string) {
 		mode: [
 			{
 				validator: async (_: unknown, value: number) => {
-					if (value === 0) throw new Error(t('mode_empty'));
-					if (value > 2) throw new Error(t('mode_invalid'));
+					if (!Number.isInteger(value) || value < 0 || value > 2) throw new Error(t('mode_invalid'));
 				},
 				trigger: 'change',
 			},

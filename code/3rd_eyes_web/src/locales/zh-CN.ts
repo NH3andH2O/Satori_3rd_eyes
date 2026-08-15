@@ -64,10 +64,12 @@ export default {
 		title: '模式设置',
 		mode: '模式：',
 		mode_info: {
+			servo_debug: '舵机调试模式',
 			gyroscope_tracks: '陀螺仪跟随模式',
 			network_control: '网络控制模式',
 		},
 		enter_network_control: '进入控制界面',
+		enter_servo_setup: '进入觉之瞳设置',
 		save: '保存',
 
 		/* 狀態 */
@@ -81,6 +83,104 @@ export default {
 		errors: {
 			mode_empty: '模式不能为空',
 			mode_invalid: '模式非法',
+		},
+	},
+
+	setup: {
+		page_title: '觉之瞳舵机校正',
+		title: '觉之瞳设置向导',
+		mode_error: '当前模式不是舵机设置模式，无法进入设置向导。',
+		loading: {
+			checking_mode: '正在检查舵机设置模式...',
+			loading_config: '正在加载舵机设置...',
+			connecting_ws: '正在连接实时预览服务...',
+			ws_timeout: 'WebSocket 连接超时，请确认设备与网络状态。',
+		},
+		state: {
+			get_failed: '无法获取舵机设置',
+			mode_failed: '无法获取当前模式',
+			save_failed: '舵机设置保存失败，草稿已保留。',
+			mode_switch_failed: '校正已保存，但切换至网络控制模式失败。',
+		},
+		errors: {
+			mode_title: '模式错误',
+			connection_title: '连接错误',
+			websocket_title: 'WebSocket 错误',
+		},
+		instruction: {
+			current_task: '当前校正目标',
+			assist_note: '三个舵机都可以调整；标记为“辅助姿态”的数值仅用于本步骤观察，不会写入本步骤校正值。',
+		},
+		steps: {
+			eyelid_open: {
+				title: '眼皮最大张开',
+				description: '调整上、下眼皮至安全的最大张开位置；可移动眼球确认眼皮不会碰撞眼球机构。',
+			},
+			eyelid_closed: {
+				title: '眼皮闭合',
+				description: '调整上、下眼皮至自然闭合且不互相挤压的位置；眼球可作辅助调整。',
+			},
+			eyelid_middle: {
+				title: '眼皮中间',
+				description: '调整上、下眼皮至开合范围的中间位置，确认两侧间距自然。',
+			},
+			eyeball_center: {
+				title: '眼球置中',
+				description: '调整眼球至正中央；可移动上下眼皮辅助辨识中心，但本步骤只记录眼球值。',
+			},
+			eyeball_left: {
+				title: '眼球最左',
+				description: '将眼球调整至安全的最左位置，不要让机构卡住；眼皮只作观察辅助。',
+			},
+			eyeball_right: {
+				title: '眼球最右',
+				description: '将眼球调整至安全的最右位置，不要让机构卡住；眼皮只作观察辅助。',
+			},
+		},
+		controls: {
+			upper_eyelid: '上眼皮舵机',
+			lower_eyelid: '下眼皮舵机',
+			eyeball: '眼球舵机',
+			target: '本步记录',
+			assist: '辅助姿态',
+		},
+		preview_status: {
+			idle: '等待调整',
+			pending: '准备发送设备姿态...',
+			sent: '设备姿态已发送',
+			failed: '姿态发送失败，请确认 WebSocket 连接',
+		},
+		websocket: {
+			title: '实时预览连接中断',
+			disconnected: 'WebSocket 已断开，所有校正操作已锁定，系统将自动重连。',
+			reconnecting: '正在自动重连（第 {attempt}/{max} 次），校正草稿已保留。',
+			failed: '自动重连失败，校正操作仍处于锁定状态。',
+		},
+		review: {
+			title: '确认校正设置',
+			description: '请确认以下九个正式校正值。完成后将保存至设备并切换至网络控制模式。',
+			eyelid_open: '眼皮最大张开（上／下）',
+			eyelid_closed: '眼皮闭合（上／下）',
+			eyelid_middle: '眼皮中间（上／下）',
+			eyeball_center: '眼球置中',
+			eyeball_left: '眼球最左',
+			eyeball_right: '眼球最右',
+		},
+		validation: {
+			range: '所有舵机角度必须是 0 到 180 的整数。',
+			upper_order: '上眼皮必须符合：最大张开 < 中间 < 闭合。',
+			lower_order: '下眼皮必须符合：闭合 < 中间 < 最大张开。',
+			eyeball_order: '眼球必须符合：最左 < 置中 < 最右。',
+		},
+		actions: {
+			previous: '上一步',
+			next: '下一步',
+			cancel: '取消',
+			complete: '保存并完成',
+			retry: '重试初始化',
+			reconnect: '手动重连',
+			retry_mode: '重试切换模式',
+			back_home: '返回首页',
 		},
 	},
 

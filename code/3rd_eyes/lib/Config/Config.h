@@ -25,15 +25,16 @@ namespace AppConfig
 
 	struct ServoConfig
 	{
-		uint8_t max_upper_eyelid_pin;
-		uint8_t mid_upper_eyelid_pin;
-		uint8_t min_upper_eyelid_pin;
-		uint8_t max_lower_eyelid_pin;
-		uint8_t mid_lower_eyelid_pin;
-		uint8_t min_lower_eyelid_pin;
-		uint8_t max_eyeball_pin;
-		uint8_t mid_eyeball_pin;
-		uint8_t min_eyeball_pin;
+		bool is_setup;
+		uint8_t max_upper_eyelid;
+		uint8_t mid_upper_eyelid;
+		uint8_t min_upper_eyelid;
+		uint8_t max_lower_eyelid;
+		uint8_t mid_lower_eyelid;
+		uint8_t min_lower_eyelid;
+		uint8_t max_eyeball;
+		uint8_t mid_eyeball;
+		uint8_t min_eyeball;
 	};
 
 	struct AdvancedConfig

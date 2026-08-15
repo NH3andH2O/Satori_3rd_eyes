@@ -431,6 +431,8 @@ void taskWebServer(void *pvParameters)
 	server.on("/api/set_mode_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_mode_config);
 	server.on("/api/advanced_config", HTTP_GET, api_advanced_config);
 	server.on("/api/set_advanced_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_advanced_config);
+	server.on("/api/servo_config", HTTP_GET, api_servo_config);
+	server.on("/api/set_servo_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_servo_config);
 
 	/* 伺服器啓動 */
 	server.begin();

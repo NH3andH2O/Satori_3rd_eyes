@@ -65,10 +65,12 @@ export default {
 		title: 'Mode Settings',
 		mode: 'Mode:',
 		mode_info: {
+			servo_debug: 'Servo Debug Mode',
 			gyroscope_tracks: 'Gyroscope Tracking Mode',
 			network_control: 'Network Control Mode',
 		},
 		enter_network_control: 'Enter Control Interface',
+		enter_servo_setup: 'Enter 3rdEyes Setup',
 		save: 'Save',
 
 		/* 狀態 */
@@ -82,6 +84,105 @@ export default {
 		errors: {
 			mode_empty: 'Mode cannot be empty',
 			mode_invalid: 'Mode invalid',
+		},
+	},
+
+	setup: {
+		page_title: '3rdEyes Servo Calibration',
+		title: '3rdEyes Setup Wizard',
+		mode_error: 'The device is not in Servo Setup mode, so the setup wizard cannot be opened.',
+		loading: {
+			checking_mode: 'Checking Servo Setup mode...',
+			loading_config: 'Loading servo settings...',
+			connecting_ws: 'Connecting to the live preview service...',
+			ws_timeout: 'The WebSocket connection timed out. Check the device and network connection.',
+		},
+		state: {
+			get_failed: 'Unable to load servo settings',
+			mode_failed: 'Unable to read the current mode',
+			save_failed: 'Unable to save servo settings. The draft has been retained.',
+			mode_switch_failed: 'Calibration was saved, but switching to Network Control mode failed.',
+		},
+		errors: {
+			mode_title: 'Mode Error',
+			connection_title: 'Connection Error',
+			websocket_title: 'WebSocket Error',
+		},
+		instruction: {
+			current_task: 'Current calibration target',
+			assist_note: 'All three servos remain adjustable. Values marked “Assist pose” are only for observation and are not saved for this step.',
+		},
+		steps: {
+			eyelid_open: {
+				title: 'Eyelids fully open',
+				description: 'Adjust both eyelids to the widest safe opening. Move the eyeball as needed to check for mechanical contact.',
+			},
+			eyelid_closed: {
+				title: 'Eyelids closed',
+				description:
+					'Adjust both eyelids until they close naturally without pressing against each other. The eyeball may be adjusted for assistance.',
+			},
+			eyelid_middle: {
+				title: 'Eyelids midway',
+				description: 'Adjust both eyelids to the midpoint of their opening range and verify that the spacing looks natural.',
+			},
+			eyeball_center: {
+				title: 'Eyeball centered',
+				description: 'Center the eyeball. The eyelids may be moved to help identify the center, but only the eyeball value is recorded.',
+			},
+			eyeball_left: {
+				title: 'Eyeball far left',
+				description: 'Move the eyeball to the safe left limit without binding the mechanism. Eyelid changes are only for assistance.',
+			},
+			eyeball_right: {
+				title: 'Eyeball far right',
+				description: 'Move the eyeball to the safe right limit without binding the mechanism. Eyelid changes are only for assistance.',
+			},
+		},
+		controls: {
+			upper_eyelid: 'Upper eyelid servo',
+			lower_eyelid: 'Lower eyelid servo',
+			eyeball: 'Eyeball servo',
+			target: 'Recorded now',
+			assist: 'Assist pose',
+		},
+		preview_status: {
+			idle: 'Waiting for adjustment',
+			pending: 'Preparing to send the device pose...',
+			sent: 'Device pose sent',
+			failed: 'Unable to send the pose. Check the WebSocket connection.',
+		},
+		websocket: {
+			title: 'Live preview disconnected',
+			disconnected: 'The WebSocket disconnected. All calibration controls are locked while automatic reconnection starts.',
+			reconnecting: 'Automatically reconnecting (attempt {attempt} of {max}). Your calibration draft is retained.',
+			failed: 'Automatic reconnection failed. Calibration controls remain locked.',
+		},
+		review: {
+			title: 'Review calibration',
+			description: 'Review the nine saved calibration values. Finishing saves them to the device and switches to Network Control mode.',
+			eyelid_open: 'Eyelids fully open (upper/lower)',
+			eyelid_closed: 'Eyelids closed (upper/lower)',
+			eyelid_middle: 'Eyelids midway (upper/lower)',
+			eyeball_center: 'Eyeball centered',
+			eyeball_left: 'Eyeball far left',
+			eyeball_right: 'Eyeball far right',
+		},
+		validation: {
+			range: 'Every servo angle must be an integer from 0 through 180.',
+			upper_order: 'Upper eyelid values must be: fully open < midway < closed.',
+			lower_order: 'Lower eyelid values must be: closed < midway < fully open.',
+			eyeball_order: 'Eyeball values must be: far left < centered < far right.',
+		},
+		actions: {
+			previous: 'Previous',
+			next: 'Next',
+			cancel: 'Cancel',
+			complete: 'Save and finish',
+			retry: 'Retry initialization',
+			reconnect: 'Reconnect manually',
+			retry_mode: 'Retry mode switch',
+			back_home: 'Back to Home',
 		},
 	},
 
