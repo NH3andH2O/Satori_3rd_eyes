@@ -104,3 +104,10 @@ void Config::setServoConfig(const ServoConfig &config)
 	this->prefs.putUShort("min_eyeball", (uint16_t)(config.min_eyeball));
 	this->prefs.end();
 }
+
+void Config::clearServoConfig()
+{
+	this->prefs.begin("Servo", false);
+	this->prefs.clear();
+	this->prefs.end();
+}

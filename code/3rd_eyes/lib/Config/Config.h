@@ -62,5 +62,6 @@ namespace AppConfig
 
 		ServoConfig getServoConfig();
 		void setServoConfig(const ServoConfig &config);
+		void clearServoConfig();
 	};
 } // namespace AppConfig

@@ -1127,9 +1127,22 @@ void taskUART0Read(void *arg)
 					/* 幫助指令 */
 					else if (data_str == "help")
 					{
-						ESP_LOGI("UART",
-								 "\nAvailable commands:\nreset - Restart the device\nhelp - Show this help message\nmode [number] - Show or change "
-								 "the operating mode");
+						ESP_LOGI("UART", "\nAvailable commands:\nreset - Restart the device\nreservo - Reset servo configuration\nhelp - Show this "
+										 "help message\nmode [number] - Show or change "
+										 "the operating mode");
+					}
+					/* 重置伺服馬達設定指令 */
+					else if (data_str == "reservo")
+					{
+						config.clearServoConfig();
+
+						int8_t mode = SERVO_SET_MODE;
+						AppConfig::ModeConfig mode_config = config.getModeConfig();
+						mode_config.mode = static_cast<uint8_t>(mode);
+						config.setModeConfig(mode_config);
+
+						ESP_LOGI("UART", "Servo configuration cleared. Switched to servo setup mode.");
+						xQueueSend(mode_data_quene, &mode, 0);
 					}
 					/* 模式指令 */
 					else if (data_str == "mode" || data_str.startsWith("mode "))
