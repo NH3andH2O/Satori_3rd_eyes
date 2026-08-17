@@ -11,7 +11,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-	'update:modelValue': [value: ServoPose];
+	'update:modelValue': [value: ServoPose, changedServo: ServoName];
 	commit: [];
 }>();
 
@@ -25,10 +25,14 @@ const controls = computed(() => [
 
 function updateServo(name: ServoName, value: number | undefined) {
 	if (typeof value !== 'number' || !Number.isFinite(value)) return;
-	emit('update:modelValue', {
-		...props.modelValue,
-		[name]: clampServoAngle(value),
-	});
+	emit(
+		'update:modelValue',
+		{
+			...props.modelValue,
+			[name]: clampServoAngle(value),
+		},
+		name,
+	);
 }
 </script>
 
@@ -37,9 +41,6 @@ function updateServo(name: ServoName, value: number | undefined) {
 		<section v-for="control in controls" :key="control.name" class="servo-control" :class="{ 'is-target': targetServos.includes(control.name) }">
 			<div class="control-heading">
 				<strong>{{ control.label }}</strong>
-				<el-tag :type="targetServos.includes(control.name) ? 'warning' : 'info'" effect="dark" round>
-					{{ targetServos.includes(control.name) ? t('setup.controls.target') : t('setup.controls.assist') }}
-				</el-tag>
 			</div>
 			<div class="control-inputs">
 				<el-slider
@@ -85,8 +86,8 @@ function updateServo(name: ServoName, value: number | undefined) {
 }
 
 .servo-control.is-target {
-	border-color: var(--el-color-warning);
-	background: rgba(230, 162, 60, 0.12);
+	border-color: var(--el-color-success);
+	background: rgba(103, 194, 58, 0.14);
 }
 
 .control-heading,
@@ -97,7 +98,6 @@ function updateServo(name: ServoName, value: number | undefined) {
 }
 
 .control-heading {
-	justify-content: space-between;
 	margin-bottom: 12px;
 }
 
@@ -105,15 +105,20 @@ function updateServo(name: ServoName, value: number | undefined) {
 	flex: 1;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+	.servo-control {
+		padding: 14px 12px;
+	}
+
 	.control-inputs {
 		align-items: stretch;
 		flex-direction: column;
-		gap: 8px;
+		gap: 16px;
 	}
 
 	.control-inputs :deep(.el-input-number) {
-		width: 100%;
+		align-self: flex-end;
+		width: 150px;
 	}
 }
 </style>

@@ -90,6 +90,7 @@ export default {
 	setup: {
 		page_title: '3rdEyes Servo Calibration',
 		title: '3rdEyes Setup Wizard',
+		progress: 'Step {current} of {total}',
 		mode_error: 'The device is not in Servo Setup mode, so the setup wizard cannot be opened.',
 		loading: {
 			checking_mode: 'Checking Servo Setup mode...',
@@ -100,17 +101,17 @@ export default {
 		state: {
 			get_failed: 'Unable to load servo settings',
 			mode_failed: 'Unable to read the current mode',
-			save_failed: 'Unable to save servo settings. The draft has been retained.',
-			mode_switch_failed: 'Calibration was saved, but switching to Network Control mode failed.',
+			save_failed: 'Unable to save servo settings. Check the device connection and try again.',
 		},
 		errors: {
 			mode_title: 'Mode Error',
 			connection_title: 'Connection Error',
 			websocket_title: 'WebSocket Error',
 		},
-		instruction: {
-			current_task: 'Current calibration target',
-			assist_note: 'All three servos remain adjustable. Values marked “Assist pose” are only for observation and are not saved for this step.',
+		welcome: {
+			title: 'Welcome to the 3rdEyes setup wizard',
+			description: 'The following steps calibrate the eyelid and eyeball movement ranges.',
+			note: 'Before starting, clear the mechanism of obstructions and only move each servo to a safe position that does not bind.',
 		},
 		steps: {
 			eyelid_open: {
@@ -119,8 +120,7 @@ export default {
 			},
 			eyelid_closed: {
 				title: 'Eyelids closed',
-				description:
-					'Adjust both eyelids until they close naturally without pressing against each other. The eyeball may be adjusted for assistance.',
+				description: 'Adjust both eyelids until they close naturally without pressing against each other.',
 			},
 			eyelid_middle: {
 				title: 'Eyelids midway',
@@ -128,39 +128,31 @@ export default {
 			},
 			eyeball_center: {
 				title: 'Eyeball centered',
-				description: 'Center the eyeball. The eyelids may be moved to help identify the center, but only the eyeball value is recorded.',
+				description: 'Move the eyeball to its centered position.',
 			},
 			eyeball_left: {
 				title: 'Eyeball far left',
-				description: 'Move the eyeball to the safe left limit without binding the mechanism. Eyelid changes are only for assistance.',
+				description: 'Move the eyeball to the safe left limit without binding the mechanism.',
 			},
 			eyeball_right: {
 				title: 'Eyeball far right',
-				description: 'Move the eyeball to the safe right limit without binding the mechanism. Eyelid changes are only for assistance.',
+				description: 'Move the eyeball to the safe right limit without binding the mechanism.',
 			},
 		},
 		controls: {
 			upper_eyelid: 'Upper eyelid servo',
 			lower_eyelid: 'Lower eyelid servo',
 			eyeball: 'Eyeball servo',
-			target: 'Recorded now',
-			assist: 'Assist pose',
-		},
-		preview_status: {
-			idle: 'Waiting for adjustment',
-			pending: 'Preparing to send the device pose...',
-			sent: 'Device pose sent',
-			failed: 'Unable to send the pose. Check the WebSocket connection.',
 		},
 		websocket: {
-			title: 'Live preview disconnected',
-			disconnected: 'The WebSocket disconnected. All calibration controls are locked while automatic reconnection starts.',
-			reconnecting: 'Automatically reconnecting (attempt {attempt} of {max}). Your calibration draft is retained.',
-			failed: 'Automatic reconnection failed. Calibration controls remain locked.',
+			reconnecting: 'The device connection was interrupted. Reconnecting...',
+			reconnected: 'The device has reconnected',
+			failed: 'Automatic reconnection failed. Refresh the page to reconnect.',
 		},
 		review: {
+			step_title: 'Review',
 			title: 'Review calibration',
-			description: 'Review the nine saved calibration values. Finishing saves them to the device and switches to Network Control mode.',
+			description: 'Review the calibration values below. Finishing saves them to the device.',
 			eyelid_open: 'Eyelids fully open (upper/lower)',
 			eyelid_closed: 'Eyelids closed (upper/lower)',
 			eyelid_middle: 'Eyelids midway (upper/lower)',
@@ -168,20 +160,45 @@ export default {
 			eyeball_left: 'Eyeball far left',
 			eyeball_right: 'Eyeball far right',
 		},
+		saving: {
+			title: 'Saving settings',
+			description: 'Keep the device connected and do not close this page until saving finishes.',
+		},
+		complete: {
+			title: 'Setup complete',
+			description: 'The servo calibration settings were saved successfully. You can return to Home.',
+			debug_title: 'Setup complete — device remains in Debug mode',
+			debug_description:
+				'The servo calibration settings were saved, but the mode switch failed. Manually switch the device to the required operating mode.',
+		},
+		discard: {
+			restart_title: 'Restart setup?',
+			restart_message: 'All unsubmitted adjustments will be cleared and setup will restart from the server midpoint values.',
+			cancel_title: 'Cancel calibration?',
+			cancel_message: 'All unsubmitted adjustments will be cleared and you will return to Home.',
+		},
 		validation: {
 			range: 'Every servo angle must be an integer from 0 through 180.',
-			upper_order: 'Upper eyelid values must be: fully open < midway < closed.',
-			lower_order: 'Lower eyelid values must be: closed < midway < fully open.',
-			eyeball_order: 'Eyeball values must be: far left < centered < far right.',
+			upper_endpoints: 'The upper-eyelid fully open angle must be less than its closed angle.',
+			lower_endpoints: 'The lower-eyelid closed angle must be less than its fully open angle.',
+			upper_middle: 'The upper-eyelid midpoint must be strictly between its fully open and closed angles.',
+			lower_middle: 'The lower-eyelid midpoint must be strictly between its closed and fully open angles.',
+			eyeball_left_center: 'The far-left eyeball position cannot equal the center position.',
+			eyeball_endpoints: 'The far-left and far-right eyeball positions cannot be equal.',
+			eyeball_center: 'The eyeball center must be strictly between the far-left and far-right positions.',
 		},
 		actions: {
+			start: 'Start setup',
 			previous: 'Previous',
 			next: 'Next',
 			cancel: 'Cancel',
+			restart: 'Restart',
 			complete: 'Save and finish',
 			retry: 'Retry initialization',
-			reconnect: 'Reconnect manually',
-			retry_mode: 'Retry mode switch',
+			reload: 'Refresh page',
+			keep_editing: 'Keep editing',
+			confirm_restart: 'Clear and restart',
+			confirm_cancel: 'Clear and cancel',
 			back_home: 'Back to Home',
 		},
 	},

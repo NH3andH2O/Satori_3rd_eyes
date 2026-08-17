@@ -1,9 +1,10 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import { modeApi, servoApi } from '@/api';
-import { APP_CONFIG, MODES } from '@/config';
+import { MODES } from '@/config';
 import { useWebSocket } from '@/composables/useWebSocket';
-import type { ReconnectAttemptEvent, ServoConfig } from '@/types';
+import type { ServoConfig } from '@/types';
 import type { SetupConnectionState } from '../types';
 import i18n from '@/i18n';
 
@@ -11,7 +12,7 @@ const WS_CONNECT_TIMEOUT = 30000;
 
 export function useSetupInit() {
 	const router = useRouter();
-	const { connect, disconnect, isOpen, on, off, resetReconnect } = useWebSocket();
+	const { connect, disconnect, isOpen, on, off } = useWebSocket();
 
 	const isLoading = ref(true);
 	const loadingText = ref('');
@@ -20,10 +21,8 @@ export function useSetupInit() {
 	const errorTitle = ref('');
 	const errorMessage = ref('');
 	const errorDialogVisible = ref(false);
-	const reconnectAttempt = ref(0);
-	const reconnectDelay = ref(0);
 	const reconnectToken = ref(0);
-	const isManualReconnecting = ref(false);
+	const isReconnectFailure = ref(false);
 
 	let waitOpenHandler: (() => void) | null = null;
 	let waitOpenTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -33,12 +32,29 @@ export function useSetupInit() {
 	let reconnectFailedHandler: (() => void) | null = null;
 	let initialized = false;
 	let connectionGeneration = 0;
+	let reconnectMessage: { close: () => void } | null = null;
 
 	const canOperate = computed(() => connectionState.value === 'connected' && isOpen());
 
-	function showError(title: string, message: string) {
+	function closeReconnectMessage() {
+		reconnectMessage?.close();
+		reconnectMessage = null;
+	}
+
+	function showReconnectMessage() {
+		if (reconnectMessage) return;
+		reconnectMessage = ElMessage({
+			message: i18n.global.t('setup.websocket.reconnecting'),
+			type: 'warning',
+			duration: 0,
+			showClose: false,
+		});
+	}
+
+	function showError(title: string, message: string, reconnectFailure = false) {
 		errorTitle.value = title;
 		errorMessage.value = message;
+		isReconnectFailure.value = reconnectFailure;
 		errorDialogVisible.value = true;
 	}
 
@@ -103,7 +119,11 @@ export function useSetupInit() {
 	async function restoreAfterReconnect() {
 		const generation = connectionGeneration;
 		connectionState.value = 'reconnecting';
-		if (!(await checkMode())) return;
+		showReconnectMessage();
+		if (!(await checkMode())) {
+			closeReconnectMessage();
+			return;
+		}
 		if (generation !== connectionGeneration || !isOpen()) return;
 		reconnectToken.value++;
 	}
@@ -111,21 +131,27 @@ export function useSetupInit() {
 	function completeReconnect(previewRestored: boolean) {
 		if (!previewRestored || !isOpen()) {
 			connectionState.value = 'failed';
-			isManualReconnecting.value = false;
+			closeReconnectMessage();
+			showError(i18n.global.t('setup.errors.websocket_title'), i18n.global.t('setup.websocket.failed'), true);
 			return;
 		}
 
 		connectionState.value = 'connected';
-		reconnectAttempt.value = 0;
-		reconnectDelay.value = 0;
-		isManualReconnecting.value = false;
+		closeReconnectMessage();
+		isReconnectFailure.value = false;
 		errorDialogVisible.value = false;
+		ElMessage.success({
+			message: i18n.global.t('setup.websocket.reconnected'),
+			duration: 2000,
+			showClose: true,
+		});
 	}
 
 	function monitorConnection() {
 		closeHandler = () => {
 			connectionGeneration++;
 			connectionState.value = 'disconnected';
+			showReconnectMessage();
 		};
 		openHandler = () => {
 			if (
@@ -135,15 +161,14 @@ export function useSetupInit() {
 				void restoreAfterReconnect();
 			}
 		};
-		reconnectAttemptHandler = (payload: unknown) => {
-			const event = payload as ReconnectAttemptEvent;
+		reconnectAttemptHandler = () => {
 			connectionState.value = 'reconnecting';
-			reconnectAttempt.value = event.attempt;
-			reconnectDelay.value = event.delay;
+			showReconnectMessage();
 		};
 		reconnectFailedHandler = () => {
 			connectionState.value = 'failed';
-			isManualReconnecting.value = false;
+			closeReconnectMessage();
+			showError(i18n.global.t('setup.errors.websocket_title'), i18n.global.t('setup.websocket.failed'), true);
 		};
 
 		on('close', closeHandler);
@@ -156,6 +181,8 @@ export function useSetupInit() {
 		isLoading.value = true;
 		connectionState.value = 'initializing';
 		errorDialogVisible.value = false;
+		isReconnectFailure.value = false;
+		closeReconnectMessage();
 		cleanupWaitForOpen();
 
 		if (!(await checkMode()) || !(await loadServoConfig())) {
@@ -182,24 +209,16 @@ export function useSetupInit() {
 		return true;
 	}
 
-	function manualReconnect() {
-		if (isManualReconnecting.value) return;
-		isManualReconnecting.value = true;
-		reconnectAttempt.value = 0;
-		connectionState.value = 'reconnecting';
-		if (isOpen()) {
-			void restoreAfterReconnect();
-			return;
-		}
-		resetReconnect();
-		connect();
-	}
-
 	function goHome() {
 		void router.replace({ name: 'Home' });
 	}
 
+	function reloadPage() {
+		window.location.reload();
+	}
+
 	function cleanup() {
+		closeReconnectMessage();
 		cleanupWaitForOpen();
 		if (closeHandler) off('close', closeHandler);
 		if (openHandler) off('open', openHandler);
@@ -221,16 +240,14 @@ export function useSetupInit() {
 		errorTitle,
 		errorMessage,
 		errorDialogVisible,
-		reconnectAttempt,
-		reconnectDelay,
-		maxReconnectAttempts: APP_CONFIG.websocket.maxReconnectAttempts,
 		reconnectToken,
-		isManualReconnecting,
+		isReconnectFailure,
 		canOperate,
 		initialize,
-		manualReconnect,
 		completeReconnect,
 		goHome,
+		reloadPage,
+		stopConnection: cleanup,
 		cleanup,
 	};
 }

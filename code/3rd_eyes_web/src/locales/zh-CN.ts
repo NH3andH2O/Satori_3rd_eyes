@@ -89,6 +89,7 @@ export default {
 	setup: {
 		page_title: '觉之瞳舵机校正',
 		title: '觉之瞳设置向导',
+		progress: '第 {current}／{total} 步',
 		mode_error: '当前模式不是舵机设置模式，无法进入设置向导。',
 		loading: {
 			checking_mode: '正在检查舵机设置模式...',
@@ -99,17 +100,17 @@ export default {
 		state: {
 			get_failed: '无法获取舵机设置',
 			mode_failed: '无法获取当前模式',
-			save_failed: '舵机设置保存失败，草稿已保留。',
-			mode_switch_failed: '校正已保存，但切换至网络控制模式失败。',
+			save_failed: '舵机设置保存失败，请确认设备连接后重试。',
 		},
 		errors: {
 			mode_title: '模式错误',
 			connection_title: '连接错误',
 			websocket_title: 'WebSocket 错误',
 		},
-		instruction: {
-			current_task: '当前校正目标',
-			assist_note: '三个舵机都可以调整；标记为“辅助姿态”的数值仅用于本步骤观察，不会写入本步骤校正值。',
+		welcome: {
+			title: '欢迎使用觉之瞳设置向导',
+			description: '接下来将依次校正眼皮与眼球的活动范围。',
+			note: '开始前请确认机构周围没有异物，并在每一步只调整到安全、不会卡住的位置。',
 		},
 		steps: {
 			eyelid_open: {
@@ -118,7 +119,7 @@ export default {
 			},
 			eyelid_closed: {
 				title: '眼皮闭合',
-				description: '调整上、下眼皮至自然闭合且不互相挤压的位置；眼球可作辅助调整。',
+				description: '调整上、下眼皮至自然闭合且不互相挤压的位置。',
 			},
 			eyelid_middle: {
 				title: '眼皮中间',
@@ -126,39 +127,31 @@ export default {
 			},
 			eyeball_center: {
 				title: '眼球置中',
-				description: '调整眼球至正中央；可移动上下眼皮辅助辨识中心，但本步骤只记录眼球值。',
+				description: '调整眼球至正中央位置。',
 			},
 			eyeball_left: {
 				title: '眼球最左',
-				description: '将眼球调整至安全的最左位置，不要让机构卡住；眼皮只作观察辅助。',
+				description: '将眼球调整至安全的最左位置，不要让机构卡住。',
 			},
 			eyeball_right: {
 				title: '眼球最右',
-				description: '将眼球调整至安全的最右位置，不要让机构卡住；眼皮只作观察辅助。',
+				description: '将眼球调整至安全的最右位置，不要让机构卡住。',
 			},
 		},
 		controls: {
 			upper_eyelid: '上眼皮舵机',
 			lower_eyelid: '下眼皮舵机',
 			eyeball: '眼球舵机',
-			target: '本步记录',
-			assist: '辅助姿态',
-		},
-		preview_status: {
-			idle: '等待调整',
-			pending: '准备发送设备姿态...',
-			sent: '设备姿态已发送',
-			failed: '姿态发送失败，请确认 WebSocket 连接',
 		},
 		websocket: {
-			title: '实时预览连接中断',
-			disconnected: 'WebSocket 已断开，所有校正操作已锁定，系统将自动重连。',
-			reconnecting: '正在自动重连（第 {attempt}/{max} 次），校正草稿已保留。',
-			failed: '自动重连失败，校正操作仍处于锁定状态。',
+			reconnecting: '设备连接中断，正在重新连接...',
+			reconnected: '设备已重新连接',
+			failed: '自动重连失败，请刷新页面后重新连接。',
 		},
 		review: {
+			step_title: '确认设置',
 			title: '确认校正设置',
-			description: '请确认以下九个正式校正值。完成后将保存至设备并切换至网络控制模式。',
+			description: '请确认以下校正值，完成后将保存至设备。',
 			eyelid_open: '眼皮最大张开（上／下）',
 			eyelid_closed: '眼皮闭合（上／下）',
 			eyelid_middle: '眼皮中间（上／下）',
@@ -166,20 +159,44 @@ export default {
 			eyeball_left: '眼球最左',
 			eyeball_right: '眼球最右',
 		},
+		saving: {
+			title: '正在保存设置',
+			description: '请保持设备连接，完成前不要关闭页面。',
+		},
+		complete: {
+			title: '设置完成',
+			description: '舵机校正设置已成功保存，可以返回首页。',
+			debug_title: '设置已完成，当前仍为调试模式',
+			debug_description: '舵机校正设置已成功保存，但模式切换失败。请手动将设备切换至需要的运行模式。',
+		},
+		discard: {
+			restart_title: '重新开始设置？',
+			restart_message: '当前尚未提交的调整将全部清除，并从后端中间位置重新开始。',
+			cancel_title: '取消本次校正？',
+			cancel_message: '当前尚未提交的调整将全部清除，并返回首页。',
+		},
 		validation: {
 			range: '所有舵机角度必须是 0 到 180 的整数。',
-			upper_order: '上眼皮必须符合：最大张开 < 中间 < 闭合。',
-			lower_order: '下眼皮必须符合：闭合 < 中间 < 最大张开。',
-			eyeball_order: '眼球必须符合：最左 < 置中 < 最右。',
+			upper_endpoints: '上眼皮最大张开角度必须小于闭合角度。',
+			lower_endpoints: '下眼皮闭合角度必须小于最大张开角度。',
+			upper_middle: '上眼皮中间角度必须位于最大张开与闭合之间。',
+			lower_middle: '下眼皮中间角度必须位于闭合与最大张开之间。',
+			eyeball_left_center: '眼球最左位置不能与中心位置相同。',
+			eyeball_endpoints: '眼球最左与最右位置不能相同。',
+			eyeball_center: '眼球中心位置必须严格位于最左与最右位置之间。',
 		},
 		actions: {
+			start: '开始设置',
 			previous: '上一步',
 			next: '下一步',
 			cancel: '取消',
+			restart: '重新开始',
 			complete: '保存并完成',
 			retry: '重试初始化',
-			reconnect: '手动重连',
-			retry_mode: '重试切换模式',
+			reload: '刷新页面',
+			keep_editing: '继续调整',
+			confirm_restart: '清除并重新开始',
+			confirm_cancel: '清除并取消',
 			back_home: '返回首页',
 		},
 	},
