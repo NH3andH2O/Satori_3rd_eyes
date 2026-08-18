@@ -12,6 +12,7 @@
 					style="width: 170px"
 					@change="mode_save"
 				>
+					<el-option v-show="false" label=" " :value="-1" />
 					<el-option v-show="false" :label="$t('modeset.mode_info.servo_debug')" :value="0" />
 					<el-option :label="$t('modeset.mode_info.gyroscope_tracks')" :value="1" />
 					<el-option :label="$t('modeset.mode_info.network_control')" :value="2" />

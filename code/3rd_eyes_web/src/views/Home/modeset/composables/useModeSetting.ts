@@ -18,6 +18,7 @@ export function useModeSetting(onModeLoaded?: (mode: number) => void) {
 
 	async function fetchModeConfig(): Promise<number | null> {
 		isLoading.value = true;
+		modeStore.setMode(-1);
 		updateLoadingState?.('modeset', true);
 		try {
 			const data = await modeApi.getConfig();

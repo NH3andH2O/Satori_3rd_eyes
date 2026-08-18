@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 
 export const useModeStore = defineStore('mode', {
 	state: () => ({
-		mode: 0,
+		mode: -1,
 	}),
 	actions: {
 		setMode(v: number) {
