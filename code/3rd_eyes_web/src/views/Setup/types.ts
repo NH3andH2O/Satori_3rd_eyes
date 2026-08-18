@@ -2,7 +2,7 @@ import type { ServoConfig } from '@/types';
 
 export const SERVO_MIN_ANGLE = 0;
 export const SERVO_MAX_ANGLE = 180;
-export const SETUP_DRAFT_VERSION = 2;
+export const SETUP_DRAFT_VERSION = 3;
 export const SETUP_DRAFT_TTL_MS = 10 * 60 * 1000;
 
 export type ServoName = 'upper' | 'lower' | 'eyeball';
@@ -10,6 +10,7 @@ export type SetupStepId = 'eyelid-open' | 'eyelid-closed' | 'eyelid-middle' | 'e
 export type SetupProgressStepId = SetupStepId | 'review';
 export type SetupWizardPhase = 'welcome' | 'calibration' | 'review' | 'saving' | 'complete';
 export type SetupCompletionState = 'success' | 'debug-mode-warning';
+export type SetupStartMode = 'inherit' | 'existing-config';
 export type ServoCalibrationField = Exclude<keyof ServoConfig, 'is_setup'>;
 
 export interface ServoPose {
@@ -33,6 +34,7 @@ export interface SetupDraft {
 	baseCalibration: ServoConfig;
 	calibration: ServoConfig;
 	stepPoses: SetupStepPoseMap;
+	startMode: SetupStartMode;
 	hasUserAdjustments: boolean;
 	updatedAt?: string;
 }

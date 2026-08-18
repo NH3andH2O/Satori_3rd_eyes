@@ -93,14 +93,23 @@ onBeforeUnmount(() => {
 
 		<main class="wizard-card semi-transparent">
 			<section v-if="wizard.phase.value === 'welcome'" class="welcome-content">
-				<el-result icon="info" :title="t('setup.welcome.title')" :sub-title="t('setup.welcome.description')">
+				<el-result icon="primary" :title="t('setup.welcome.title')" :sub-title="t('setup.welcome.description')">
 					<template #extra>
-						<p class="welcome-note">
-							{{ t('setup.welcome.note') }}
-						</p>
-						<el-button type="primary" size="large" :disabled="!wizard.canStart.value" @click="wizard.start">
-							{{ t('setup.actions.start') }}
-						</el-button>
+						<div class="welcome-actions">
+							<el-button type="primary" size="large" :disabled="!wizard.canStart.value" @click="wizard.start()">
+								{{ t('setup.actions.start') }}
+							</el-button>
+							<el-button
+								v-if="wizard.hasExistingSetup.value"
+								type="primary"
+								plain
+								size="large"
+								:disabled="!wizard.canStart.value"
+								@click="wizard.startFromExistingConfig"
+							>
+								{{ t('setup.actions.start_from_existing') }}
+							</el-button>
+						</div>
 					</template>
 				</el-result>
 			</section>
@@ -277,6 +286,14 @@ onBeforeUnmount(() => {
 	margin-bottom: 28px;
 }
 
+:deep(.el-result__title p) {
+	color: rgb(255, 255, 255);
+}
+
+:deep(.el-result__subtitle p) {
+	color: #afafaf;
+}
+
 .wizard-actions,
 .right-actions {
 	display: flex;
@@ -309,6 +326,16 @@ onBeforeUnmount(() => {
 .complete-content {
 	max-width: 720px;
 	margin: 0 auto;
+}
+
+.welcome-actions {
+	display: flex;
+	justify-content: center;
+	gap: 12px;
+}
+
+.welcome-actions > .el-button {
+	margin: 0;
 }
 
 .welcome-note {
@@ -385,6 +412,21 @@ onBeforeUnmount(() => {
 
 	.mobile-progress {
 		display: block;
+	}
+
+	.welcome-actions {
+		align-items: stretch;
+		gap: 8px;
+	}
+
+	.welcome-actions > .el-button {
+		flex: 1;
+		height: auto;
+		min-width: 0;
+		min-height: 40px;
+		padding-inline: 8px;
+		line-height: 1.3;
+		white-space: normal;
 	}
 
 	.wizard-actions {

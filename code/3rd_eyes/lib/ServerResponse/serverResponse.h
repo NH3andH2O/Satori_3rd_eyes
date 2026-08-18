@@ -11,10 +11,12 @@
 #include <wit.h>
 #include <Template.h>
 #include <Config.h>
+#include <eyesMove.h>
 #include "Errorcodes.h"
 #include "../../src/types.h"
 
 extern AppConfig::Config config; // 偏好設置實例
+extern eyesMove eyesmove;
 
 extern QueueHandle_t wifiUpdate_data_quene;		 // 宣告WiFi更新佇列
 extern QueueHandle_t mode_data_quene;			 // 宣告模式數據佇列

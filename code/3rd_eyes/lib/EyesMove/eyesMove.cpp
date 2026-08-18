@@ -7,8 +7,25 @@ eyesMove::eyesMove(uint8_t upper_eyelid_pin, uint8_t lower_eyelid_pin, uint8_t e
 	this->eyeball_pin = eyeball_pin;
 }
 
+void eyesMove::eyesMove_servo_limit_update()
+{
+	AppConfig::Config config;
+	AppConfig::ServoConfig servo_config = config.getServoConfig();
+	this->upper_eyelid_angle_max = servo_config.max_upper_eyelid;
+	this->upper_eyelid_angle_mid = servo_config.mid_upper_eyelid;
+	this->upper_eyelid_angle_min = servo_config.min_upper_eyelid;
+	this->lower_eyelid_angle_max = servo_config.max_lower_eyelid;
+	this->lower_eyelid_angle_mid = servo_config.mid_lower_eyelid;
+	this->lower_eyelid_angle_min = servo_config.min_lower_eyelid;
+	this->eyeball_angle_max = servo_config.max_eyeball;
+	this->eyeball_angle_mid = servo_config.mid_eyeball;
+	this->eyeball_angle_min = servo_config.min_eyeball;
+}
+
 void eyesMove::eyesMove_init()
 {
+	this->eyesMove_servo_limit_update();
+
 	upper_eyelid_servo.attach(upper_eyelid_pin);
 	lower_eyelid_servo.attach(lower_eyelid_pin);
 	eyeball_servo.attach(eyeball_pin);
@@ -24,9 +41,9 @@ void eyesMove::eyesMove_servo(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_a
 {
 
 	/* 角度輸入超限更正 */
-	upper_eyelid_angle = constrain(upper_eyelid_angle, this->UPPER_EYELID_ANGLE_MIN, this->UPPER_EYELID_ANGLE_MAX); // 上眼皮角度
-	lower_eyelid_angle = constrain(lower_eyelid_angle, this->LOWER_EYELID_ANGLE_MIN, this->LOWER_EYELID_ANGLE_MAX); // 下眼皮角度
-	eyeball_angle = constrain(eyeball_angle, this->EYEBALL_ANGLE_MIN, this->EYEBALL_ANGLE_MAX);						// 眼球角度
+	upper_eyelid_angle = constrain(upper_eyelid_angle, this->upper_eyelid_angle_min, this->upper_eyelid_angle_max); // 上眼皮角度
+	lower_eyelid_angle = constrain(lower_eyelid_angle, this->lower_eyelid_angle_min, this->lower_eyelid_angle_max); // 下眼皮角度
+	eyeball_angle = constrain(eyeball_angle, this->eyeball_angle_min, this->eyeball_angle_max);						// 眼球角度
 
 	/* 眼皮輸出 */
 	this->upper_eyelid_servo.write(upper_eyelid_angle);
@@ -62,24 +79,24 @@ void eyesMove::eyesMove_angle(int8_t eyelid_angle, int8_t x_angle, int8_t y_angl
 
 	/* 眼皮輸出角度确定 */
 	// 上眼皮：从MID开始，根据eyelid_angle和y_angle调整
-	uint8_t upper_eyelid_angle = this->UPPER_EYELID_ANGLE_MID +
-								 map(eyelid_angle, 0, 80, this->UPPER_EYELID_ANGLE_MAX - this->UPPER_EYELID_ANGLE_MID,
-									 this->UPPER_EYELID_ANGLE_MIN - this->UPPER_EYELID_ANGLE_MID) -
-								 map(y_angle, 0, 80, 0, this->UPPER_EYELID_ANGLE_MAX - this->UPPER_EYELID_ANGLE_MIN); // 上眼皮角度
+	uint8_t upper_eyelid_angle = this->upper_eyelid_angle_mid +
+								 map(eyelid_angle, 0, 80, this->upper_eyelid_angle_max - this->upper_eyelid_angle_mid,
+									 this->upper_eyelid_angle_min - this->upper_eyelid_angle_mid) -
+								 map(y_angle, 0, 80, 0, this->upper_eyelid_angle_max - this->upper_eyelid_angle_min); // 上眼皮角度
 	// 下眼皮：从MID开始，根据eyelid_angle和y_angle调整
-	uint8_t lower_eyelid_angle = this->LOWER_EYELID_ANGLE_MID +
-								 map(eyelid_angle, 0, 80, this->LOWER_EYELID_ANGLE_MIN - this->LOWER_EYELID_ANGLE_MID,
-									 this->LOWER_EYELID_ANGLE_MAX - this->LOWER_EYELID_ANGLE_MID) -
-								 map(y_angle, 0, 80, 0, this->LOWER_EYELID_ANGLE_MAX - this->LOWER_EYELID_ANGLE_MIN); // 下眼皮角度
+	uint8_t lower_eyelid_angle = this->lower_eyelid_angle_mid +
+								 map(eyelid_angle, 0, 80, this->lower_eyelid_angle_min - this->lower_eyelid_angle_mid,
+									 this->lower_eyelid_angle_max - this->lower_eyelid_angle_mid) -
+								 map(y_angle, 0, 80, 0, this->lower_eyelid_angle_max - this->lower_eyelid_angle_min); // 下眼皮角度
 	// 眼球：从MID开始，根据x_angle正负分别映射到MAX或MIN（考虑不对称范围）
 	uint8_t eyeball_angle;
 	if (x_angle >= 0)
 	{
-		eyeball_angle = this->EYEBALL_ANGLE_MID + map(x_angle, 0, 55, 0, this->EYEBALL_ANGLE_MAX - this->EYEBALL_ANGLE_MID); // 正向：MID->MAX
+		eyeball_angle = this->eyeball_angle_mid + map(x_angle, 0, 55, 0, this->eyeball_angle_max - this->eyeball_angle_mid); // 正向：MID->MAX
 	}
 	else
 	{
-		eyeball_angle = this->EYEBALL_ANGLE_MID + map(x_angle, -55, 0, this->EYEBALL_ANGLE_MIN - this->EYEBALL_ANGLE_MID, 0); // 负向：MIN->MID
+		eyeball_angle = this->eyeball_angle_mid + map(x_angle, -55, 0, this->eyeball_angle_min - this->eyeball_angle_mid, 0); // 负向：MIN->MID
 	}
 
 	/* 眼皮輸出 */

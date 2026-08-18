@@ -195,6 +195,9 @@ void setup()
 	/* 定時器建立 */
 	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
 
+	/* 使能伺服電機 */
+	eyesmove.eyesMove_init();
+
 	/* 任務建立 */
 	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_handle, 0);				 // 創建UART0讀取任務
 	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_handle, 0);						 // 創建網絡任務
@@ -1012,7 +1015,10 @@ void taskServoSet(void *arg)
 	{
 		if (xQueueReceive(servoSet_data_quene, &servoSet, portMAX_DELAY) == pdTRUE) // 從佇列中獲取數據
 		{
-			eyesmove.eyesMove_servo_debug(servoSet.upper_eyelid_angle, servoSet.lower_eyelid_angle, servoSet.eyeball_angle); // 更新伺服馬達調試類
+			ESP_LOGI("servoSet", "upper_eyelid_angle: %d, lower_eyelid_angle: %d, eyeball_angle: %d", servoSet.upper_eyelid_angle,
+					 servoSet.lower_eyelid_angle, servoSet.eyeball_angle);
+			eyesmove.eyesMove_servo_debug(servoSet.upper_eyelid_angle, servoSet.lower_eyelid_angle,
+										  servoSet.eyeball_angle); // 更新伺服馬達調試類
 		}
 	}
 }
@@ -1056,7 +1062,6 @@ void taskEyesMove(void *arg)
 	uint8_t is_eyesmove_update_finish = 0; // 眼睛更新狀態
 
 	/* 初始化眼睛 */
-	eyesmove.eyesMove_init(); // 初始化眼睛
 	eyesmove.eyesMove_angle_pid(4.0, 0.2, 0.25);
 	while (1)
 	{

@@ -110,7 +110,6 @@ export default {
 		welcome: {
 			title: '歡迎使用覺之瞳設定精靈',
 			description: '接下來將依序校正眼皮與眼球的活動範圍。',
-			note: '開始前請確認機構周圍沒有異物，並在每一步只調整到安全、不會卡住的位置。',
 		},
 		steps: {
 			eyelid_open: {
@@ -187,6 +186,7 @@ export default {
 		},
 		actions: {
 			start: '開始設定',
+			start_from_existing: '從現有設定開始',
 			previous: '上一步',
 			next: '下一步',
 			cancel: '取消',

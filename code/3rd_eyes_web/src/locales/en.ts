@@ -111,7 +111,6 @@ export default {
 		welcome: {
 			title: 'Welcome to the 3rdEyes setup wizard',
 			description: 'The following steps calibrate the eyelid and eyeball movement ranges.',
-			note: 'Before starting, clear the mechanism of obstructions and only move each servo to a safe position that does not bind.',
 		},
 		steps: {
 			eyelid_open: {
@@ -189,6 +188,7 @@ export default {
 		},
 		actions: {
 			start: 'Start setup',
+			start_from_existing: 'Start from existing settings',
 			previous: 'Previous',
 			next: 'Next',
 			cancel: 'Cancel',

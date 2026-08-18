@@ -18,6 +18,7 @@ import {
 	type ServoName,
 	type ServoPose,
 	type SetupDraft,
+	type SetupStartMode,
 	type SetupStepId,
 	type SetupStepPoseMap,
 	type SetupWizardPhase,
@@ -68,6 +69,10 @@ function isSetupStepId(value: unknown): value is SetupStepId {
 	return typeof value === 'string' && SETUP_STEPS.some((step) => step.id === value);
 }
 
+function isSetupStartMode(value: unknown): value is SetupStartMode {
+	return value === 'inherit' || value === 'existing-config';
+}
+
 function readStepPoses(value: unknown): SetupStepPoseMap | null {
 	if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
 	const stepPoses: SetupStepPoseMap = {};
@@ -98,6 +103,7 @@ function readDraft(serverConfig: ServoConfig): SetupDraft | null {
 			!configsMatch(draft.baseCalibration, serverConfig) ||
 			!isServoConfig(draft.calibration) ||
 			!stepPoses ||
+			!isSetupStartMode(draft.startMode) ||
 			typeof draft.hasUserAdjustments !== 'boolean' ||
 			typeof updatedAtText !== 'string' ||
 			!Number.isFinite(updatedAt) ||
@@ -113,6 +119,7 @@ function readDraft(serverConfig: ServoConfig): SetupDraft | null {
 			baseCalibration: cloneConfig(draft.baseCalibration),
 			calibration: cloneConfig(draft.calibration),
 			stepPoses,
+			startMode: draft.startMode,
 			hasUserAdjustments: draft.hasUserAdjustments,
 			updatedAt: updatedAtText,
 		};
@@ -137,6 +144,7 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 	const resumePhase = ref<'calibration' | 'review'>('calibration');
 	const currentStepIndex = ref(0);
 	const stepPoses = ref<SetupStepPoseMap>({});
+	const startMode = ref<SetupStartMode>('inherit');
 	const previewPose = ref<ServoPose>({ upper: 85, lower: 50, eyeball: 75 });
 	const previewStatus = ref<'idle' | 'pending' | 'sent' | 'failed'>('idle');
 	const servoSaved = ref(false);
@@ -153,6 +161,7 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 	const isSaving = computed(() => phase.value === 'saving');
 	const isComplete = computed(() => phase.value === 'complete');
 	const isInitialSetup = computed(() => originalConfig.value?.is_setup === false);
+	const hasExistingSetup = computed(() => originalConfig.value?.is_setup === true);
 	const progressStepIndex = computed(() => (isReview.value ? SETUP_STEPS.length : currentStepIndex.value));
 	const targetServos = computed<readonly ServoName[]>(() => {
 		if (phase.value !== 'calibration') return [];
@@ -177,6 +186,7 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 			baseCalibration: cloneConfig(originalConfig.value),
 			calibration: cloneConfig(calibration.value),
 			stepPoses: cloneStepPoses(stepPoses.value),
+			startMode: startMode.value,
 			hasUserAdjustments: hasUserAdjustments.value,
 			updatedAt: new Date().toISOString(),
 		};
@@ -196,11 +206,23 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 		};
 	}
 
+	function existingConfigPoseForStep(index: number, config = originalConfig.value): ServoPose {
+		const pose = middlePose(config);
+		const step = SETUP_STEPS[index];
+		if (!config || !step) return pose;
+		for (const servo of Object.keys(step.targetFields) as ServoName[]) {
+			const field = step.targetFields[servo];
+			if (field) pose[servo] = config[field];
+		}
+		return pose;
+	}
+
 	function poseForStep(index: number, inheritedPose?: ServoPose): ServoPose {
 		const step = SETUP_STEPS[index];
 		if (!step) return inheritedPose ? clonePose(inheritedPose) : middlePose();
 		const savedPose = stepPoses.value[step.id];
 		if (savedPose) return clonePose(savedPose);
+		if (startMode.value === 'existing-config') return existingConfigPoseForStep(index);
 		if (index === 0) return middlePose();
 		const previousStep = SETUP_STEPS[index - 1];
 		const previousPose = previousStep ? stepPoses.value[previousStep.id] : undefined;
@@ -289,6 +311,12 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 		persistDraft();
 		schedulePreview();
 		return true;
+	}
+
+	function startFromExistingConfig(): boolean {
+		if (!canStart.value || !hasExistingSetup.value) return false;
+		startMode.value = 'existing-config';
+		return start();
 	}
 
 	function updatePreviewPose(pose: ServoPose, changedServo: ServoName) {
@@ -403,6 +431,7 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 			showValidationIssue(validationIssue);
 			return false;
 		}
+		saveCurrentStepPose(previewPose.value);
 
 		if (currentStepIndex.value === SETUP_STEPS.length - 1) {
 			const finalIssue = validateCalibration();
@@ -480,6 +509,7 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 		removeLocalStorageItem(StorageKeys.SETUP_DRAFT);
 		calibration.value = cloneConfig(originalConfig.value);
 		stepPoses.value = {};
+		startMode.value = 'inherit';
 		currentStepIndex.value = 0;
 		phase.value = 'calibration';
 		resumePhase.value = 'calibration';
@@ -516,21 +546,29 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 			const draft = readDraft(config);
 			calibration.value = draft ? cloneConfig(draft.calibration) : cloneConfig(config);
 			stepPoses.value = draft ? cloneStepPoses(draft.stepPoses) : {};
+			startMode.value = draft?.startMode ?? 'inherit';
 			hasUserAdjustments.value = draft?.hasUserAdjustments ?? false;
 			servoSaved.value = false;
 			saveError.value = '';
 			validationError.value = '';
 			completionState.value = null;
-			phase.value = 'welcome';
 			previewStatus.value = 'idle';
 
-			if (draft?.currentStepId === 'review') {
-				currentStepIndex.value = SETUP_STEPS.length - 1;
-				resumePhase.value = 'review';
+			if (draft) {
+				const firstUnconfiguredStepIndex = SETUP_STEPS.findIndex((step) => !draft.stepPoses[step.id]);
+				if (firstUnconfiguredStepIndex >= 0) {
+					currentStepIndex.value = firstUnconfiguredStepIndex;
+					resumePhase.value = 'calibration';
+					phase.value = 'calibration';
+				} else {
+					currentStepIndex.value = SETUP_STEPS.length - 1;
+					resumePhase.value = 'review';
+					phase.value = 'review';
+				}
 			} else {
-				const restoredIndex = draft ? SETUP_STEPS.findIndex((step) => step.id === draft.currentStepId) : 0;
-				currentStepIndex.value = restoredIndex >= 0 ? restoredIndex : 0;
+				currentStepIndex.value = 0;
 				resumePhase.value = 'calibration';
+				phase.value = 'welcome';
 			}
 			previewPose.value = poseForStep(currentStepIndex.value);
 		},
@@ -565,6 +603,7 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 		isSaving,
 		isComplete,
 		isInitialSetup,
+		hasExistingSetup,
 		servoSaved,
 		saveError,
 		validationError,
@@ -575,6 +614,7 @@ export function useSetupWizard(serverConfig: Ref<ServoConfig | null>, canOperate
 		canGoNext,
 		canComplete,
 		start,
+		startFromExistingConfig,
 		updatePreviewPose,
 		flushPreview: sendPreview,
 		pausePreview,

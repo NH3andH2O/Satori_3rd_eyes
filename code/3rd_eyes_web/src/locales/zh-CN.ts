@@ -110,7 +110,6 @@ export default {
 		welcome: {
 			title: '欢迎使用觉之瞳设置向导',
 			description: '接下来将依次校正眼皮与眼球的活动范围。',
-			note: '开始前请确认机构周围没有异物，并在每一步只调整到安全、不会卡住的位置。',
 		},
 		steps: {
 			eyelid_open: {
@@ -187,6 +186,7 @@ export default {
 		},
 		actions: {
 			start: '开始设置',
+			start_from_existing: '从现有设置开始',
 			previous: '上一步',
 			next: '下一步',
 			cancel: '取消',

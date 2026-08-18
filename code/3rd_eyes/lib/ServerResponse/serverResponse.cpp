@@ -548,6 +548,7 @@ void api_set_servo_config(AsyncWebServerRequest *request, uint8_t *data, size_t 
 
 	/* 存儲配置 */
 	config.setServoConfig(servoConfig);
+	eyesmove.eyesMove_servo_limit_update();
 
 	/* 發送成功響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);
