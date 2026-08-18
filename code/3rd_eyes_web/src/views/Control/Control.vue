@@ -208,6 +208,24 @@ onBeforeUnmount(() => {
 	z-index: 1;
 }
 
+.joystick-values {
+	position: absolute;
+	top: max(20px, env(safe-area-inset-top));
+	left: 50%;
+	z-index: 2;
+	display: flex;
+	gap: 16px;
+	padding: 8px 14px;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	font-family: monospace;
+	font-size: 18px;
+	font-weight: 700;
+	transform: translateX(-50%);
+	pointer-events: none;
+}
+
 /* 手机端：上下布局 */
 @media (max-width: 768px) {
 	.control-eyelid {

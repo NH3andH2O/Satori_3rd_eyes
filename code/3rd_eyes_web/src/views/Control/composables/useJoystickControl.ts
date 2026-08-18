@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 import { useWebSocket } from '../../../composables/useWebSocket';
 import type { JoystickMovePayload, EyelidPayload } from '@/types';
 
@@ -25,6 +25,8 @@ export function useJoystickControl(options: JoystickControlOptions) {
 
 	// 日誌記錄（用於調試或顯示）
 	const log = ref<JoystickMovePayload | EyelidPayload>(singleAxis ? { vy: 0 } : { vx: 0, vy: 0 });
+	const vx = computed(() => ('vx' in log.value ? log.value.vx : 0));
+	const vy = computed(() => log.value.vy);
 
 	// 待處理的數據（用於 rAF 批處理）
 	let pending: JoystickMovePayload | EyelidPayload | null = null;
@@ -85,6 +87,8 @@ export function useJoystickControl(options: JoystickControlOptions) {
 
 	return {
 		log,
+		vx,
+		vy,
 		onMove,
 		onEnd,
 	};
