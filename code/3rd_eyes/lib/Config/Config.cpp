@@ -111,3 +111,18 @@ void Config::clearServoConfig()
 	this->prefs.clear();
 	this->prefs.end();
 }
+
+uint8_t Config::getLogConfig()
+{
+	this->prefs.begin("Log", true);
+	uint8_t log_level = (uint8_t)(this->prefs.getUShort("log_level", 3));
+	this->prefs.end();
+	return log_level;
+}
+
+void Config::setLogConfig(uint8_t log_level)
+{
+	this->prefs.begin("Log", false);
+	this->prefs.putUShort("log_level", (uint16_t)(log_level));
+	this->prefs.end();
+}

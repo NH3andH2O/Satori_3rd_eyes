@@ -63,5 +63,8 @@ namespace AppConfig
 		ServoConfig getServoConfig();
 		void setServoConfig(const ServoConfig &config);
 		void clearServoConfig();
+
+		uint8_t getLogConfig();
+		void setLogConfig(uint8_t log_level);
 	};
 } // namespace AppConfig

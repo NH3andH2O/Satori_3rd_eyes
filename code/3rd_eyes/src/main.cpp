@@ -25,6 +25,7 @@
 #include <ESPmDNS.h>
 #include <ArduinoJson.h>
 #include <driver/uart.h>
+#include <esp_log.h>
 /* 自定義程式庫 */
 #include <gc9a01.h>
 #include <eyesMove.h>
@@ -127,6 +128,14 @@ TimerHandle_t wifiReconnectTimer; // WiFi重連定時器
 
 void setup()
 {
+	uint8_t log_level = config.getLogConfig();
+	if (log_level < ESP_LOG_ERROR || log_level > ESP_LOG_VERBOSE)
+	{
+		log_level = ESP_LOG_INFO;
+		config.setLogConfig(log_level);
+	}
+	esp_log_level_set("*", static_cast<esp_log_level_t>(log_level));
+
 	/* 系統資訊列印 */
 	ESP_LOGI("System", "========================================");
 	ESP_LOGI("System", "3rd Eyes System Starting...");
@@ -1134,7 +1143,7 @@ void taskUART0Read(void *arg)
 					{
 						ESP_LOGI("UART", "\nAvailable commands:\nreset - Restart the device\nreservo - Reset servo configuration\nhelp - Show this "
 										 "help message\nmode [number] - Show or change "
-										 "the operating mode");
+										 "the operating mode\nlog [number] - Show or change the log level (1-5)");
 					}
 					/* 重置伺服馬達設定指令 */
 					else if (data_str == "reservo")
@@ -1191,6 +1200,49 @@ void taskUART0Read(void *arg)
 							}
 						}
 					}
+					else if (data_str == "log" || data_str.startsWith("log "))
+					{
+						String log_value = data_str.substring(3);
+						log_value.trim();
+
+						if (log_value.length() == 0)
+						{
+							char response[32];
+							int response_length = snprintf(response, sizeof(response), "Current log level: %u\r\n",
+													   static_cast<unsigned int>(esp_log_get_default_level()));
+							uart_write_bytes(UART_NUM_0, response, response_length);
+						}
+						else
+						{
+							bool is_number = true;
+							for (size_t i = 0; i < log_value.length() && is_number; i++)
+							{
+								is_number = isDigit(log_value.charAt(i));
+							}
+
+							if (!is_number)
+							{
+								ESP_LOGE("UART", "Invalid log command. Usage: log <1-5>");
+							}
+							else
+							{
+								long log_level = log_value.toInt();
+								if (log_level < ESP_LOG_ERROR || log_level > ESP_LOG_VERBOSE)
+								{
+									ESP_LOGE("UART", "Invalid log level: %ld. Valid values are 1-5", log_level);
+								}
+								else
+								{
+									config.setLogConfig(static_cast<uint8_t>(log_level));
+									esp_log_level_set("*", static_cast<esp_log_level_t>(log_level));
+
+									char response[32];
+									int response_length = snprintf(response, sizeof(response), "Log level changed to: %ld\r\n", log_level);
+									uart_write_bytes(UART_NUM_0, response, response_length);
+								}
+							}
+						}
+					}
 					else
 					{
 						ESP_LOGE("UART", "Unknown command, type \'help\' for a list of commands.");
@@ -1208,7 +1260,6 @@ void taskUART0Read(void *arg)
 		}
 	}
 }
-
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
 {
 	/* 佇列建立 */
