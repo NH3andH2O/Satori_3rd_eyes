@@ -1024,8 +1024,6 @@ void taskServoSet(void *arg)
 	{
 		if (xQueueReceive(servoSet_data_quene, &servoSet, portMAX_DELAY) == pdTRUE) // 從佇列中獲取數據
 		{
-			ESP_LOGI("servoSet", "upper_eyelid_angle: %d, lower_eyelid_angle: %d, eyeball_angle: %d", servoSet.upper_eyelid_angle,
-					 servoSet.lower_eyelid_angle, servoSet.eyeball_angle);
 			eyesmove.eyesMove_servo_debug(servoSet.upper_eyelid_angle, servoSet.lower_eyelid_angle,
 										  servoSet.eyeball_angle); // 更新伺服馬達調試類
 		}
