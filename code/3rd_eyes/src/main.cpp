@@ -847,9 +847,9 @@ void taskNetworkControl(void *arg)
 	int8_t send_x = 0, send_y = 0;		  // 發送眼睛角度
 	double speed_x = 0, speed_y = 0;	  // 眼睛速度
 	double velocity = 0;				  // 眼睛速度絕對值
-	double eyelid_angle = 45;			  // 眼睛張開角度
-	uint8_t eyelid_angle_int = 45;		  // 眼睛張開角度整數
-	uint8_t send_eyelid_angle = 45;		  // 眼睛張開目標角度
+	double eyelid_angle = 40;			  // 眼睛張開角度
+	uint8_t eyelid_angle_int = 40;		  // 眼睛張開角度整數
+	uint8_t send_eyelid_angle = 40;		  // 眼睛張開目標角度
 	uint64_t move_last_time = 0;		  // 眼睛移動上次時間
 	uint64_t eyelid_last_time = 0;		  // 眼皮角度移動上次時間
 	uint8_t type = 0;					  // 數據類型
@@ -938,7 +938,7 @@ void taskNetworkControl(void *arg)
 
 			/* 映射眼睛角度 */
 			x = map(data_get.x, -100, 100, -55, 55);
-			y = map(data_get.y, -100, 100, -35, 35);
+			y = map(data_get.y, -100, 100, -40, 40);
 
 			/* 設置眼睛角度 */
 			send_x = x;
@@ -1209,7 +1209,7 @@ void taskUART0Read(void *arg)
 						{
 							char response[32];
 							int response_length = snprintf(response, sizeof(response), "Current log level: %u\r\n",
-													   static_cast<unsigned int>(esp_log_get_default_level()));
+														   static_cast<unsigned int>(esp_log_get_default_level()));
 							uart_write_bytes(UART_NUM_0, response, response_length);
 						}
 						else
