@@ -323,7 +323,7 @@ void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t
 	}
 
 	/* 存儲SoftAP配置 */
-	AppConfig::SoftAPConfig softAPConfig;
+	AppConfig::SoftAPConfig softAPConfig = config.getSoftAPConfig();
 	if (ssid[0] == '\0')
 	{
 		softAPConfig.ssid = DEFAULT_SSID;
@@ -528,6 +528,26 @@ void api_set_servo_config(AsyncWebServerRequest *request, uint8_t *data, size_t 
 			sendJsonResponse(request, 400, false, ServerError::ERR_SERVO_CONFIG_MISSING, message.c_str());
 			return;
 		}
+
+		if (!doc[field].is<int>() || doc[field].as<int>() < 0 || doc[field].as<int>() > 180)
+		{
+			String message = "Servo configuration field must be an integer between 0 and 180: ";
+			message += field;
+			sendJsonResponse(request, 400, false, ServerError::ERR_SERVO_CONFIG_INVALID, message.c_str());
+			return;
+		}
+	}
+
+	if (!(doc["min_upper_eyelid"].as<int>() < doc["mid_upper_eyelid"].as<int>() &&
+		  doc["mid_upper_eyelid"].as<int>() < doc["max_upper_eyelid"].as<int>()) ||
+		!(doc["min_lower_eyelid"].as<int>() < doc["mid_lower_eyelid"].as<int>() &&
+		  doc["mid_lower_eyelid"].as<int>() < doc["max_lower_eyelid"].as<int>()) ||
+		!(doc["min_eyeball"].as<int>() < doc["mid_eyeball"].as<int>() &&
+		  doc["mid_eyeball"].as<int>() < doc["max_eyeball"].as<int>()))
+	{
+		sendJsonResponse(request, 400, false, ServerError::ERR_SERVO_CONFIG_INVALID,
+						 "Servo configuration must satisfy min < mid < max");
+		return;
 	}
 
 	/* 獲取配置 */
