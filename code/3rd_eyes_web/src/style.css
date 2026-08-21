@@ -30,10 +30,7 @@ body {
 	min-width: 320px;
 	min-height: 100vh;
 	background: linear-gradient(to bottom, #fa0ffac5 0%, #d4d3d3 400px, #d4d3d3 100%);
-	color: rgba(255,
-		255,
-		255,
-		0.842);
+	color: rgba(255, 255, 255, 0.842);
 }
 
 h1 {

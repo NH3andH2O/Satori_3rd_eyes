@@ -61,12 +61,7 @@ onBeforeUnmount(() => {
 
 <template>
 	<!-- 全屏加载遮罩 -->
-	<div
-		v-loading="isLoading"
-		:element-loading-text="loadingText"
-		element-loading-background="rgba(0, 0, 0, 0.5)"
-		class="loading-container"
-	>
+	<div v-loading="isLoading" :element-loading-text="loadingText" element-loading-background="rgba(0, 0, 0, 0.5)" class="loading-container">
 		<!-- 模式错误对话框 -->
 		<el-dialog
 			v-model="modeErrorDialogVisible"
