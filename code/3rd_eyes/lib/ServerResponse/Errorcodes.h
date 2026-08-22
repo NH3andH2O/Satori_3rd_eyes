@@ -18,5 +18,9 @@ namespace ServerError
 
 		/* 模式錯誤 */
 		ERR_MODE_INVALID = 10301, // 無效的模式
+
+		/* 舵機錯誤 */
+		ERR_SERVO_CONFIG_MISSING = 10401, // 缺少舵機配置欄位
+		ERR_SERVO_CONFIG_INVALID = 10402, // 無效的舵機配置
 	};
 }

@@ -166,6 +166,23 @@ void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEven
 					}
 				}
 			}
+			/* 伺服電機預覽數據 */
+			else if (type.startsWith("preview"))
+			{
+				if (data_doc["payload"]["eyeball_angle"].isNull() || data_doc["payload"]["upper_eyelid_angle"].isNull() ||
+					data_doc["payload"]["lower_eyelid_angle"].isNull()) // 檢查是否缺少必要的欄位
+				{
+					ESP_LOGE("server", "Missing required fields in servo preview data");
+					break;
+				}
+
+				servoSet_data data_send;
+
+				data_send.eyeball_angle = data_doc["payload"]["eyeball_angle"] | 0;
+				data_send.upper_eyelid_angle = data_doc["payload"]["upper_eyelid_angle"] | 0;
+				data_send.lower_eyelid_angle = data_doc["payload"]["lower_eyelid_angle"] | 0;
+				xQueueSend(servoSet_data_quene, &data_send, 0);
+			}
 			break;
 		}
 		default:
@@ -306,7 +323,7 @@ void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t
 	}
 
 	/* 存儲SoftAP配置 */
-	AppConfig::SoftAPConfig softAPConfig;
+	AppConfig::SoftAPConfig softAPConfig = config.getSoftAPConfig();
 	if (ssid[0] == '\0')
 	{
 		softAPConfig.ssid = DEFAULT_SSID;
@@ -442,6 +459,116 @@ void api_set_advanced_config(AsyncWebServerRequest *request, uint8_t *data, size
 	AppConfig::AdvancedConfig advancedConfig;
 	advancedConfig.correction_timer = correction_timer;
 	config.setAdvancedConfig(advancedConfig);
+
+	/* 發送成功響應 */
+	sendJsonResponse(request, 200, true, ServerError::ERR_OK);
+	return;
+}
+
+/* get舵機配置獲取 */
+void api_servo_config(AsyncWebServerRequest *request)
+{
+	/* 檢查請求方法 */
+	if (request->method() != HTTP_GET)
+	{
+		request->send(405, "text/plain", "Method Not Allowed");
+	}
+
+	/* 獲取舵機配置 */
+	AppConfig::ServoConfig servoConfig = config.getServoConfig();
+
+	/* 構建JSON */
+	JsonDocument doc;
+	doc["is_setup"] = servoConfig.is_setup;
+	doc["max_upper_eyelid"] = servoConfig.max_upper_eyelid;
+	doc["mid_upper_eyelid"] = servoConfig.mid_upper_eyelid;
+	doc["min_upper_eyelid"] = servoConfig.min_upper_eyelid;
+	doc["max_lower_eyelid"] = servoConfig.max_lower_eyelid;
+	doc["mid_lower_eyelid"] = servoConfig.mid_lower_eyelid;
+	doc["min_lower_eyelid"] = servoConfig.min_lower_eyelid;
+	doc["max_eyeball"] = servoConfig.max_eyeball;
+	doc["mid_eyeball"] = servoConfig.mid_eyeball;
+	doc["min_eyeball"] = servoConfig.min_eyeball;
+
+	/* 發送響應 */
+	sendJsonResponse(request, 200, true, ServerError::ERR_OK, "", &doc);
+}
+
+/* post舵機配置修改 */
+void api_set_servo_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+{
+	/* 檢查請求方法 */
+	if (request->method() != HTTP_POST)
+	{
+		request->send(405, "text/plain", "Method Not Allowed");
+		return;
+	}
+
+	/* 解析JSON */
+	JsonDocument doc;
+	DeserializationError error = deserializeJson(doc, data);
+	if (error)
+	{
+		ESP_LOGE("server", "Failed to parse JSON: %s\n", error.c_str());
+		sendJsonResponse(request, 400, false, ServerError::ERR_INVALID_JSON, "Invalid JSON format");
+		return;
+	}
+
+	const char *requiredFields[] = {
+		"max_upper_eyelid", "mid_upper_eyelid", "min_upper_eyelid", "max_lower_eyelid", "mid_lower_eyelid",
+		"min_lower_eyelid", "max_eyeball",		"mid_eyeball",		"min_eyeball",
+	};
+
+	for (const char *field : requiredFields)
+	{
+		if (doc[field].isNull())
+		{
+			String message = "Missing required servo configuration field: ";
+			message += field;
+			sendJsonResponse(request, 400, false, ServerError::ERR_SERVO_CONFIG_MISSING, message.c_str());
+			return;
+		}
+
+		if (!doc[field].is<int>() || doc[field].as<int>() < 0 || doc[field].as<int>() > 180)
+		{
+			String message = "Servo configuration field must be an integer between 0 and 180: ";
+			message += field;
+			sendJsonResponse(request, 400, false, ServerError::ERR_SERVO_CONFIG_INVALID, message.c_str());
+			return;
+		}
+	}
+
+	if (!(doc["min_upper_eyelid"].as<int>() < doc["mid_upper_eyelid"].as<int>() &&
+		  doc["mid_upper_eyelid"].as<int>() < doc["max_upper_eyelid"].as<int>()) ||
+		!(doc["min_lower_eyelid"].as<int>() < doc["mid_lower_eyelid"].as<int>() &&
+		  doc["mid_lower_eyelid"].as<int>() < doc["max_lower_eyelid"].as<int>()) ||
+		!(doc["min_eyeball"].as<int>() < doc["mid_eyeball"].as<int>() &&
+		  doc["mid_eyeball"].as<int>() < doc["max_eyeball"].as<int>()))
+	{
+		sendJsonResponse(request, 400, false, ServerError::ERR_SERVO_CONFIG_INVALID,
+						 "Servo configuration must satisfy min < mid < max");
+		return;
+	}
+
+	/* 獲取配置 */
+	AppConfig::ServoConfig servoConfig = config.getServoConfig();
+	if (!doc["is_setup"].isNull())
+	{
+		servoConfig.is_setup = doc["is_setup"].as<bool>();
+	}
+	servoConfig.max_upper_eyelid = doc["max_upper_eyelid"].as<uint8_t>();
+	servoConfig.mid_upper_eyelid = doc["mid_upper_eyelid"].as<uint8_t>();
+	servoConfig.min_upper_eyelid = doc["min_upper_eyelid"].as<uint8_t>();
+	servoConfig.max_lower_eyelid = doc["max_lower_eyelid"].as<uint8_t>();
+	servoConfig.mid_lower_eyelid = doc["mid_lower_eyelid"].as<uint8_t>();
+	servoConfig.min_lower_eyelid = doc["min_lower_eyelid"].as<uint8_t>();
+	servoConfig.max_eyeball = doc["max_eyeball"].as<uint8_t>();
+	servoConfig.mid_eyeball = doc["mid_eyeball"].as<uint8_t>();
+	servoConfig.min_eyeball = doc["min_eyeball"].as<uint8_t>();
+
+	/* 存儲配置 */
+	config.setServoConfig(servoConfig);
+	eyesmove.eyesMove_servo_limit_update();
 
 	/* 發送成功響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);

@@ -47,6 +47,7 @@ export const StorageKeys = {
 	MOVE_Y_INVERT: 'move_Y_invert',
 	EYELID_Y_INVERT: 'eyelid_Y_invert',
 	LANGUAGE: 'language',
+	SETUP_DRAFT: 'setup_servo_draft',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

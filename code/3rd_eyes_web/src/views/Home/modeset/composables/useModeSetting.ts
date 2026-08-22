@@ -4,7 +4,7 @@ import { useModeStore } from '@/stores/mode';
 import { modeApi, handleApiError, handleApiSuccess } from '@/api';
 import i18n from '@/i18n';
 
-export function useModeSetting() {
+export function useModeSetting(onModeLoaded?: (mode: number) => void) {
 	// 局部 UI 状态
 	const isLoading = ref(true);
 	const isSaving = ref(false);
@@ -16,16 +16,21 @@ export function useModeSetting() {
 	// 注入父组件提供的更新方法
 	const updateLoadingState = inject<((component: string, isLoading: boolean) => void) | undefined>('updateLoadingState');
 
-	async function fetchModeConfig() {
+	async function fetchModeConfig(): Promise<number | null> {
 		isLoading.value = true;
+		modeStore.setMode(-1);
 		updateLoadingState?.('modeset', true);
 		try {
 			const data = await modeApi.getConfig();
+			const currentMode = Number(data.mode);
 			modeStore.patchFromServer({
-				mode: Number(data.mode),
+				mode: currentMode,
 			});
+			onModeLoaded?.(currentMode);
+			return currentMode;
 		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('modeset.state.get_failed'));
+			return null;
 		} finally {
 			isLoading.value = false;
 			updateLoadingState?.('modeset', false);

@@ -11,14 +11,17 @@
 #include <wit.h>
 #include <Template.h>
 #include <Config.h>
+#include <eyesMove.h>
 #include "Errorcodes.h"
 #include "../../src/types.h"
 
 extern AppConfig::Config config; // 偏好設置實例
+extern eyesMove eyesmove;
 
 extern QueueHandle_t wifiUpdate_data_quene;		 // 宣告WiFi更新佇列
 extern QueueHandle_t mode_data_quene;			 // 宣告模式數據佇列
 extern QueueHandle_t network_control_data_quene; // 網絡數據佇列
+extern QueueHandle_t servoSet_data_quene;		 // 舵機數據佇列
 
 void handleRoot(AsyncWebServerRequest *req);
 void handleNotFound(AsyncWebServerRequest *request);
@@ -31,5 +34,7 @@ void api_mode_config(AsyncWebServerRequest *request);
 void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
 void api_advanced_config(AsyncWebServerRequest *request);
 void api_set_advanced_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
+void api_servo_config(AsyncWebServerRequest *request);
+void api_set_servo_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
 
 #endif

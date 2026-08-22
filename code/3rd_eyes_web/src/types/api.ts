@@ -59,6 +59,19 @@ export interface AdvancedConfig {
 	correction_timer: number;
 }
 
+export interface ServoConfig {
+	is_setup: boolean;
+	max_upper_eyelid: number;
+	mid_upper_eyelid: number;
+	min_upper_eyelid: number;
+	max_lower_eyelid: number;
+	mid_lower_eyelid: number;
+	min_lower_eyelid: number;
+	max_eyeball: number;
+	mid_eyeball: number;
+	min_eyeball: number;
+}
+
 /**
  * WiFi 配置請求類型
  */
@@ -78,3 +91,5 @@ export type ModeConfigRequest = Partial<ModeConfig>;
  * 高級配置請求類型
  */
 export type AdvancedConfigRequest = Partial<AdvancedConfig>;
+
+export type ServoConfigRequest = ServoConfig;

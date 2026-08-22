@@ -48,7 +48,6 @@ export default defineConfig({
 	},
 	build: {
 		outDir: '../3rd_eyes/data/www',
-		emptyOutDir: true,
-		sourcemap: true,
+		emptyOutDir: true
 	},
 });

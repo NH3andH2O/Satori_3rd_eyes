@@ -65,10 +65,12 @@ export default {
 		title: 'Mode Settings',
 		mode: 'Mode:',
 		mode_info: {
+			servo_debug: 'Servo Debug Mode',
 			gyroscope_tracks: 'Gyroscope Tracking Mode',
 			network_control: 'Network Control Mode',
 		},
 		enter_network_control: 'Enter Control Interface',
+		enter_servo_setup: 'Enter 3rdEyes Setup',
 		save: 'Save',
 
 		/* 狀態 */
@@ -82,6 +84,122 @@ export default {
 		errors: {
 			mode_empty: 'Mode cannot be empty',
 			mode_invalid: 'Mode invalid',
+		},
+	},
+
+	setup: {
+		page_title: '3rdEyes Servo Calibration',
+		title: '3rdEyes Setup Wizard',
+		progress: 'Step {current} of {total}',
+		mode_error: 'The device is not in Servo Setup mode, so the setup wizard cannot be opened.',
+		loading: {
+			checking_mode: 'Checking Servo Setup mode...',
+			loading_config: 'Loading servo settings...',
+			connecting_ws: 'Connecting to the live preview service...',
+			ws_timeout: 'The WebSocket connection timed out. Check the device and network connection.',
+		},
+		state: {
+			get_failed: 'Unable to load servo settings',
+			mode_failed: 'Unable to read the current mode',
+			save_failed: 'Unable to save servo settings. Check the device connection and try again.',
+		},
+		errors: {
+			mode_title: 'Mode Error',
+			connection_title: 'Connection Error',
+			websocket_title: 'WebSocket Error',
+		},
+		welcome: {
+			title: 'Welcome to the 3rdEyes setup wizard',
+			description: 'The following steps calibrate the eyelid and eyeball movement ranges.',
+		},
+		steps: {
+			eyelid_open: {
+				title: 'Eyelids fully open',
+				description: 'Adjust both eyelids to the widest safe opening. Move the eyeball as needed to check for mechanical contact.',
+			},
+			eyelid_closed: {
+				title: 'Eyelids closed',
+				description: 'Adjust both eyelids until they close naturally without pressing against each other.',
+			},
+			eyelid_middle: {
+				title: 'Eyelids midway',
+				description: 'Adjust both eyelids to the midpoint of their opening range and verify that the spacing looks natural.',
+			},
+			eyeball_center: {
+				title: 'Eyeball centered',
+				description: 'Move the eyeball to its centered position.',
+			},
+			eyeball_left: {
+				title: 'Eyeball far left',
+				description: 'Move the eyeball to the safe left limit without binding the mechanism.',
+			},
+			eyeball_right: {
+				title: 'Eyeball far right',
+				description: 'Move the eyeball to the safe right limit without binding the mechanism.',
+			},
+		},
+		controls: {
+			upper_eyelid: 'Upper eyelid servo',
+			lower_eyelid: 'Lower eyelid servo',
+			eyeball: 'Eyeball servo',
+		},
+		websocket: {
+			reconnecting: 'The device connection was interrupted. Reconnecting...',
+			reconnected: 'The device has reconnected',
+			failed: 'Automatic reconnection failed. Refresh the page to reconnect.',
+		},
+		review: {
+			step_title: 'Review',
+			title: 'Review calibration',
+			description: 'Review the calibration values below. Finishing saves them to the device.',
+			eyelid_open: 'Eyelids fully open (upper/lower)',
+			eyelid_closed: 'Eyelids closed (upper/lower)',
+			eyelid_middle: 'Eyelids midway (upper/lower)',
+			eyeball_center: 'Eyeball centered',
+			eyeball_left: 'Eyeball far left',
+			eyeball_right: 'Eyeball far right',
+		},
+		saving: {
+			title: 'Saving settings',
+			description: 'Keep the device connected and do not close this page until saving finishes.',
+		},
+		complete: {
+			title: 'Setup complete',
+			description: 'The servo calibration settings were saved successfully. You can return to Home.',
+			debug_title: 'Setup complete — device remains in Debug mode',
+			debug_description:
+				'The servo calibration settings were saved, but the mode switch failed. Manually switch the device to the required operating mode.',
+		},
+		discard: {
+			restart_title: 'Restart setup?',
+			restart_message: 'All unsubmitted adjustments will be cleared and setup will restart from the server midpoint values.',
+			cancel_title: 'Cancel calibration?',
+			cancel_message: 'All unsubmitted adjustments will be cleared and you will return to Home.',
+		},
+		validation: {
+			range: 'Every servo angle must be an integer from 0 through 180.',
+			upper_endpoints: 'The upper-eyelid fully open angle must be less than its closed angle.',
+			lower_endpoints: 'The lower-eyelid closed angle must be less than its fully open angle.',
+			upper_middle: 'The upper-eyelid midpoint must be strictly between its fully open and closed angles.',
+			lower_middle: 'The lower-eyelid midpoint must be strictly between its closed and fully open angles.',
+			eyeball_left_center: 'The far-left eyeball position cannot equal the center position.',
+			eyeball_endpoints: 'The far-left and far-right eyeball positions cannot be equal.',
+			eyeball_center: 'The eyeball center must be strictly between the far-left and far-right positions.',
+		},
+		actions: {
+			start: 'Start setup',
+			start_from_existing: 'Start from existing settings',
+			previous: 'Previous',
+			next: 'Next',
+			cancel: 'Cancel',
+			restart: 'Restart',
+			complete: 'Save and finish',
+			retry: 'Retry initialization',
+			reload: 'Refresh page',
+			keep_editing: 'Keep editing',
+			confirm_restart: 'Clear and restart',
+			confirm_cancel: 'Clear and cancel',
+			back_home: 'Back to Home',
 		},
 	},
 

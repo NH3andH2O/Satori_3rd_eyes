@@ -55,13 +55,14 @@ export const WS_MESSAGE_TYPES = {
 	JOYSTICK_MOVE_END: 'joystick/move/end',
 	JOYSTICK_EYELID: 'joystick/eyelid/move',
 	JOYSTICK_EYELID_END: 'joystick/eyelid/end',
+	SERVO_PREVIEW: 'preview',
 } as const;
 
 /**
  * 模式常量
  */
 export const MODES = {
-	NONE: 0,
+	SERVO_SETUP: 0,
 	GYROSCOPE: 1,
 	NETWORK_CONTROL: 2,
 } as const;
@@ -81,6 +82,8 @@ export const API_ENDPOINTS = {
 	// 模式
 	MODE_CONFIG: '/api/mode_config',
 	SET_MODE_CONFIG: '/api/set_mode_config',
+	SERVO_CONFIG: '/api/servo_config',
+	SET_SERVO_CONFIG: '/api/set_servo_config',
 
 	// 高級
 	ADVANCED_CONFIG: '/api/advanced_config',

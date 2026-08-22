@@ -25,6 +25,7 @@
 #include <ESPmDNS.h>
 #include <ArduinoJson.h>
 #include <driver/uart.h>
+#include <esp_log.h>
 /* 自定義程式庫 */
 #include <gc9a01.h>
 #include <eyesMove.h>
@@ -49,8 +50,9 @@
 #define GC9A01_SCL_PIN 17 // GC9A01時鐘引脚
 #define GC9A01_SDA_PIN 16 // GC9A01數據引脚
 
-#define GYROSCOPE_TRACKS_MODE 1
-#define NETWORK_CONTROL_MODE 2
+#define SERVO_SET_MODE 0		// 伺服馬達調試模式
+#define GYROSCOPE_TRACKS_MODE 1 // 陀螺儀跟蹤模式
+#define NETWORK_CONTROL_MODE 2	// 網絡控制模式
 
 /** 函數宣告 **/
 /* 事件函數宣告 */
@@ -71,6 +73,7 @@ void taskNetworkControlGC9A01(void *arg);	 // 網絡控制屏幕任務
 void taskGC9A01(void *arg);					 // GC9A01任務
 void taskEyesMove(void *arg);				 // 眼睛任務
 void taskUART0Read(void *arg);				 // UART0讀取任務
+void taskServoSet(void *arg);				 // 伺服馬達調試任務
 
 /* 其他函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType); // 佇列創建
@@ -104,6 +107,7 @@ QueueHandle_t mode_data_quene;					// 宣告模式數據佇列
 QueueHandle_t uart0_queue;						// UART0事件佇列
 QueueHandle_t network_control_data_quene;		// 網絡數據佇列
 QueueHandle_t network_control_speed_data_quene; // 網絡控制速度數據佇列
+QueueHandle_t servoSet_data_quene;				// 伺服馬達調試數據佇列
 
 /* 任務參照 */
 TaskHandle_t taskWitEyesGetData_handle;		  // 獲取wit眼睛數據任務
@@ -118,12 +122,20 @@ TaskHandle_t taskWebServer_handle;			  // Web服務器任務
 TaskHandle_t taskNetwork_handle;			  // 網絡任務
 TaskHandle_t taskModeManagement_handle;		  // 模式管理任務
 TaskHandle_t taskUART0Read_handle;			  // UART0讀取任務
-
+TaskHandle_t taskServoSet_handle;			  // 伺服馬達調試任務
 /* 定時器參照 */
 TimerHandle_t wifiReconnectTimer; // WiFi重連定時器
 
 void setup()
 {
+	uint8_t log_level = config.getLogConfig();
+	if (log_level < ESP_LOG_ERROR || log_level > ESP_LOG_VERBOSE)
+	{
+		log_level = ESP_LOG_INFO;
+		config.setLogConfig(log_level);
+	}
+	esp_log_level_set("*", static_cast<esp_log_level_t>(log_level));
+
 	/* 系統資訊列印 */
 	ESP_LOGI("System", "========================================");
 	ESP_LOGI("System", "3rd Eyes System Starting...");
@@ -185,17 +197,20 @@ void setup()
 	queueCreate(&mode_data_quene, 10, sizeof(int8_t));							 // 模式數據佇列
 	queueCreate(&network_control_data_quene, 10, sizeof(network_control_data));	 // 網絡控制佇列
 	queueCreate(&network_control_speed_data_quene, 10, sizeof(double));			 // 網絡控制速度佇列
+	queueCreate(&servoSet_data_quene, 10, sizeof(servoSet_data));				 // 伺服馬達數據佇列
 
 	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
 
 	/* 定時器建立 */
 	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
 
+	/* 使能伺服電機 */
+	eyesmove.eyesMove_init();
+
 	/* 任務建立 */
 	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_handle, 0);				 // 創建UART0讀取任務
 	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_handle, 0);						 // 創建網絡任務
 	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_handle, 1);						 // 創建GC9A01任務
-	xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_handle, 1);					 // 創建眼睛移動任務
 	xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_handle, 1); // 創建模式管理任務
 }
 
@@ -428,6 +443,8 @@ void taskWebServer(void *pvParameters)
 	server.on("/api/set_mode_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_mode_config);
 	server.on("/api/advanced_config", HTTP_GET, api_advanced_config);
 	server.on("/api/set_advanced_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_advanced_config);
+	server.on("/api/servo_config", HTTP_GET, api_servo_config);
+	server.on("/api/set_servo_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_servo_config);
 
 	/* 伺服器啓動 */
 	server.begin();
@@ -446,18 +463,21 @@ void taskModeManagement(void *pvParameters)
 	uint8_t task_register = 0;				   // 任務寄存器
 	ESP_LOGI("mode", "Current mode: %d", mode);
 	/* 高 <-------> 低
-	|  |  |  |  |  |  | 陀螺儀跟蹤任務 | 獲取數據任務 | */
+	|  |  |  | 眼球移動任務 | 伺服馬達調試任務 | 網絡控制任務 | 陀螺儀跟蹤任務 | 獲取數據任務 | */
 	while (1)
 	{
 
 		/* 設置任務寄存器 */
 		switch (mode)
 		{
+			case SERVO_SET_MODE: // 伺服馬達調試模式
+				task_register = 0x08;
+				break;
 			case GYROSCOPE_TRACKS_MODE: // 陀螺儀跟蹤模式
-				task_register = 0x03;
+				task_register = 0x13;
 				break;
 			case NETWORK_CONTROL_MODE: // 網絡控制模式
-				task_register = 0x04;
+				task_register = 0x14;
 				break;
 			default:
 				task_register = 0x00;
@@ -497,6 +517,22 @@ void taskModeManagement(void *pvParameters)
 		{
 			TaskDeleteSafe(&taskNetworkControl_handle);		  // 刪除網絡控制任務
 			TaskDeleteSafe(&taskNetworkControlGC9A01_handle); // 刪除網絡控制屏幕任務
+		}
+		if (task_register & 0x08) // 伺服馬達調試任務
+		{
+			xTaskCreatePinnedToCore(taskServoSet, "taskServoSet", 4096, NULL, 1, &taskServoSet_handle, 1); // 創建伺服馬達調試任務
+		}
+		else
+		{
+			TaskDeleteSafe(&taskServoSet_handle); // 刪除伺服馬達調試任務
+		}
+		if (task_register & 0x10) // 眼球移動任務
+		{
+			xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_handle, 1); // 創建眼球移動任務
+		}
+		else
+		{
+			TaskDeleteSafe(&taskEyesMove_handle); // 刪除眼球移動任務
 		}
 
 		/* 等待模式數據 */
@@ -811,9 +847,9 @@ void taskNetworkControl(void *arg)
 	int8_t send_x = 0, send_y = 0;		  // 發送眼睛角度
 	double speed_x = 0, speed_y = 0;	  // 眼睛速度
 	double velocity = 0;				  // 眼睛速度絕對值
-	double eyelid_angle = 45;			  // 眼睛張開角度
-	uint8_t eyelid_angle_int = 45;		  // 眼睛張開角度整數
-	uint8_t send_eyelid_angle = 45;		  // 眼睛張開目標角度
+	double eyelid_angle = 40;			  // 眼睛張開角度
+	uint8_t eyelid_angle_int = 40;		  // 眼睛張開角度整數
+	uint8_t send_eyelid_angle = 40;		  // 眼睛張開目標角度
 	uint64_t move_last_time = 0;		  // 眼睛移動上次時間
 	uint64_t eyelid_last_time = 0;		  // 眼皮角度移動上次時間
 	uint8_t type = 0;					  // 數據類型
@@ -902,7 +938,7 @@ void taskNetworkControl(void *arg)
 
 			/* 映射眼睛角度 */
 			x = map(data_get.x, -100, 100, -55, 55);
-			y = map(data_get.y, -100, 100, -35, 35);
+			y = map(data_get.y, -100, 100, -40, 40);
 
 			/* 設置眼睛角度 */
 			send_x = x;
@@ -971,6 +1007,29 @@ void taskNetworkControlGC9A01(void *arg)
 	}
 }
 
+/* 伺服馬達調試任務 */
+void taskServoSet(void *arg)
+{
+	servoSet_data servoSet;	 // 伺服馬達調試類
+	GC9A01_data gc9a01_data; // GC9A01數據結構體
+
+	gc9a01_data.R = 80;								// 設置GC9A01半徑
+	gc9a01_data.zetaR = 1;							// 設置GC9A01阻尼比
+	gc9a01_data.omega_nR = 5;						// 設置GC9A01自然頻率
+	gc9a01_data.lightMax = 150;						// 設置GC9A01光暈最大值
+	gc9a01_data.zetaLightMax = 1;					// 設置GC9A01光暈阻尼比
+	gc9a01_data.omega_nLightMax = 5;				// 設置GC9A01光暈自然頻率
+	xQueueSend(gc9a01_data_quene, &gc9a01_data, 0); // 傳遞GC9A01數據
+	while (1)
+	{
+		if (xQueueReceive(servoSet_data_quene, &servoSet, portMAX_DELAY) == pdTRUE) // 從佇列中獲取數據
+		{
+			eyesmove.eyesMove_servo_debug(servoSet.upper_eyelid_angle, servoSet.lower_eyelid_angle,
+										  servoSet.eyeball_angle); // 更新伺服馬達調試類
+		}
+	}
+}
+
 /* 畫眼睛任務 */
 void taskGC9A01(void *arg)
 {
@@ -1010,7 +1069,6 @@ void taskEyesMove(void *arg)
 	uint8_t is_eyesmove_update_finish = 0; // 眼睛更新狀態
 
 	/* 初始化眼睛 */
-	eyesmove.eyesMove_init(); // 初始化眼睛
 	eyesmove.eyesMove_angle_pid(4.0, 0.2, 0.25);
 	while (1)
 	{
@@ -1062,7 +1120,8 @@ void taskUART0Read(void *arg)
 		{
 			if (event.type == UART_DATA)
 			{
-				uint16_t len = uart_read_bytes(UART_NUM_0, data, event.size, portMAX_DELAY);
+				uint16_t read_size = event.size < BUF_SIZE ? event.size : BUF_SIZE - 1;
+				uint16_t len = uart_read_bytes(UART_NUM_0, data, read_size, portMAX_DELAY);
 				if (len > 0)
 				{
 					data[len] = '\0';
@@ -1070,15 +1129,117 @@ void taskUART0Read(void *arg)
 					data_str.trim();		// 去除空格
 					data_str.toLowerCase(); // 轉換為小寫
 
-					/* 執行指令 */
-					if (data_str == "reset") // 重啓指令
+					/** 執行指令 **/
+					/* 重啓指令 */
+					if (data_str == "reset")
 					{
 						ESP_LOGI("UART", "Reset command received. Restarting...");
 						ESP.restart();
 					}
-					else if (data_str == "help") // 幫助指令
+					/* 幫助指令 */
+					else if (data_str == "help")
 					{
-						ESP_LOGI("UART", "\nAvailable commands:\nreset - Restart the device\nhelp - Show this help message");
+						ESP_LOGI("UART", "\nAvailable commands:\nreset - Restart the device\nreservo - Reset servo configuration\nhelp - Show this "
+										 "help message\nmode [number] - Show or change "
+										 "the operating mode\nlog [number] - Show or change the log level (1-5)");
+					}
+					/* 重置伺服馬達設定指令 */
+					else if (data_str == "reservo")
+					{
+						config.clearServoConfig();
+
+						int8_t mode = SERVO_SET_MODE;
+						AppConfig::ModeConfig mode_config = config.getModeConfig();
+						mode_config.mode = static_cast<uint8_t>(mode);
+						config.setModeConfig(mode_config);
+
+						ESP_LOGI("UART", "Servo configuration cleared. Switched to servo setup mode.");
+						xQueueSend(mode_data_quene, &mode, 0);
+					}
+					/* 模式指令 */
+					else if (data_str == "mode" || data_str.startsWith("mode "))
+					{
+						String mode_value = data_str.substring(4);
+						mode_value.trim();
+
+						if (mode_value.length() == 0) // 顯示當前模式
+						{
+							AppConfig::ModeConfig mode_config = config.getModeConfig();
+							ESP_LOGI("UART", "Current mode: %d", static_cast<int>(mode_config.mode));
+						}
+						else // 嘗試更改模式
+						{
+							bool is_number = true;
+							for (size_t i = 0; i < mode_value.length() && is_number; i++)
+							{
+								is_number = isDigit(mode_value.charAt(i));
+							}
+
+							if (!is_number) // 檢測是否為數字
+							{
+								ESP_LOGE("UART", "Invalid mode command. Usage: mode <number>");
+							}
+							else
+							{
+								long mode_value_number = mode_value.toInt();
+								if (mode_value_number < 0 || mode_value_number > 2) // 檢測模式值是否有效
+								{
+									ESP_LOGE("UART", "Invalid mode value: %ld. Valid values are %d or %d", mode_value_number, GYROSCOPE_TRACKS_MODE,
+											 NETWORK_CONTROL_MODE);
+								}
+								else
+								{
+									int8_t mode = static_cast<int8_t>(mode_value_number);
+									AppConfig::ModeConfig mode_config = config.getModeConfig();
+									mode_config.mode = static_cast<uint8_t>(mode);
+									config.setModeConfig(mode_config);
+									xQueueSend(mode_data_quene, &mode, 0);
+								}
+							}
+						}
+					}
+					else if (data_str == "log" || data_str.startsWith("log "))
+					{
+						String log_value = data_str.substring(3);
+						log_value.trim();
+
+						if (log_value.length() == 0)
+						{
+							char response[32];
+							int response_length = snprintf(response, sizeof(response), "Current log level: %u\r\n",
+														   static_cast<unsigned int>(esp_log_get_default_level()));
+							uart_write_bytes(UART_NUM_0, response, response_length);
+						}
+						else
+						{
+							bool is_number = true;
+							for (size_t i = 0; i < log_value.length() && is_number; i++)
+							{
+								is_number = isDigit(log_value.charAt(i));
+							}
+
+							if (!is_number)
+							{
+								ESP_LOGE("UART", "Invalid log command. Usage: log <1-5>");
+							}
+							else
+							{
+								long log_level = log_value.toInt();
+								if (log_level < ESP_LOG_ERROR || log_level > ESP_LOG_VERBOSE)
+								{
+									ESP_LOGE("UART", "Invalid log level: %ld. Valid values are 1-5", log_level);
+								}
+								else
+								{
+									config.setLogConfig(static_cast<uint8_t>(log_level));
+									esp_log_level_set("*", static_cast<esp_log_level_t>(log_level));
+
+									char response[32];
+									int response_length = snprintf(response, sizeof(response), "Log level changed to: %ld\r\n", log_level);
+									uart_write_bytes(UART_NUM_0, response, response_length);
+								}
+							}
+						}
 					}
 					else
 					{
@@ -1097,7 +1258,6 @@ void taskUART0Read(void *arg)
 		}
 	}
 }
-
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
 {
 	/* 佇列建立 */

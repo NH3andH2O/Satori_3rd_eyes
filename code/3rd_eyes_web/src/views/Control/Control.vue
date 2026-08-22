@@ -61,12 +61,7 @@ onBeforeUnmount(() => {
 
 <template>
 	<!-- 全屏加载遮罩 -->
-	<div
-		v-loading="isLoading"
-		:element-loading-text="loadingText"
-		element-loading-background="rgba(0, 0, 0, 0.5)"
-		class="loading-container"
-	>
+	<div v-loading="isLoading" :element-loading-text="loadingText" element-loading-background="rgba(0, 0, 0, 0.5)" class="loading-container">
 		<!-- 模式错误对话框 -->
 		<el-dialog
 			v-model="modeErrorDialogVisible"
@@ -206,6 +201,24 @@ onBeforeUnmount(() => {
 	touch-action: none;
 	padding-bottom: env(safe-area-inset-bottom); /* iOS 安全区 */
 	z-index: 1;
+}
+
+.joystick-values {
+	position: absolute;
+	top: max(20px, env(safe-area-inset-top));
+	left: 50%;
+	z-index: 2;
+	display: flex;
+	gap: 16px;
+	padding: 8px 14px;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	font-family: monospace;
+	font-size: 18px;
+	font-weight: 700;
+	transform: translateX(-50%);
+	pointer-events: none;
 }
 
 /* 手机端：上下布局 */

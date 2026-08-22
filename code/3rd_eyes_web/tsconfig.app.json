@@ -9,11 +9,18 @@
 		"erasableSyntaxOnly": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUncheckedSideEffectImports": true,
-		"baseUrl": ".", // 設定從哪裡開始解析相對路徑
 		"paths": {
-			"@/*": ["src/*"], // 設定 @ 指向 src 目錄
-			"@utils/*": ["src/utils/*"]
+			"@/*": [
+				"./src/*"
+			], // 設定 @ 指向 src 目錄
+			"@utils/*": [
+				"./src/utils/*"
+			]
 		}
 	},
-	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.tsx",
+		"src/**/*.vue"
+	]
 }

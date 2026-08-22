@@ -64,10 +64,12 @@ export default {
 		title: '模式設定',
 		mode: '模式：',
 		mode_info: {
+			servo_debug: '伺服器除錯模式',
 			gyroscope_tracks: '陀螺儀跟隨模式',
 			network_control: '網絡控制模式',
 		},
 		enter_network_control: '進入控制界面',
+		enter_servo_setup: '進入覺之瞳設定',
 		save: '儲存',
 
 		/* 狀態 */
@@ -81,6 +83,121 @@ export default {
 		errors: {
 			mode_empty: '模式不能為空',
 			mode_invalid: '模式非法',
+		},
+	},
+
+	setup: {
+		page_title: '覺之瞳伺服校正',
+		title: '覺之瞳設定精靈',
+		progress: '第 {current}／{total} 步',
+		mode_error: '目前模式不是伺服設定模式，無法進入設定精靈。',
+		loading: {
+			checking_mode: '正在檢查伺服設定模式...',
+			loading_config: '正在載入伺服設定...',
+			connecting_ws: '正在連接即時預覽服務...',
+			ws_timeout: 'WebSocket 連線逾時，請確認裝置與網路狀態。',
+		},
+		state: {
+			get_failed: '無法取得伺服設定',
+			mode_failed: '無法取得目前模式',
+			save_failed: '伺服設定儲存失敗，請確認裝置連線後重試。',
+		},
+		errors: {
+			mode_title: '模式錯誤',
+			connection_title: '連線錯誤',
+			websocket_title: 'WebSocket 錯誤',
+		},
+		welcome: {
+			title: '歡迎使用覺之瞳設定精靈',
+			description: '接下來將依序校正眼皮與眼球的活動範圍。',
+		},
+		steps: {
+			eyelid_open: {
+				title: '眼皮最大張開',
+				description: '調整上、下眼皮至安全的最大張開位置；可移動眼球確認眼皮不會碰撞眼球機構。',
+			},
+			eyelid_closed: {
+				title: '眼皮閉合',
+				description: '調整上、下眼皮至自然閉合且不互相擠壓的位置。',
+			},
+			eyelid_middle: {
+				title: '眼皮中間',
+				description: '調整上、下眼皮至開合範圍的中間位置，確認兩側間距自然。',
+			},
+			eyeball_center: {
+				title: '眼球置中',
+				description: '調整眼球至正中央位置。',
+			},
+			eyeball_left: {
+				title: '眼球最左',
+				description: '將眼球調整至安全的最左位置，不要讓機構卡住。',
+			},
+			eyeball_right: {
+				title: '眼球最右',
+				description: '將眼球調整至安全的最右位置，不要讓機構卡住。',
+			},
+		},
+		controls: {
+			upper_eyelid: '上眼皮伺服馬達',
+			lower_eyelid: '下眼皮伺服馬達',
+			eyeball: '眼球伺服馬達',
+		},
+		websocket: {
+			reconnecting: '裝置連線中斷，正在重新連接...',
+			reconnected: '裝置已重新連線',
+			failed: '自動重連失敗，請刷新頁面後重新連線。',
+		},
+		review: {
+			step_title: '確認設定',
+			title: '確認校正設定',
+			description: '請確認以下校正值，完成後將儲存至裝置。',
+			eyelid_open: '眼皮最大張開（上／下）',
+			eyelid_closed: '眼皮閉合（上／下）',
+			eyelid_middle: '眼皮中間（上／下）',
+			eyeball_center: '眼球置中',
+			eyeball_left: '眼球最左',
+			eyeball_right: '眼球最右',
+		},
+		saving: {
+			title: '正在儲存設定',
+			description: '請保持裝置連線，完成前不要關閉頁面。',
+		},
+		complete: {
+			title: '設定完成',
+			description: '伺服校正設定已成功儲存，可以返回首頁。',
+			debug_title: '設定已完成，目前仍為調試模式',
+			debug_description: '伺服校正設定已成功儲存，但模式切換失敗。請手動將裝置切換至需要的運作模式。',
+		},
+		discard: {
+			restart_title: '重新開始設定？',
+			restart_message: '目前尚未提交的調整將全部清除，並從後端中間位置重新開始。',
+			cancel_title: '取消本次校正？',
+			cancel_message: '目前尚未提交的調整將全部清除，並返回首頁。',
+		},
+		validation: {
+			range: '所有伺服角度必須是 0 至 180 的整數。',
+			upper_endpoints: '上眼皮最大張開角度必須小於閉合角度。',
+			lower_endpoints: '下眼皮閉合角度必須小於最大張開角度。',
+			upper_middle: '上眼皮中間角度必須位於最大張開與閉合之間。',
+			lower_middle: '下眼皮中間角度必須位於閉合與最大張開之間。',
+			eyeball_left_center: '眼球最左位置不能與中心位置相同。',
+			eyeball_endpoints: '眼球最左與最右位置不能相同。',
+			eyeball_center: '眼球中心位置必須嚴格位於最左與最右位置之間。',
+		},
+		actions: {
+			start: '開始設定',
+			start_from_existing: '從現有設定開始',
+			previous: '上一步',
+			next: '下一步',
+			cancel: '取消',
+			restart: '重新開始',
+			complete: '儲存並完成',
+			retry: '重試初始化',
+			reload: '刷新頁面',
+			keep_editing: '繼續調整',
+			confirm_restart: '清除並重新開始',
+			confirm_cancel: '清除並取消',
+			back_home: '返回首頁',
 		},
 	},
 

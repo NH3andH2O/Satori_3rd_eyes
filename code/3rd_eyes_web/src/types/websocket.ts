@@ -33,6 +33,12 @@ export interface EyelidPayload {
 	vy: number;
 }
 
+export interface ServoPreviewPayload {
+	upper_eyelid_angle: number;
+	lower_eyelid_angle: number;
+	eyeball_angle: number;
+}
+
 /**
  * 搖桿結束事件
  */

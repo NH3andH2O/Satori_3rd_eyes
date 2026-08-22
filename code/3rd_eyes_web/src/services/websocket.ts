@@ -155,6 +155,7 @@ class WebSocketService {
 
 	/* 重置重連狀態（用於手動觸發重連） */
 	resetReconnect(): void {
+		this.clearReconnectTimer();
 		this.reconnectAttempts = 0;
 		this.shouldReconnect = true;
 		this.manualClose = false;
@@ -172,13 +173,20 @@ class WebSocketService {
 		this.emitter.off(type, handler);
 	}
 
-	send<T = unknown>(type: string, payload: T): void {
+	send<T = unknown>(type: string, payload: T): boolean {
 		const msg: WebSocketMessage<T> = { type, payload };
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-			this.ws.send(JSON.stringify(msg));
-		} else {
-			console.warn('WS not ready, sending skipped', msg);
+			try {
+				this.ws.send(JSON.stringify(msg));
+				return true;
+			} catch (error) {
+				console.error('WS send failed', error);
+				return false;
+			}
 		}
+
+		console.warn('WS not ready, sending skipped', msg);
+		return false;
 	}
 }
 
