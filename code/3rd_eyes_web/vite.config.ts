@@ -81,6 +81,17 @@ export default defineConfig({
 		},
 	},
 	plugins: [
+		{
+			name: 'emit-version-file',
+			apply: 'build',
+			generateBundle() {
+				this.emitFile({
+					type: 'asset',
+					fileName: 'version.txt',
+					source: appVersion,
+				});
+			},
+		},
 		viteCompression({
 			algorithm: 'gzip',
 			ext: '.gz',

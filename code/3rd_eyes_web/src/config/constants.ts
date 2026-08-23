@@ -71,6 +71,8 @@ export const MODES = {
  * API 端點
  */
 export const API_ENDPOINTS = {
+	VERSION: '/api/version',
+
 	// WiFi
 	WIFI_CONFIG: '/api/wifi_config',
 	SET_WIFI_CONFIG: '/api/set_wifi_config',

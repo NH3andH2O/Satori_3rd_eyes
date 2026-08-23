@@ -414,6 +414,31 @@ void taskWebServer(void *pvParameters)
 	}
 	ESP_LOGI("LittleFS", "LittleFS mounted successfully");
 
+	File webVersionFile = LittleFS.open("/www/version.txt", FILE_READ);
+	if (!webVersionFile)
+	{
+		ESP_LOGE("System", "Web version file is missing or could not be opened");
+	}
+	else
+	{
+		String webVersion = webVersionFile.readString();
+		webVersionFile.close();
+		webVersion.trim();
+
+		if (webVersion.length() == 0)
+		{
+			ESP_LOGW("System", "Web version file is empty");
+		}
+		else
+		{
+			ESP_LOGI("System", "Web Version: %s", webVersion.c_str());
+			if (webVersion != VERSION)
+			{
+				ESP_LOGW("System", "Version mismatch: Firmware=%s, Web=%s", VERSION, webVersion.c_str());
+			}
+		}
+	}
+
 	// 顯示檔案系統資訊
 	ESP_LOGI("LittleFS", "Total: %d bytes, Used: %d bytes", LittleFS.totalBytes(), LittleFS.usedBytes());
 
@@ -433,6 +458,7 @@ void taskWebServer(void *pvParameters)
 	server.serveStatic("/", LittleFS, "/www/").setDefaultFile("index.html");
 	server.onNotFound(handleNotFound);
 	server.on("/", HTTP_GET, handleRoot);
+	server.on("/api/version", HTTP_GET, api_version);
 	server.on("/api/wifi_config", HTTP_GET, api_wifi_config);
 	server.on("/api/set_wifi_config", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, api_set_wifi_config);
 	server.on("/api/softap_config", HTTP_GET, api_softAP_config);

@@ -3,6 +3,8 @@ export default {
 	homepage: {
 		page_title: '3rdEyes',
 		title: '3rdEyes Settings',
+		version_mismatch: 'The frontend and backend versions differ, which may cause compatibility issues',
+		version_get_failed: 'Unable to retrieve the backend version',
 	},
 
 	/* WiFi 設定 */

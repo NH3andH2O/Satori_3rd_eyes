@@ -59,6 +59,10 @@ export interface AdvancedConfig {
 	correction_timer: number;
 }
 
+export interface VersionInfo {
+	version: string;
+}
+
 export interface ServoConfig {
 	is_setup: boolean;
 	max_upper_eyelid: number;

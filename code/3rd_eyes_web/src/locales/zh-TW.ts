@@ -3,6 +3,8 @@ export default {
 	homepage: {
 		page_title: '覺之瞳',
 		title: '覺之瞳設定',
+		version_mismatch: '前端與後端版本不相同，可能會出現兼容性問題',
+		version_get_failed: '無法取得後端版本',
 	},
 
 	/* WiFi 設定 */

@@ -190,6 +190,24 @@ void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEven
 	}
 }
 
+/* get後端版本獲取 */
+void api_version(AsyncWebServerRequest *request)
+{
+	/* 檢查請求方法 */
+	if (request->method() != HTTP_GET)
+	{
+		request->send(405, "text/plain", "Method Not Allowed");
+		return;
+	}
+
+	/* 構建JSON */
+	JsonDocument doc;
+	doc["version"] = VERSION;
+
+	/* 發送響應 */
+	sendJsonResponse(request, 200, true, ServerError::ERR_OK, "", &doc);
+}
+
 /* get wifi設置獲取 */
 void api_wifi_config(AsyncWebServerRequest *request)
 {
