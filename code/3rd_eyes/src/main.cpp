@@ -24,7 +24,10 @@
 #include <ArduinoJson.h>
 #include <driver/uart.h>
 #include <esp_log.h>
+#include <esp_system.h>
+#include <esp_wifi.h>
 #include <freertos/event_groups.h>
+#include <atomic>
 /* 自定義程式庫 */
 #include <gc9a01.h>
 #include <eyesMove.h>
@@ -94,6 +97,9 @@ bool GetModeTaskMask(int8_t mode, uint8_t *taskMask);
 bool StopWitTasks();
 void ResetModeQueues();
 void StopAllModeTasks();
+bool ConnectMeshWiFi(const AppConfig::WiFiConfig &wifiConfig);
+bool StartSoftAP(const AppConfig::SoftAPConfig &softAPConfig);
+void ScheduleWiFiReconnect(uint8_t reason);
 String macToString(const uint8_t mac[6]); // MAC地址轉字符串
 
 /* 結構體宣告 */
@@ -143,6 +149,11 @@ TaskHandle_t taskUART0Read_handle = nullptr;			// UART0讀取任務
 TaskHandle_t taskServoSet_handle = nullptr;				// 伺服馬達調試任務
 /* 定時器參照 */
 TimerHandle_t wifiReconnectTimer; // WiFi重連定時器
+
+static constexpr uint32_t WIFI_RECONNECT_DELAYS_MS[] = {5000, 15000, 30000, 60000};
+static constexpr uint32_t WIFI_RECONNECT_JITTER_MS = 1000;
+static std::atomic_bool wifiReconnectAllowed{false};
+static std::atomic_uint32_t wifiReconnectAttempt{0};
 
 void setup()
 {
@@ -210,7 +221,7 @@ void setup()
 	queueCreate(&wit_data_relative_angle_quene, 10, sizeof(witPProcessingData)); // witPProcessingData結構體佇列
 	queueCreate(&eyesmove_data_quene, 10, sizeof(eyesMove_data));				 // eyesMove_data結構體佇列
 	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));					 // GC9A01_data結構體佇列
-	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));					 // WiFi更新佇列
+	queueCreate(&wifiUpdate_data_quene, 10, sizeof(NetworkCommand));			 // WiFi更新佇列
 	// 設定更新只保留最新值
 	queueCreate(&wit_advanced_config_update_quene, 1, sizeof(AppConfig::AdvancedConfig));
 	queueCreate(&gyroscope_advanced_config_update_quene, 1, sizeof(AppConfig::AdvancedConfig));
@@ -257,50 +268,24 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 {
 	switch (event)
 	{
-		/* wifi部分 */
-		case ARDUINO_EVENT_WIFI_STA_GOT_IP: // WiFi連接成功
-			ESP_LOGI("wifi", "Connected to '%s' with IP %s", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+		case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+			ESP_LOGI("wifi", "STA connected: SSID='%.*s', BSSID=%s, channel=%u, auth=%d", info.wifi_sta_connected.ssid_len,
+					 reinterpret_cast<const char *>(info.wifi_sta_connected.ssid), macToString(info.wifi_sta_connected.bssid).c_str(),
+					 info.wifi_sta_connected.channel, info.wifi_sta_connected.authmode);
 			break;
-		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: // WiFi斷開
-			switch (info.wifi_sta_disconnected.reason)
-			{
-				case WIFI_REASON_NO_AP_FOUND: // 無法找到AP
-					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
-					xTimerStart(wifiReconnectTimer, 0);
-					break;
-				case WIFI_REASON_AUTH_FAIL: // 認證失敗
-					break;
-				case WIFI_REASON_802_1X_AUTH_FAILED: // 802.1x認證失敗
-					break;
-				case WIFI_REASON_HANDSHAKE_TIMEOUT: // 握手超時
-					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
-					xTimerStart(wifiReconnectTimer, 0);
-					break;
-				case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT: // 4路握手超時
-					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
-					xTimerStart(wifiReconnectTimer, 0);
-					break;
-				case WIFI_REASON_BEACON_TIMEOUT: // 信標超時
-					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
-					xTimerStart(wifiReconnectTimer, 0);
-					break;
-				case WIFI_REASON_ASSOC_EXPIRE: // 協會過期
-					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
-					xTimerStart(wifiReconnectTimer, 0);
-					break;
-				case WIFI_REASON_AUTH_EXPIRE: // 認證過期
-					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
-					xTimerStart(wifiReconnectTimer, 0);
-					break;
-				case WIFI_REASON_ASSOC_LEAVE: // 協會離開
-					break;
-				default:
-					ESP_LOGW("wifi", "Disconnected from WiFi for reason: %d", info.wifi_sta_disconnected.reason);
-
-					break;
-			}
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+			xTimerStop(wifiReconnectTimer, 0);
+			wifiReconnectAttempt.store(0);
+			ESP_LOGI("wifi", "Connected to '%s': BSSID=%s, channel=%d, RSSI=%d dBm, IP=%s", WiFi.SSID().c_str(), WiFi.BSSIDstr().c_str(),
+					 WiFi.channel(), WiFi.RSSI(), WiFi.localIP().toString().c_str());
 			break;
-		case ARDUINO_EVENT_WIFI_STA_STOP: // WiFi停止
+		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+			ESP_LOGW("wifi", "STA disconnected: BSSID=%s, reason=%u (%s)", macToString(info.wifi_sta_disconnected.bssid).c_str(),
+					 info.wifi_sta_disconnected.reason,
+					 WiFi.STA.disconnectReasonName(static_cast<wifi_err_reason_t>(info.wifi_sta_disconnected.reason)));
+			ScheduleWiFiReconnect(info.wifi_sta_disconnected.reason);
+			break;
+		case ARDUINO_EVENT_WIFI_STA_STOP:
 			ESP_LOGI("wifi", "WiFi stopped");
 			break;
 		case ARDUINO_EVENT_WIFI_AP_START:
@@ -326,42 +311,143 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 /* WiFi重連定時器回調 */
 void TimerReconnectWiFi(TimerHandle_t xTimer)
 {
-	if (WiFi.status() != WL_CONNECTED)
+	if (wifiReconnectAllowed.load() && WiFi.status() != WL_CONNECTED)
 	{
-		const AppConfig::WiFiConfig wificonfig = config.getWiFiConfig(); // 獲取WiFi配置
-		ESP_LOGI("wifi", "Attempting reconnect...");
-		WiFi.begin(wificonfig.ssid.c_str(), wificonfig.password.c_str());
+		// Wi-Fi 操作集中於 network task，避免跨 task 修改 driver 狀態。
+		const NetworkCommand command = NetworkCommand::StaReconnect;
+		if (xQueueSend(wifiUpdate_data_quene, &command, 0) != pdTRUE)
+		{
+			ESP_LOGE("wifi", "Failed to queue WiFi reconnect command");
+		}
 	}
+}
+
+void ScheduleWiFiReconnect(uint8_t reason)
+{
+	if (!wifiReconnectAllowed.load())
+	{
+		return;
+	}
+
+	const uint32_t attempt = wifiReconnectAttempt.fetch_add(1);
+	const size_t delayCount = sizeof(WIFI_RECONNECT_DELAYS_MS) / sizeof(WIFI_RECONNECT_DELAYS_MS[0]);
+	const size_t delayIndex = attempt < delayCount ? attempt : delayCount - 1;
+	const uint32_t delayMs = WIFI_RECONNECT_DELAYS_MS[delayIndex] + esp_random() % (WIFI_RECONNECT_JITTER_MS + 1);
+
+	ESP_LOGW("wifi", "Reconnect attempt %lu scheduled in %lu ms after reason %u", static_cast<unsigned long>(attempt + 1),
+			 static_cast<unsigned long>(delayMs), reason);
+	if (xTimerChangePeriod(wifiReconnectTimer, pdMS_TO_TICKS(delayMs), 0) != pdPASS)
+	{
+		ESP_LOGE("wifi", "Failed to schedule WiFi reconnect timer");
+	}
+}
+
+bool ConnectMeshWiFi(const AppConfig::WiFiConfig &wifiConfig)
+{
+	if (!wifiConfig.is_enabled || wifiConfig.ssid.isEmpty())
+	{
+		return false;
+	}
+
+	WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+	WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+	const char *password = wifiConfig.password.isEmpty() ? nullptr : wifiConfig.password.c_str();
+
+	if (WiFi.begin(wifiConfig.ssid.c_str(), password, 0, nullptr, false) == WL_CONNECT_FAILED)
+	{
+		ESP_LOGE("wifi", "Failed to configure STA credentials");
+		return false;
+	}
+
+	wifi_config_t stationConfig{};
+	esp_err_t error = esp_wifi_get_config(WIFI_IF_STA, &stationConfig);
+	if (error != ESP_OK)
+	{
+		ESP_LOGE("wifi", "Failed to read STA configuration: %s", esp_err_to_name(error));
+		return false;
+	}
+
+	// Mesh 選擇必須保留同一 SSID 下切換 BSSID 與頻道的自由。
+	stationConfig.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+	stationConfig.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+	stationConfig.sta.bssid_set = false;
+	stationConfig.sta.channel = 0;
+	stationConfig.sta.failure_retry_cnt = 1;
+
+#if defined(CONFIG_ESP_WIFI_11KV_SUPPORT) && CONFIG_ESP_WIFI_11KV_SUPPORT
+	stationConfig.sta.rm_enabled = 1;
+	stationConfig.sta.btm_enabled = 1;
+	static bool capabilityLogged = false;
+	if (!capabilityLogged)
+	{
+		ESP_LOGI("wifi", "802.11k/v roaming assistance enabled");
+		capabilityLogged = true;
+	}
+#else
+	static bool capabilityLogged = false;
+	if (!capabilityLogged)
+	{
+		ESP_LOGI("wifi", "802.11k/v unavailable; using multi-BSSID scan fallback");
+		capabilityLogged = true;
+	}
+#endif
+
+	error = esp_wifi_set_config(WIFI_IF_STA, &stationConfig);
+	if (error != ESP_OK)
+	{
+		ESP_LOGE("wifi", "Failed to apply STA configuration: %s", esp_err_to_name(error));
+		return false;
+	}
+
+	wifiReconnectAllowed.store(true);
+	error = esp_wifi_connect();
+	if (error != ESP_OK)
+	{
+		ESP_LOGE("wifi", "Failed to start STA connection: %s", esp_err_to_name(error));
+		ScheduleWiFiReconnect(WIFI_REASON_UNSPECIFIED);
+		return false;
+	}
+
+	ESP_LOGI("wifi", "Connecting to '%s' with multi-BSSID selection", wifiConfig.ssid.c_str());
+	return true;
+}
+
+bool StartSoftAP(const AppConfig::SoftAPConfig &softAPConfig)
+{
+	const bool started = softAPConfig.password.isEmpty() ? WiFi.softAP(softAPConfig.ssid.c_str())
+														 : WiFi.softAP(softAPConfig.ssid.c_str(), softAPConfig.password.c_str());
+	if (!started)
+	{
+		ESP_LOGE("wifi", "Failed to start SoftAP");
+	}
+	return started;
 }
 
 /** 任務相關函數 **/
 /* 網絡相關任務 */
 void taskNetwork(void *pvParameters)
 {
-	uint8_t is_wifiUpdate = 1; // WiFi更新標誌
+	NetworkCommand networkCommand = NetworkCommand::StaConfigUpdate;
 
 	/* WiFi初始化 */
 	WiFi.onEvent(WiFiEvent); // 註冊事件回呼
 	WiFi.setAutoReconnect(false);
+	WiFi.setSleep(WIFI_PS_MIN_MODEM);
+	// SoftAP 與 STA 共用頻道，STA 重連期間不得重啟 SoftAP。
 	WiFi.mode(WIFI_AP_STA);
-	WiFi.softAPdisconnect();
-	if (config.getSoftAPConfig().password.length() > 0)
+	if (!StartSoftAP(config.getSoftAPConfig()))
 	{
-		if (!WiFi.softAP(config.getSoftAPConfig().ssid.c_str(), config.getSoftAPConfig().password.c_str()))
-		{
-			ESP_LOGE("wifi", "Failed to start SoftAP");
-			vTaskDelete(NULL);
-			return;
-		}
+		vTaskDelete(NULL);
+		return;
+	}
+
+	if (WiFi.getSleep() == WIFI_PS_MIN_MODEM)
+	{
+		ESP_LOGI("wifi", "WiFi power save mode: MIN_MODEM");
 	}
 	else
 	{
-		if (!WiFi.softAP(config.getSoftAPConfig().ssid.c_str()))
-		{
-			ESP_LOGE("wifi", "Failed to start SoftAP");
-			vTaskDelete(NULL);
-			return;
-		}
+		ESP_LOGW("wifi", "Failed to enable WiFi power save");
 	}
 
 	/* 伺服器任務創建 */
@@ -370,68 +456,48 @@ void taskNetwork(void *pvParameters)
 	while (1)
 	{
 
-		/* wifi更新 */
-		if (is_wifiUpdate == 1) // 如果WiFi需要更新
+		if (networkCommand == NetworkCommand::StaConfigUpdate)
 		{
 			AppConfig::WiFiConfig wificonfig = config.getWiFiConfig(); // 獲取WiFi配置
 
-			is_wifiUpdate = 0;				// 重置WiFi更新標誌
+			wifiReconnectAllowed.store(false);
+			wifiReconnectAttempt.store(0);
+			xTimerStop(wifiReconnectTimer, 0);
 			if (xTaskGetTickCount() > 5000) // 判斷初始化還是更新
 			{
 				ESP_LOGI("wifi", "Updating WiFi connection...");
+				vTaskDelay(500);
 			}
-			if (wificonfig.is_enabled && wificonfig.ssid.length() > 0 && wificonfig.password.length() > 0)
+
+			WiFi.disconnect(false, true, 1000);
+			if (wificonfig.is_enabled && !wificonfig.ssid.isEmpty())
 			{
-
-				/* 斷開當前wifi */
-				if (WiFi.status() == WL_CONNECTED) // 如果WiFi已經連接
-				{
-					vTaskDelay(500);			  // 讓前端可以收到返回消息
-					WiFi.disconnect(false, true); // 斷開WiFi連接
-				}
-
-				/* 連接新的wifi */
-				WiFi.begin(wificonfig.ssid.c_str(), wificonfig.password.c_str()); // 連接WiFi
+				ConnectMeshWiFi(wificonfig);
 			}
 			else
 			{
-				/* 停止WiFi */
-				vTaskDelay(500);	   // 讓前端可以收到返回消息
-				WiFi.disconnect(true); // 斷開WiFi連接
+				ESP_LOGI("wifi", "STA connection disabled; SoftAP remains active");
 			}
 		}
-
-		/* softAP更新 */
-		else if (is_wifiUpdate == 2)
+		else if (networkCommand == NetworkCommand::SoftAPConfigUpdate)
 		{
 			AppConfig::SoftAPConfig softapconfig = config.getSoftAPConfig(); // 獲取SoftAP配置
 
-			is_wifiUpdate = 0; // 重置WiFi更新標誌
 			ESP_LOGI("wifi", "Updating SoftAP configuration...");
-
-			/* 斷開softAP */
 			vTaskDelay(500);
 			WiFi.softAPdisconnect();
-
-			/* 重新啓動SoftAP */
-			if (softapconfig.password.length() > 0)
+			StartSoftAP(softapconfig);
+		}
+		else if (networkCommand == NetworkCommand::StaReconnect)
+		{
+			const AppConfig::WiFiConfig wificonfig = config.getWiFiConfig();
+			if (wifiReconnectAllowed.load() && WiFi.status() != WL_CONNECTED && wificonfig.is_enabled && !wificonfig.ssid.isEmpty())
 			{
-				if (!WiFi.softAP(softapconfig.ssid.c_str(), softapconfig.password.c_str()))
-				{
-					ESP_LOGE("wifi", "Failed to start SoftAP");
-					return;
-				}
-			}
-			else
-			{
-				if (!WiFi.softAP(config.getSoftAPConfig().ssid.c_str()))
-				{
-					ESP_LOGE("wifi", "Failed to start SoftAP");
-					return;
-				}
+				ESP_LOGI("wifi", "Attempting reconnect...");
+				ConnectMeshWiFi(wificonfig);
 			}
 		}
-		xQueueReceive(wifiUpdate_data_quene, &is_wifiUpdate, portMAX_DELAY); // 等待WiFi更新信號
+		xQueueReceive(wifiUpdate_data_quene, &networkCommand, portMAX_DELAY); // 等待WiFi更新信號
 	}
 }
 

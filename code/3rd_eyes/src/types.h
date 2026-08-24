@@ -3,6 +3,13 @@
 #include <Arduino.h>
 #include <wit.h>
 
+enum class NetworkCommand : uint8_t
+{
+	StaConfigUpdate = 1,
+	SoftAPConfigUpdate = 2,
+	StaReconnect = 3,
+};
+
 // wit處理數據結構體
 typedef struct
 {

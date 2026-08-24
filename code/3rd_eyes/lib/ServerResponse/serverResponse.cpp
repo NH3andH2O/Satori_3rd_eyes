@@ -277,8 +277,11 @@ void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);
 
 	/* 發送WiFi更新信號 */
-	uint8_t wifi_update_flag = 1;
-	xQueueSend(wifiUpdate_data_quene, &wifi_update_flag, 0);
+	const NetworkCommand command = NetworkCommand::StaConfigUpdate;
+	if (xQueueSend(wifiUpdate_data_quene, &command, 0) != pdTRUE)
+	{
+		ESP_LOGE("server", "Failed to queue WiFi configuration update");
+	}
 }
 
 /* get softAP設置獲取 */
@@ -367,8 +370,11 @@ void api_set_softAP_config(AsyncWebServerRequest *request, uint8_t *data, size_t
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);
 
 	/* 發送SoftAP配置更新信號 */
-	uint8_t is_wifiUpdate = 2; // WiFi更新標誌
-	xQueueSend(wifiUpdate_data_quene, &is_wifiUpdate, 0);
+	const NetworkCommand command = NetworkCommand::SoftAPConfigUpdate;
+	if (xQueueSend(wifiUpdate_data_quene, &command, 0) != pdTRUE)
+	{
+		ESP_LOGE("server", "Failed to queue SoftAP configuration update");
+	}
 	return;
 }
 
