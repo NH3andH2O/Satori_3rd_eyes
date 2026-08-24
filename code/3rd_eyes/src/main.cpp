@@ -24,6 +24,7 @@
 #include <ArduinoJson.h>
 #include <driver/uart.h>
 #include <esp_log.h>
+#include <freertos/event_groups.h>
 /* 自定義程式庫 */
 #include <gc9a01.h>
 #include <eyesMove.h>
@@ -52,6 +53,17 @@
 #define GYROSCOPE_TRACKS_MODE 1 // 陀螺儀跟蹤模式
 #define NETWORK_CONTROL_MODE 2	// 網絡控制模式
 
+// 位元遮罩用於保留不同模式共用的任務
+static constexpr uint8_t TASK_MASK_WIT = 0x01;
+static constexpr uint8_t TASK_MASK_GYROSCOPE = 0x02;
+static constexpr uint8_t TASK_MASK_NETWORK = 0x04;
+static constexpr uint8_t TASK_MASK_SERVO_SET = 0x08;
+static constexpr uint8_t TASK_MASK_EYES_MOVE = 0x10;
+// WIT 任務僅在關閉 UART 後回報停止
+static constexpr EventBits_t WIT_EYES_STOPPED_BIT = BIT0;
+static constexpr EventBits_t WIT_HEAD_STOPPED_BIT = BIT1;
+static constexpr uint32_t WIT_STOP_TIMEOUT_MS = 1500;
+
 /** 函數宣告 **/
 /* 事件函數宣告 */
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info); // WiFi事件處理函數
@@ -76,6 +88,12 @@ void taskServoSet(void *arg);				 // 伺服馬達調試任務
 /* 其他函數宣告 */
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType); // 佇列創建
 void TaskDeleteSafe(TaskHandle_t *pHandle, uint32_t yieldMs = 0);
+bool TaskCreateSafe(TaskFunction_t task, const char *name, uint32_t stackSize, void *parameter, UBaseType_t priority, TaskHandle_t *handle,
+					BaseType_t core);
+bool GetModeTaskMask(int8_t mode, uint8_t *taskMask);
+bool StopWitTasks();
+void ResetModeQueues();
+void StopAllModeTasks();
 String macToString(const uint8_t mac[6]); // MAC地址轉字符串
 
 /* 結構體宣告 */
@@ -106,21 +124,22 @@ QueueHandle_t uart0_queue;						// UART0事件佇列
 QueueHandle_t network_control_data_quene;		// 網絡數據佇列
 QueueHandle_t network_control_speed_data_quene; // 網絡控制速度數據佇列
 QueueHandle_t servoSet_data_quene;				// 伺服馬達調試數據佇列
+EventGroupHandle_t witStopEventGroup = nullptr; // WIT 安全停止回報
 
 /* 任務參照 */
-TaskHandle_t taskWitEyesGetData_handle;		  // 獲取wit眼睛數據任務
-TaskHandle_t taskWitHeadGetData_handle;		  // 獲取wit頭部數據任務
-TaskHandle_t taskWitPProcessingData_handle;	  // 處理wit數據任務
-TaskHandle_t taskGyroscopeTracking_handle;	  // 陀螺儀跟蹤任務
-TaskHandle_t taskNetworkControl_handle;		  // 網絡控制任務
-TaskHandle_t taskNetworkControlGC9A01_handle; // 網絡控制屏幕任務
-TaskHandle_t taskGC9A01_handle;				  // GC9A01任務
-TaskHandle_t taskEyesMove_handle;			  // 眼睛任務
-TaskHandle_t taskWebServer_handle;			  // Web服務器任務
-TaskHandle_t taskNetwork_handle;			  // 網絡任務
-TaskHandle_t taskModeManagement_handle;		  // 模式管理任務
-TaskHandle_t taskUART0Read_handle;			  // UART0讀取任務
-TaskHandle_t taskServoSet_handle;			  // 伺服馬達調試任務
+TaskHandle_t taskWitEyesGetData_handle = nullptr;		// 獲取wit眼睛數據任務
+TaskHandle_t taskWitHeadGetData_handle = nullptr;		// 獲取wit頭部數據任務
+TaskHandle_t taskWitPProcessingData_handle = nullptr;	// 處理wit數據任務
+TaskHandle_t taskGyroscopeTracking_handle = nullptr;	// 陀螺儀跟蹤任務
+TaskHandle_t taskNetworkControl_handle = nullptr;		// 網絡控制任務
+TaskHandle_t taskNetworkControlGC9A01_handle = nullptr; // 網絡控制屏幕任務
+TaskHandle_t taskGC9A01_handle = nullptr;				// GC9A01任務
+TaskHandle_t taskEyesMove_handle = nullptr;				// 眼睛任務
+TaskHandle_t taskWebServer_handle = nullptr;			// Web服務器任務
+TaskHandle_t taskNetwork_handle = nullptr;				// 網絡任務
+TaskHandle_t taskModeManagement_handle = nullptr;		// 模式管理任務
+TaskHandle_t taskUART0Read_handle = nullptr;			// UART0讀取任務
+TaskHandle_t taskServoSet_handle = nullptr;				// 伺服馬達調試任務
 /* 定時器參照 */
 TimerHandle_t wifiReconnectTimer; // WiFi重連定時器
 
@@ -192,12 +211,22 @@ void setup()
 	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));					 // GC9A01_data結構體佇列
 	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));					 // WiFi更新佇列
 	queueCreate(&correction_timer_update_quene, 10, sizeof(uint8_t));			 // 角度重置時間器更新佇列
-	queueCreate(&mode_data_quene, 10, sizeof(int8_t));							 // 模式數據佇列
+	queueCreate(&mode_data_quene, 1, sizeof(int8_t));							 // 模式數據佇列
 	queueCreate(&network_control_data_quene, 10, sizeof(network_control_data));	 // 網絡控制佇列
 	queueCreate(&network_control_speed_data_quene, 10, sizeof(double));			 // 網絡控制速度佇列
 	queueCreate(&servoSet_data_quene, 10, sizeof(servoSet_data));				 // 伺服馬達數據佇列
 
 	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
+
+	witStopEventGroup = xEventGroupCreate();
+	if (!witStopEventGroup)
+	{
+		ESP_LOGE("mode", "WIT stop event group create error");
+		while (1)
+		{
+			vTaskDelay(1000);
+		}
+	}
 
 	/* 定時器建立 */
 	wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(15000), pdFALSE, (void *)0, TimerReconnectWiFi); // WiFi重連定時器
@@ -492,82 +521,103 @@ void taskWebServer(void *pvParameters)
 void taskModeManagement(void *pvParameters)
 {
 	int8_t mode = config.getModeConfig().mode; // 獲取當前模式
-	uint8_t task_register = 0;				   // 任務寄存器
+	uint8_t activeTaskMask = 0;				   // 僅記錄完整啟動成功的任務
 	ESP_LOGI("mode", "Current mode: %d", mode);
-	/* 高 <-------> 低
-	|  |  |  | 眼球移動任務 | 伺服馬達調試任務 | 網絡控制任務 | 陀螺儀跟蹤任務 | 獲取數據任務 | */
 	while (1)
 	{
+		uint8_t targetTaskMask = 0;
+		if (!GetModeTaskMask(mode, &targetTaskMask))
+		{
+			ESP_LOGE("mode", "Invalid mode: %d", mode);
+		}
+		else if (targetTaskMask != activeTaskMask)
+		{
+			// 只切換差異任務，避免重建共用任務
+			uint8_t stopMask = activeTaskMask & ~targetTaskMask;
+			uint8_t startMask = targetTaskMask & ~activeTaskMask;
+			ESP_LOGI("mode", "Transition mode %d: active=0x%02X target=0x%02X stop=0x%02X start=0x%02X", mode, activeTaskMask, targetTaskMask,
+					 stopMask, startMask);
 
-		/* 設置任務寄存器 */
-		switch (mode)
-		{
-			case SERVO_SET_MODE: // 伺服馬達調試模式
-				task_register = 0x08;
-				break;
-			case GYROSCOPE_TRACKS_MODE: // 陀螺儀跟蹤模式
-				task_register = 0x13;
-				break;
-			case NETWORK_CONTROL_MODE: // 網絡控制模式
-				task_register = 0x14;
-				break;
-			default:
-				task_register = 0x00;
-				break;
+			// 先停止舊模式的資料生產者
+			if (stopMask & TASK_MASK_GYROSCOPE)
+			{
+				TaskDeleteSafe(&taskGyroscopeTracking_handle);
+			}
+			if (stopMask & TASK_MASK_NETWORK)
+			{
+				TaskDeleteSafe(&taskNetworkControl_handle);
+				TaskDeleteSafe(&taskNetworkControlGC9A01_handle);
+			}
+			if (stopMask & TASK_MASK_SERVO_SET)
+			{
+				TaskDeleteSafe(&taskServoSet_handle);
+			}
+			if (stopMask & TASK_MASK_WIT)
+			{
+				StopWitTasks();
+				TaskDeleteSafe(&taskWitPProcessingData_handle);
+			}
+			if (stopMask & TASK_MASK_EYES_MOVE)
+			{
+				TaskDeleteSafe(&taskEyesMove_handle);
+			}
+
+			ResetModeQueues(); // producer 停止後才清除殘留資料
+
+			// consumer 先建立，WIT reader 最後啟動
+			bool createSuccess = true;
+			if (startMask & TASK_MASK_EYES_MOVE)
+			{
+				createSuccess = TaskCreateSafe(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_handle, 1);
+			}
+			if (createSuccess && (startMask & TASK_MASK_WIT))
+			{
+				createSuccess = TaskCreateSafe(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_handle, 1);
+			}
+			if (createSuccess && (startMask & TASK_MASK_GYROSCOPE))
+			{
+				createSuccess = TaskCreateSafe(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_handle, 1);
+			}
+			if (createSuccess && (startMask & TASK_MASK_NETWORK))
+			{
+				createSuccess =
+					TaskCreateSafe(taskNetworkControlGC9A01, "taskNetworkControlGC9A01", 4096, NULL, 1, &taskNetworkControlGC9A01_handle, 1);
+				if (createSuccess)
+				{
+					createSuccess = TaskCreateSafe(taskNetworkControl, "taskNetworkControl", 4096, NULL, 1, &taskNetworkControl_handle, 1);
+				}
+			}
+			if (createSuccess && (startMask & TASK_MASK_SERVO_SET))
+			{
+				createSuccess = TaskCreateSafe(taskServoSet, "taskServoSet", 4096, NULL, 1, &taskServoSet_handle, 1);
+			}
+			if (createSuccess && (startMask & TASK_MASK_WIT))
+			{
+				// 清除上一次切換留下的停止狀態
+				witEyes.wit_clear_stop();
+				witHead.wit_clear_stop();
+				xEventGroupClearBits(witStopEventGroup, WIT_EYES_STOPPED_BIT | WIT_HEAD_STOPPED_BIT);
+				createSuccess = TaskCreateSafe(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_handle, 1);
+				if (createSuccess)
+				{
+					createSuccess = TaskCreateSafe(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_handle, 1);
+				}
+			}
+
+			if (createSuccess)
+			{
+				activeTaskMask = targetTaskMask;
+				ESP_LOGI("mode", "Mode %d active; task mask=0x%02X", mode, activeTaskMask);
+			}
+			else
+			{
+				ESP_LOGE("mode", "Mode %d activation failed; rolling back", mode);
+				// 部分建立成功時回到無模式任務狀態
+				StopAllModeTasks();
+				activeTaskMask = 0;
+			}
 		}
 
-		/* 切換任務模式 */
-		if (task_register & 0x01) // 獲取數據任務
-		{
-			xTaskCreatePinnedToCore(taskWitGetData, "taskWitEyesGetData", 4096, &witEyes, 1, &taskWitEyesGetData_handle, 1); // 創建獲取數據任務
-			xTaskCreatePinnedToCore(taskWitGetData, "taskWitHeadGetData", 4096, &witHead, 1, &taskWitHeadGetData_handle, 1); // 創建獲取數據任務
-			xTaskCreatePinnedToCore(taskWitPProcessingData, "taskWitPProcessingData", 4096, NULL, 1, &taskWitPProcessingData_handle,
-									1); // 創建數據處理任務
-		}
-		else
-		{
-			TaskDeleteSafe(&taskWitEyesGetData_handle);		// 刪除獲取數據任務
-			TaskDeleteSafe(&taskWitHeadGetData_handle);		// 刪除獲取數據任務
-			TaskDeleteSafe(&taskWitPProcessingData_handle); // 刪除數據處理任務
-		}
-		if (task_register & 0x02) // 陀螺儀跟蹤任務
-		{
-			xTaskCreatePinnedToCore(taskGyroscopeTracking, "taskGyroscopeTracking", 4096, NULL, 1, &taskGyroscopeTracking_handle,
-									1); // 創建陀螺儀跟蹤任務
-		}
-		else
-		{
-			TaskDeleteSafe(&taskGyroscopeTracking_handle); // 刪除陀螺儀跟蹤任務
-		}
-		if (task_register & 0x04) // 網絡控制任務
-		{
-			xTaskCreatePinnedToCore(taskNetworkControl, "taskNetworkControl", 4096, NULL, 1, &taskNetworkControl_handle, 1); // 創建網絡控制任務
-			xTaskCreatePinnedToCore(taskNetworkControlGC9A01, "taskNetworkControlGC9A01", 4096, NULL, 1, &taskNetworkControlGC9A01_handle,
-									1); // 創建網絡控制屏幕任務
-		}
-		else
-		{
-			TaskDeleteSafe(&taskNetworkControl_handle);		  // 刪除網絡控制任務
-			TaskDeleteSafe(&taskNetworkControlGC9A01_handle); // 刪除網絡控制屏幕任務
-		}
-		if (task_register & 0x08) // 伺服馬達調試任務
-		{
-			xTaskCreatePinnedToCore(taskServoSet, "taskServoSet", 4096, NULL, 1, &taskServoSet_handle, 1); // 創建伺服馬達調試任務
-		}
-		else
-		{
-			TaskDeleteSafe(&taskServoSet_handle); // 刪除伺服馬達調試任務
-		}
-		if (task_register & 0x10) // 眼球移動任務
-		{
-			xTaskCreatePinnedToCore(taskEyesMove, "taskEyesMove", 4096, NULL, 1, &taskEyesMove_handle, 1); // 創建眼球移動任務
-		}
-		else
-		{
-			TaskDeleteSafe(&taskEyesMove_handle); // 刪除眼球移動任務
-		}
-
-		/* 等待模式數據 */
 		xQueueReceive(mode_data_quene, &mode, portMAX_DELAY);
 		ESP_LOGI("mode", "Current mode change: %d", mode);
 	}
@@ -579,26 +629,47 @@ void taskWitGetData(void *arg)
 	witData wit_data;		 // wit數據結構體
 	wit *myWit = (wit *)arg; // 獲取wit數據
 
-	uint8_t serialPort = myWit->wit_serial_get();					   // 獲取Serial端口
-	String wit_name = (serialPort == SERIAL1) ? "witEyes" : "witHead"; // 獲取Serial端口名稱
+	uint8_t serialPort = myWit->wit_serial_get(); // 獲取Serial端口
 
 	/* 初始化wit */
-	int8_t wit_status = myWit->wit_init(); // 初始化wit眼睛模組
-	while (wit_status)					   // 失敗進入死循環
+	int8_t wit_status = WIT_INIT_ERROR;
+	// 初始化失敗時保留重試能力並持續接受停止要求
+	while (!myWit->wit_stop_requested())
 	{
-		vTaskDelay(1000);
+		wit_status = myWit->wit_init();
+		if (wit_status == 0 || wit_status == WIT_INIT_CANCELLED)
+		{
+			break;
+		}
+		ESP_LOGW("WIT", "Serial%d initialization failed; retrying", serialPort);
+		for (uint8_t i = 0; i < 50 && !myWit->wit_stop_requested(); i++)
+		{
+			vTaskDelay(pdMS_TO_TICKS(20));
+		}
 	}
 
-	/* 清除緩存 */
-	myWit->wit_flush();
-
-	/* 獲取數據 */
-	while (1)
+	if (!myWit->wit_stop_requested() && wit_status == 0)
 	{
-		wit_data = myWit->wit_get_data();		  // 獲取數據
-		xQueueSend(wit_data_quene, &wit_data, 0); // 將數據放入佇列
-		vTaskDelay(1);
+		myWit->wit_flush();
+		while (!myWit->wit_stop_requested())
+		{
+			wit_data = myWit->wit_get_data();
+			if (wit_data.status != WIT_CANCELLED)
+			{
+				xQueueSend(wit_data_quene, &wit_data, 0);
+			}
+			vTaskDelay(1);
+		}
 	}
+
+	myWit->wit_end(); // 回報停止前先釋放 UART
+	EventBits_t stoppedBit = serialPort == SERIAL1 ? WIT_EYES_STOPPED_BIT : WIT_HEAD_STOPPED_BIT;
+	if (witStopEventGroup)
+	{
+		xEventGroupSetBits(witStopEventGroup, stoppedBit);
+		vTaskSuspend(NULL);
+	}
+	vTaskDelete(NULL);
 }
 
 /* 處理角度數據任務 */
@@ -1190,7 +1261,7 @@ void taskUART0Read(void *arg)
 						config.setModeConfig(mode_config);
 
 						ESP_LOGI("UART", "Servo configuration cleared. Switched to servo setup mode.");
-						xQueueSend(mode_data_quene, &mode, 0);
+						xQueueOverwrite(mode_data_quene, &mode); // 快速切換時只保留最新模式
 					}
 					/* 模式指令 */
 					else if (data_str == "mode" || data_str.startsWith("mode "))
@@ -1229,7 +1300,7 @@ void taskUART0Read(void *arg)
 									AppConfig::ModeConfig mode_config = config.getModeConfig();
 									mode_config.mode = static_cast<uint8_t>(mode);
 									config.setModeConfig(mode_config);
-									xQueueSend(mode_data_quene, &mode, 0);
+									xQueueOverwrite(mode_data_quene, &mode); // 快速切換時只保留最新模式
 								}
 							}
 						}
@@ -1294,6 +1365,127 @@ void taskUART0Read(void *arg)
 		}
 	}
 }
+
+bool TaskCreateSafe(TaskFunction_t task, const char *name, uint32_t stackSize, void *parameter, UBaseType_t priority, TaskHandle_t *handle,
+					BaseType_t core)
+{
+	if (!task || !name || !handle)
+	{
+		return false;
+	}
+	if (*handle)
+	{
+		// 禁止覆寫仍可管理的任務 handle
+		ESP_LOGE("task", "Task already exists: %s", name);
+		return false;
+	}
+
+	BaseType_t result = xTaskCreatePinnedToCore(task, name, stackSize, parameter, priority, handle, core);
+	if (result != pdPASS)
+	{
+		*handle = nullptr;
+		ESP_LOGE("task", "Failed to create %s; free heap: %u", name, ESP.getFreeHeap());
+		return false;
+	}
+	return true;
+}
+
+bool GetModeTaskMask(int8_t mode, uint8_t *taskMask)
+{
+	if (!taskMask)
+	{
+		return false;
+	}
+
+	switch (mode)
+	{
+		case SERVO_SET_MODE:
+			*taskMask = TASK_MASK_SERVO_SET;
+			return true;
+		case GYROSCOPE_TRACKS_MODE:
+			*taskMask = TASK_MASK_WIT | TASK_MASK_GYROSCOPE | TASK_MASK_EYES_MOVE;
+			return true;
+		case NETWORK_CONTROL_MODE:
+			*taskMask = TASK_MASK_NETWORK | TASK_MASK_EYES_MOVE;
+			return true;
+		default:
+			*taskMask = 0;
+			return false;
+	}
+}
+
+bool StopWitTasks()
+{
+	// 只等待目前實際存在的 WIT reader
+	EventBits_t expectedBits = 0;
+	if (taskWitEyesGetData_handle)
+	{
+		expectedBits |= WIT_EYES_STOPPED_BIT;
+	}
+	if (taskWitHeadGetData_handle)
+	{
+		expectedBits |= WIT_HEAD_STOPPED_BIT;
+	}
+	if (!expectedBits)
+	{
+		return true;
+	}
+
+	xEventGroupClearBits(witStopEventGroup, expectedBits);
+	if (expectedBits & WIT_EYES_STOPPED_BIT)
+	{
+		witEyes.wit_request_stop();
+	}
+	if (expectedBits & WIT_HEAD_STOPPED_BIT)
+	{
+		witHead.wit_request_stop();
+	}
+
+	// acknowledgement 代表 UART 已由 reader 自行關閉
+	EventBits_t stoppedBits = xEventGroupWaitBits(witStopEventGroup, expectedBits, pdTRUE, pdTRUE, pdMS_TO_TICKS(WIT_STOP_TIMEOUT_MS));
+	bool stoppedCleanly = (stoppedBits & expectedBits) == expectedBits;
+	if (!stoppedCleanly)
+	{
+		ESP_LOGE("mode", "WIT stop timeout; expected=0x%02X received=0x%02X", expectedBits, stoppedBits);
+	}
+
+	TaskDeleteSafe(&taskWitEyesGetData_handle);
+	TaskDeleteSafe(&taskWitHeadGetData_handle);
+	if (!stoppedCleanly)
+	{
+		// 超時後只能在任務已刪除的前提下補做清理
+		witEyes.wit_end();
+		witHead.wit_end();
+	}
+	return stoppedCleanly;
+}
+
+void ResetModeQueues()
+{
+	// 呼叫前必須先停止所有舊模式 producer
+	xQueueReset(wit_data_quene);
+	xQueueReset(wit_data_relative_angle_quene);
+	xQueueReset(correction_timer_update_quene);
+	xQueueReset(network_control_data_quene);
+	xQueueReset(network_control_speed_data_quene);
+	xQueueReset(servoSet_data_quene);
+	xQueueReset(eyesmove_data_quene);
+	xQueueReset(gc9a01_data_quene);
+}
+
+void StopAllModeTasks()
+{
+	// 任務建立失敗時回滾所有模式資源
+	TaskDeleteSafe(&taskGyroscopeTracking_handle);
+	TaskDeleteSafe(&taskNetworkControl_handle);
+	TaskDeleteSafe(&taskNetworkControlGC9A01_handle);
+	TaskDeleteSafe(&taskServoSet_handle);
+	StopWitTasks();
+	TaskDeleteSafe(&taskWitPProcessingData_handle);
+	TaskDeleteSafe(&taskEyesMove_handle);
+	ResetModeQueues();
+}
+
 void queueCreate(QueueHandle_t *quene, uint8_t queneSize, uint8_t queneType)
 {
 	/* 佇列建立 */

@@ -7,12 +7,14 @@
 /* 初始化錯誤代碼 */
 #define SERIAL_INIT_ERROR 1
 #define WIT_INIT_ERROR 2
+#define WIT_INIT_CANCELLED 3 // 模式切換取消初始化
 
 /* 數據結構錯誤代碼 */
 #define WIT_NO_DATA 1		// 無數據
 #define WIT_TIMEOUT 2		// 超時
 #define WIT_DATA_ERROR 3	// 數據錯誤
 #define WIT_UNKNOWN_ERROR 4 // 未知錯誤
+#define WIT_CANCELLED 5		// 模式切換取消讀取
 
 #define WIT_READING 1	   // 讀取中
 #define WIT_VERITY_ERROR 2 // 驗證錯誤
@@ -20,6 +22,7 @@
 #define GRAVITATIONAL_ACCELERATION 9.80665 // 重力加速度
 
 #include <Arduino.h>
+#include <atomic>
 
 typedef struct
 {
@@ -108,6 +111,7 @@ class wit
 	uint8_t axis;
 	uint8_t orient;
 	uint32_t baudRate;
+	std::atomic<bool> stopRequested{false}; // 跨任務傳遞停止要求
 
 	/* Serial端口指標 */
 	HardwareSerial *hwSerial = NULL;
@@ -116,12 +120,18 @@ class wit
 	const uint8_t *GetWitBaudCommand(uint32_t baud);			  // 獲取設置波特率指令
 	uint8_t wit_check_baudrate(uint32_t baudRate);				  // 檢查波特率
 	void wit_send_command(const uint8_t *command, size_t length); // 發送指令
+	bool wit_delay(uint32_t delayMs);							  // 可中斷等待
 
   public:
 	wit(uint8_t serialPort, uint8_t rxPin, uint8_t txPin, uint32_t baudRate, uint8_t axis, uint8_t orient);
-	int8_t wit_init();		  // 初始化Wit模組
-	witData wit_get_data();	  // 獲取數據
-	void wit_flush();		  // 清除數據
+	int8_t wit_init();		// 初始化Wit模組
+	witData wit_get_data(); // 獲取數據
+	void wit_flush();		// 清除數據
+	/* 任務安全停止 */
+	void wit_request_stop();
+	void wit_clear_stop();
+	bool wit_stop_requested() const;
+	void wit_end();
 	uint8_t wit_serial_get(); // 獲取Serial端口
 };
 

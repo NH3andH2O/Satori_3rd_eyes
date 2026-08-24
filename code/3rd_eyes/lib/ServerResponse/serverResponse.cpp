@@ -424,7 +424,7 @@ void api_set_mode_config(AsyncWebServerRequest *request, uint8_t *data, size_t l
 	AppConfig::ModeConfig modeConfig;
 	modeConfig.mode = mode;
 	config.setModeConfig(modeConfig);
-	xQueueSend(mode_data_quene, &mode, 0); // 發送模式數據
+	xQueueOverwrite(mode_data_quene, &mode); // 快速切換時只保留最新模式
 
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);
 	return;
@@ -560,11 +560,9 @@ void api_set_servo_config(AsyncWebServerRequest *request, uint8_t *data, size_t 
 		  doc["mid_upper_eyelid"].as<int>() < doc["max_upper_eyelid"].as<int>()) ||
 		!(doc["min_lower_eyelid"].as<int>() < doc["mid_lower_eyelid"].as<int>() &&
 		  doc["mid_lower_eyelid"].as<int>() < doc["max_lower_eyelid"].as<int>()) ||
-		!(doc["min_eyeball"].as<int>() < doc["mid_eyeball"].as<int>() &&
-		  doc["mid_eyeball"].as<int>() < doc["max_eyeball"].as<int>()))
+		!(doc["min_eyeball"].as<int>() < doc["mid_eyeball"].as<int>() && doc["mid_eyeball"].as<int>() < doc["max_eyeball"].as<int>()))
 	{
-		sendJsonResponse(request, 400, false, ServerError::ERR_SERVO_CONFIG_INVALID,
-						 "Servo configuration must satisfy min < mid < max");
+		sendJsonResponse(request, 400, false, ServerError::ERR_SERVO_CONFIG_INVALID, "Servo configuration must satisfy min < mid < max");
 		return;
 	}
 
