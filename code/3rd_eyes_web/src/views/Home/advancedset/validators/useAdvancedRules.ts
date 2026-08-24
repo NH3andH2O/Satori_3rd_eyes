@@ -1,4 +1,5 @@
 import { unref, type Ref } from 'vue';
+import { MODES } from '@/config/constants';
 
 export function useAdvancedRules(modeRef: Ref<number>, t: (k: string) => string) {
 	return {
@@ -6,7 +7,7 @@ export function useAdvancedRules(modeRef: Ref<number>, t: (k: string) => string)
 			{
 				validator: async (_: unknown, value: unknown) => {
 					// 只在模式 1 時進行校驗
-					if (unref(modeRef) !== 1) {
+					if (unref(modeRef) !== MODES.GYROSCOPE) {
 						return Promise.resolve();
 					}
 
@@ -29,6 +30,32 @@ export function useAdvancedRules(modeRef: Ref<number>, t: (k: string) => string)
 
 					if (n > 65535) {
 						return Promise.reject(new Error(t('correction_time_over_range')));
+					}
+
+					return Promise.resolve();
+				},
+				trigger: 'blur',
+			},
+		],
+		gyroscope_eyelid_angle: [
+			{
+				validator: async (_: unknown, value: unknown) => {
+					if (unref(modeRef) !== MODES.GYROSCOPE) {
+						return Promise.resolve();
+					}
+
+					const n = Number(value);
+
+					if (value === undefined || value === null || value === '' || !Number.isFinite(n) || !Number.isInteger(n)) {
+						return Promise.reject(new Error(t('gyroscope_eyelid_angle_invalid_number')));
+					}
+
+					if (n < 0) {
+						return Promise.reject(new Error(t('gyroscope_eyelid_angle_negative')));
+					}
+
+					if (n > 80) {
+						return Promise.reject(new Error(t('gyroscope_eyelid_angle_over_range')));
 					}
 
 					return Promise.resolve();

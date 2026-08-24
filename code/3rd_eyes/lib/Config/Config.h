@@ -40,6 +40,7 @@ namespace AppConfig
 	struct AdvancedConfig
 	{
 		uint16_t correction_timer;
+		uint8_t gyroscope_eyelid_angle; // 邏輯張開量範圍為0至80
 	};
 
 	class Config

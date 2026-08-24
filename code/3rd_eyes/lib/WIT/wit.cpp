@@ -33,34 +33,80 @@ const uint8_t *wit::GetWitBaudCommand(uint32_t baud)
 	}
 }
 
+bool wit::wit_delay(uint32_t delayMs)
+{
+	// 長等待必須能在模式切換時及時結束
+	TickType_t remaining = pdMS_TO_TICKS(delayMs);
+	const TickType_t interval = pdMS_TO_TICKS(20);
+
+	while (remaining > 0)
+	{
+		if (wit_stop_requested())
+		{
+			return false;
+		}
+
+		TickType_t wait = remaining < interval ? remaining : interval;
+		vTaskDelay(wait);
+		remaining -= wait;
+	}
+
+	return !wit_stop_requested();
+}
+
 uint8_t wit::wit_check_baudrate(uint32_t baudRate)
 {
-	uint64_t startTime = xTaskGetTickCount(); // 開始時間
+	if (wit_stop_requested())
+	{
+		return 0;
+	}
 
 	/* 檢查波特率 */
 	this->hwSerial->begin(baudRate, SERIAL_8N1, this->rxPin, this->txPin); // Serial初始化
-	wit_send_command(WIT_READ_DATA, 5);									   // 讀取數據指令發送
-	ESP_LOGV("WIT", "Checking WIT module baud rate: %d", baudRate);
+	if (!wit_delay(100))
+	{
+		return 0;
+	}
+	this->hwSerial->flush(false);
+	wit_send_command(WIT_UNLOCK, 5); // 解鎖指令發送
+	ESP_LOGV("WIT", "(rx:%d, tx:%d) Checking WIT module baud rate: %d", this->rxPin, this->txPin, baudRate);
+	uint64_t startTime = xTaskGetTickCount();			  // 開始時間
 	while (xTaskGetTickCount() - startTime < initTimeout) // 設置波特率
 	{
+		if (wit_stop_requested())
+		{
+			return 0;
+		}
+
 		/* wit感測器安裝檢測 */
-		if (this->hwSerial->available() >= 1) // 資料讀取
+		wit_send_command(WIT_READ_VERSION, 5); // 讀取版本指令發送
+		if (this->hwSerial->available() >= 11) // 資料讀取
 		{
 			if (this->hwSerial->read() == 0x55) // 協議頭檢測
 			{
-				ESP_LOGV("WIT", "WIT(rx:%d, tx:%d) module baud rate %d check successful.", this->rxPin, this->txPin, baudRate);
-				return 1;
+				if (this->hwSerial->read() == 0x5F)
+				{
+					uint8_t version[9];
+					this->hwSerial->readBytes(version, 9); // 讀取版本號
+					if (version[8] == (uint8_t)(0x55 + 0x5F + version[0] + version[1] + version[2] + version[3] + version[4] + version[5] +
+												version[6] + version[7])) // 校驗和檢測
+					{
+						ESP_LOGV("WIT", "(rx:%d, tx:%d) module baud rate %d check successful.", this->rxPin, this->txPin, baudRate);
+						return 1;
+					}
+				}
 			}
 		}
+		vTaskDelay(1);
 	}
 	this->hwSerial->end(); // Serial結束
-	ESP_LOGV("WIT", "WIT(rx:%d, tx:%d) module baud rate %d check failed.", this->rxPin, this->txPin, baudRate);
+	ESP_LOGD("WIT", "(rx:%d, tx:%d) module baud rate %d check failed.", this->rxPin, this->txPin, baudRate);
 	return 0;
 }
 
 void wit::wit_send_command(const uint8_t *command, size_t length)
 {
-	if (!this->hwSerial)
+	if (!this->hwSerial || !command || wit_stop_requested())
 	{
 		return;
 	}
@@ -69,6 +115,11 @@ void wit::wit_send_command(const uint8_t *command, size_t length)
 
 int8_t wit::wit_init()
 {
+	if (wit_stop_requested())
+	{
+		return WIT_INIT_CANCELLED;
+	}
+
 	/* Serial選擇 */
 	if (serialPort == SERIAL1)
 	{
@@ -82,42 +133,80 @@ int8_t wit::wit_init()
 	/* Serial初始化 */
 	if (!this->hwSerial)
 	{
-		ESP_LOGE("WIT", "WIT(%d, %d) module initialization failed; Serial initialization error.", this->rxPin, this->txPin);
+		ESP_LOGE("WIT", "(rx:%d, tx:%d) module initialization failed; Serial initialization error.", this->rxPin, this->txPin);
 		return SERIAL_INIT_ERROR; // Serial初始化錯誤
 	}
 
 	/* 波特率檢查 */
 	if (!wit_check_baudrate(this->baudRate)) // 檢查目標波特率失敗
 	{
+		if (wit_stop_requested())
+		{
+			return WIT_INIT_CANCELLED;
+		}
+
 		/* 自動波特率檢查 */
 		for (auto baud : BAUD_RATES)
 		{
+			if (wit_stop_requested())
+			{
+				return WIT_INIT_CANCELLED;
+			}
+
 			if (wit_check_baudrate(baud)) // 找到非目標波特率
 			{
 				wit_send_command(this->WIT_UNLOCK, 5); // 解鎖
-				vTaskDelay(200);
+				if (!wit_delay(300))
+				{
+					return WIT_INIT_CANCELLED;
+				}
 				wit_send_command(GetWitBaudCommand(this->baudRate), 5); // 設置波特率
+				if (!wit_delay(300))
+				{
+					return WIT_INIT_CANCELLED;
+				}
+				wit_send_command(this->WIT_SAVE, 5); // 保存
+				if (!wit_delay(300))
+				{
+					return WIT_INIT_CANCELLED;
+				}
 				break;
 			}
 		}
 		this->hwSerial->end(); // Serial結束
+		if (wit_stop_requested())
+		{
+			return WIT_INIT_CANCELLED;
+		}
 
 		/* 波特率設置後檢查 */
 		if (!wit_check_baudrate(baudRate))
 		{
-			ESP_LOGE("WIT", "WIT(%d, %d) module initialization failed; baud rate check error.", this->rxPin, this->txPin);
+			ESP_LOGE("WIT", "(rx:%d, tx:%d) module initialization failed; baud rate check error.", this->rxPin, this->txPin);
 			return WIT_INIT_ERROR; // 初始化检查錯誤
 		}
 	}
 
 	/* 其他參數設置初始化 */
-	vTaskDelay(250);
+	if (!wit_delay(300))
+	{
+		return WIT_INIT_CANCELLED;
+	}
 	wit_send_command(this->WIT_UNLOCK, 5); // 解鎖
-	vTaskDelay(250);
+	if (!wit_delay(300))
+	{
+		return WIT_INIT_CANCELLED;
+	}
 	wit_send_command(this->WIT_SET_RRATE_200HZ, 5); // 設置速率200Hz
-	vTaskDelay(250);
+	if (!wit_delay(300))
+	{
+		return WIT_INIT_CANCELLED;
+	}
 	wit_send_command(this->WIT_SET_RSW, 5); // 設置输出内容
-	vTaskDelay(250);
+	if (!wit_delay(300))
+	{
+		return WIT_INIT_CANCELLED;
+	}
 	if (this->orient == 0)
 	{
 		wit_send_command(this->WIT_SET_ORIENT_H, 5); // 設置水平安裝
@@ -126,7 +215,10 @@ int8_t wit::wit_init()
 	{
 		wit_send_command(this->WIT_SET_ORIENT_V, 5); // 設置垂直安裝
 	}
-	vTaskDelay(250);
+	if (!wit_delay(300))
+	{
+		return WIT_INIT_CANCELLED;
+	}
 	if (this->axis == 6)
 	{
 		wit_send_command(this->WIT_SET_AXIS_6, 5); // 設置6軸
@@ -135,10 +227,57 @@ int8_t wit::wit_init()
 	{
 		wit_send_command(this->WIT_SET_AXIS_9, 5); // 設置9軸
 	}
-	vTaskDelay(250);
+	if (!wit_delay(300))
+	{
+		return WIT_INIT_CANCELLED;
+	}
 	wit_send_command(this->WIT_SAVE, 5); // 保存
-	ESP_LOGI("WIT", "WIT(%d, %d) module initialized successfully; baud: %d; axes: %d; orientation: %s", this->rxPin, this->txPin, this->baudRate,
-			 this->axis, (this->orient == 0) ? "horizontal" : "vertical");
+
+	/* 獲取wit版本 */
+
+	uint64_t startTime = xTaskGetTickCount(); // 開始時間
+	uint16_t version;
+	bool versionCheck = false;
+	while (xTaskGetTickCount() - startTime < initTimeout) // 設置波特率
+	{
+		if (wit_stop_requested())
+		{
+			return WIT_INIT_CANCELLED;
+		}
+
+		wit_send_command(WIT_READ_VERSION, 5); // 讀取版本指令發送
+		if (this->hwSerial->available() >= 11) // 資料讀取
+		{
+			if (this->hwSerial->read() == 0x55) // 協議頭檢測
+			{
+				if (this->hwSerial->read() == 0x5F)
+				{
+					uint8_t version_data[9];
+					this->hwSerial->readBytes(version_data, 9); // 讀取版本號
+					if (version_data[8] == (uint8_t)(0x55 + 0x5F + version_data[0] + version_data[1] + version_data[2] + version_data[3] +
+													 version_data[4] + version_data[5] + version_data[6] + version_data[7])) // 校驗和檢測
+					{
+						versionCheck = true;
+						version = (version_data[1] << 8) | version_data[0];
+						break;
+					}
+				}
+			}
+		}
+		vTaskDelay(1);
+	}
+
+	if (!versionCheck)
+	{
+		ESP_LOGW("WIT", "(rx:%d, tx:%d) version check error.", this->rxPin, this->txPin);
+		ESP_LOGI("WIT", "(rx:%d, tx:%d) module initialized successfully; baud: %d; axes: %d; orientation: %s", this->rxPin, this->txPin,
+				 this->baudRate, this->axis, (this->orient == 0) ? "horizontal" : "vertical");
+	}
+	else
+	{
+		ESP_LOGI("WIT", "(rx:%d, tx:%d) module initialized successfully; version: %d; baud: %d; axes: %d; orientation: %s", this->rxPin, this->txPin,
+				 version, this->baudRate, this->axis, (this->orient == 0) ? "horizontal" : "vertical");
+	}
 	return 0; // 初始化成功
 }
 
@@ -152,11 +291,22 @@ witData wit::wit_get_data()
 	result.acceleration_status = WIT_READING;
 	result.quaternion_status = WIT_READING;
 	result.serialPort = this->serialPort; // 返回Serial端口
+	if (!this->hwSerial || wit_stop_requested())
+	{
+		result.status = WIT_CANCELLED;
+		return result;
+	}
 
 	/* 數據讀取 */
 	u64_t startTime = xTaskGetTickCount();	 // 開始時間
 	while (this->hwSerial->available() < 60) // 确保足够的数据
 	{
+		if (wit_stop_requested())
+		{
+			result.status = WIT_CANCELLED;
+			return result;
+		}
+
 		if (xTaskGetTickCount() - startTime > dataTimeout) // 超時計時器開始計時
 		{
 			result.status = WIT_TIMEOUT; // 無數據
@@ -165,6 +315,7 @@ witData wit::wit_get_data()
 			this->hwSerial->readBytes(temp, length);
 			return result; // 返回數據結構體
 		}
+		vTaskDelay(1);
 	}
 	this->hwSerial->readBytes(data, 60); // 讀取數據
 
@@ -273,8 +424,26 @@ witData wit::wit_get_data()
 
 void wit::wit_flush()
 {
-	uint8_t temp[128];
-	this->hwSerial->readBytes(temp, 128); // 讀取數據
+	if (this->hwSerial)
+	{
+		this->hwSerial->flush(false);
+	}
+}
+
+void wit::wit_request_stop() { stopRequested.store(true, std::memory_order_release); }
+
+void wit::wit_clear_stop() { stopRequested.store(false, std::memory_order_release); }
+
+bool wit::wit_stop_requested() const { return stopRequested.load(std::memory_order_acquire); }
+
+void wit::wit_end()
+{
+	// UART 擁有者退出前必須釋放驅動
+	if (this->hwSerial)
+	{
+		this->hwSerial->flush(false);
+		this->hwSerial->end();
+	}
 }
 
 uint8_t wit::wit_serial_get()

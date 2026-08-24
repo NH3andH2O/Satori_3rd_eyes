@@ -3,6 +3,8 @@ export default {
 	homepage: {
 		page_title: '3rdEyes',
 		title: '3rdEyes Settings',
+		version_mismatch: 'The frontend and backend versions differ, which may cause compatibility issues',
+		version_get_failed: 'Unable to retrieve the backend version',
 	},
 
 	/* WiFi 設定 */
@@ -209,6 +211,8 @@ export default {
 		correction_time: 'Static Correction Time:',
 		correction_time_help:
 			'When 3rdEyes is stationary, the gyroscope resets its initial orientation to correct angle deviations. Setting to 0 means no static correction.',
+		gyroscope_eyelid_angle: 'Eye Opening Size:',
+		gyroscope_eyelid_angle_help: 'Sets the eye opening size in gyroscope mode. The valid range is 0 to 80.',
 		save: 'Save',
 
 		/* 狀態 */
@@ -223,6 +227,9 @@ export default {
 			correction_time_invalid_number: 'Static correction time must be a valid number',
 			correction_time_negative: 'Static correction time cannot be less than 0',
 			correction_time_over_range: 'Static correction time cannot exceed 65535',
+			gyroscope_eyelid_angle_invalid_number: 'Eye opening size must be a valid integer',
+			gyroscope_eyelid_angle_negative: 'Eye opening size cannot be less than 0',
+			gyroscope_eyelid_angle_over_range: 'Eye opening size cannot exceed 80',
 		},
 	},
 

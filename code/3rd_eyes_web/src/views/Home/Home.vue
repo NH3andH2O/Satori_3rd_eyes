@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { watchEffect, ref, provide, computed } from 'vue';
+import { watchEffect, ref, provide, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import wifiset from '@/views/Home/wifiset/wifiset.vue';
 import modeset from '@/views/Home/modeset/modeset.vue';
 import advancedset from '@/views/Home/advancedset/advancedset.vue';
-import { servoApi, handleApiError } from '@/api';
+import { servoApi, versionApi, handleApiError } from '@/api';
 import { MODES } from '@/config';
 
 const { t } = useI18n();
@@ -15,6 +16,23 @@ const setupCheckPerformed = ref(false);
 watchEffect(() => {
 	document.title = t('homepage.page_title');
 });
+
+async function checkVersion() {
+	try {
+		const backendVersion = await versionApi.getVersion();
+		if (backendVersion !== __APP_VERSION__) {
+			ElMessage.warning({
+				message: t('homepage.version_mismatch'),
+				duration: 5000,
+				showClose: true,
+			});
+		}
+	} catch (error: unknown) {
+		handleApiError(error, t('homepage.version_get_failed'));
+	}
+}
+
+onMounted(checkVersion);
 
 // 跟踪每个卡片的加载状态
 const loadingStates = ref({

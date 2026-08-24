@@ -6,6 +6,8 @@ import { advancedApi, handleApiError, handleApiSuccess } from '@/api';
 import { AppError } from '@/utils/AppError';
 import { getErrorDescription } from '@/utils/errorCodeMapper';
 import i18n from '@/i18n';
+import { MODES } from '@/config/constants';
+import type { AdvancedConfigRequest } from '@/types';
 
 export function useAdvancedSetting() {
 	/* 局部 UI 状态 */
@@ -16,7 +18,7 @@ export function useAdvancedSetting() {
 	const modeStore = useModeStore();
 	const correctionStore = useCorrectionStore();
 	const { mode } = storeToRefs(modeStore);
-	const { correction_timer } = storeToRefs(correctionStore);
+	const { correction_timer, gyroscope_eyelid_angle } = storeToRefs(correctionStore);
 
 	// 注入父组件提供的更新方法
 	const updateLoadingState = inject<((component: string, isLoading: boolean) => void) | undefined>('updateLoadingState');
@@ -28,6 +30,7 @@ export function useAdvancedSetting() {
 			const data = await advancedApi.getConfig();
 			correctionStore.patchFromServer({
 				correction_timer: typeof data.correction_timer === 'number' ? data.correction_timer : undefined,
+				gyroscope_eyelid_angle: typeof data.gyroscope_eyelid_angle === 'number' ? data.gyroscope_eyelid_angle : undefined,
 			});
 		} catch (error: unknown) {
 			handleApiError(error, i18n.global.t('advancedset.state.get_failed'));
@@ -40,8 +43,11 @@ export function useAdvancedSetting() {
 	async function update() {
 		isSaving.value = true;
 		try {
-			const payloadBuilders: Record<number, () => Partial<{ correction_timer: number }>> = {
-				1: () => ({ correction_timer: correction_timer.value }),
+			const payloadBuilders: Record<number, () => AdvancedConfigRequest> = {
+				[MODES.GYROSCOPE]: () => ({
+					correction_timer: correction_timer.value,
+					gyroscope_eyelid_angle: gyroscope_eyelid_angle.value,
+				}),
 			};
 
 			const payloadBuilder = payloadBuilders[mode.value];
@@ -70,6 +76,7 @@ export function useAdvancedSetting() {
 		isSaving,
 		// 来自 Pinia 的业务状态（双向绑定用）
 		correction_timer,
+		gyroscope_eyelid_angle,
 		// 操作
 		fetchAdvancedConfig,
 		update,

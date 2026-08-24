@@ -18,14 +18,17 @@
 extern AppConfig::Config config; // 偏好設置實例
 extern eyesMove eyesmove;
 
-extern QueueHandle_t wifiUpdate_data_quene;		 // 宣告WiFi更新佇列
-extern QueueHandle_t mode_data_quene;			 // 宣告模式數據佇列
+extern QueueHandle_t wifiUpdate_data_quene;			   // 宣告WiFi更新佇列
+extern QueueHandle_t mode_data_quene;				   // 宣告模式數據佇列
+extern QueueHandle_t wit_advanced_config_update_quene; // 每個consumer必須使用獨立佇列
+extern QueueHandle_t gyroscope_advanced_config_update_quene;
 extern QueueHandle_t network_control_data_quene; // 網絡數據佇列
 extern QueueHandle_t servoSet_data_quene;		 // 舵機數據佇列
 
 void handleRoot(AsyncWebServerRequest *req);
 void handleNotFound(AsyncWebServerRequest *request);
 void onSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
+void api_version(AsyncWebServerRequest *request);
 void api_wifi_config(AsyncWebServerRequest *request);
 void api_set_wifi_config(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
 void api_softAP_config(AsyncWebServerRequest *request);

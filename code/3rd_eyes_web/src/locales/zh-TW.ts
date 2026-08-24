@@ -3,6 +3,8 @@ export default {
 	homepage: {
 		page_title: '覺之瞳',
 		title: '覺之瞳設定',
+		version_mismatch: '前端與後端版本不相同，可能會出現兼容性問題',
+		version_get_failed: '無法取得後端版本',
 	},
 
 	/* WiFi 設定 */
@@ -206,6 +208,8 @@ export default {
 		title: '進階設定',
 		correction_time: '靜態校正時間：',
 		correction_time_help: '當覺之瞳處於靜止狀態時，陀螺儀會重置初始姿態角度以矯正角度偏差。設置為0表示不進行靜態校正。',
+		gyroscope_eyelid_angle: '眼睛張開大小：',
+		gyroscope_eyelid_angle_help: '設定陀螺儀模式下的眼睛張開大小，範圍為 0 到 80。',
 		save: '儲存',
 
 		/* 狀態 */
@@ -220,6 +224,9 @@ export default {
 			correction_time_invalid_number: '靜態校正時間必須是有效的數字',
 			correction_time_negative: '靜態校正時間不能小於 0',
 			correction_time_over_range: '靜態校正時間不能超過 65535',
+			gyroscope_eyelid_angle_invalid_number: '眼睛張開大小必須是有效的整數',
+			gyroscope_eyelid_angle_negative: '眼睛張開大小不能小於 0',
+			gyroscope_eyelid_angle_over_range: '眼睛張開大小不能超過 80',
 		},
 	},
 

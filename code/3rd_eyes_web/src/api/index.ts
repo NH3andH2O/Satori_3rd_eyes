@@ -6,3 +6,4 @@ export * from './wifi';
 export * from './mode';
 export * from './advanced';
 export * from './servo';
+export * from './version';
