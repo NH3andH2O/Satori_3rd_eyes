@@ -208,6 +208,8 @@ export default {
 		title: '进阶设置',
 		correction_time: '静态校正时间：',
 		correction_time_help: '当觉之瞳处于静止状态时，陀螺仪会重置初始姿态角度以矫正角度偏差。设置为0表示不进行静态校正。',
+		gyroscope_eyelid_angle: '眼睛张开大小：',
+		gyroscope_eyelid_angle_help: '设置陀螺仪模式下的眼睛张开大小，范围为 0 到 80。',
 		save: '保存',
 
 		/* 狀態 */
@@ -222,6 +224,9 @@ export default {
 			correction_time_invalid_number: '静态校正时间必须是有效的数字',
 			correction_time_negative: '静态校正时间不能小于 0',
 			correction_time_over_range: '静态校正时间不能超过 65535',
+			gyroscope_eyelid_angle_invalid_number: '眼睛张开大小必须是有效的整数',
+			gyroscope_eyelid_angle_negative: '眼睛张开大小不能小于 0',
+			gyroscope_eyelid_angle_over_range: '眼睛张开大小不能超过 80',
 		},
 	},
 

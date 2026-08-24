@@ -118,7 +118,8 @@ QueueHandle_t wit_data_relative_angle_quene;	// 宣告wit差值佇列
 QueueHandle_t eyesmove_data_quene;				// 宣告眼睛數據佇列
 QueueHandle_t gc9a01_data_quene;				// 宣告GC9A01佇列
 QueueHandle_t wifiUpdate_data_quene;			// 宣告WiFi更新佇列
-QueueHandle_t correction_timer_update_quene;	// 宣告角度重置時間器更新佇列
+QueueHandle_t wit_advanced_config_update_quene; // 每個consumer必須使用獨立佇列
+QueueHandle_t gyroscope_advanced_config_update_quene;
 QueueHandle_t mode_data_quene;					// 宣告模式數據佇列
 QueueHandle_t uart0_queue;						// UART0事件佇列
 QueueHandle_t network_control_data_quene;		// 網絡數據佇列
@@ -210,11 +211,13 @@ void setup()
 	queueCreate(&eyesmove_data_quene, 10, sizeof(eyesMove_data));				 // eyesMove_data結構體佇列
 	queueCreate(&gc9a01_data_quene, 10, sizeof(GC9A01_data));					 // GC9A01_data結構體佇列
 	queueCreate(&wifiUpdate_data_quene, 10, sizeof(uint8_t));					 // WiFi更新佇列
-	queueCreate(&correction_timer_update_quene, 10, sizeof(uint8_t));			 // 角度重置時間器更新佇列
-	queueCreate(&mode_data_quene, 1, sizeof(int8_t));							 // 模式數據佇列
-	queueCreate(&network_control_data_quene, 10, sizeof(network_control_data));	 // 網絡控制佇列
-	queueCreate(&network_control_speed_data_quene, 10, sizeof(double));			 // 網絡控制速度佇列
-	queueCreate(&servoSet_data_quene, 10, sizeof(servoSet_data));				 // 伺服馬達數據佇列
+	// 設定更新只保留最新值
+	queueCreate(&wit_advanced_config_update_quene, 1, sizeof(AppConfig::AdvancedConfig));
+	queueCreate(&gyroscope_advanced_config_update_quene, 1, sizeof(AppConfig::AdvancedConfig));
+	queueCreate(&mode_data_quene, 1, sizeof(int8_t));							// 模式數據佇列
+	queueCreate(&network_control_data_quene, 10, sizeof(network_control_data)); // 網絡控制佇列
+	queueCreate(&network_control_speed_data_quene, 10, sizeof(double));			// 網絡控制速度佇列
+	queueCreate(&servoSet_data_quene, 10, sizeof(servoSet_data));				// 伺服馬達數據佇列
 
 	ESP_LOGI("quene", "quene create success"); // 打印佇列建立成功狀態
 
@@ -714,9 +717,10 @@ void taskWitPProcessingData(void *arg)
 
 	uint8_t read_count = 0; // 讀取計數
 
-	uint16_t reset_reference_timer = config.getAdvancedConfig().correction_timer; // 重置参考角度時間器
-	uint64_t reset_reference_time = 0;											  // 重置参考角度時間
-	uint8_t is_reset_reference_timer_update = 0;								  // 重置参考角度時間器更新標誌
+	// 任務啟動後以佇列更新本地快照，避免高頻讀取NVS
+	AppConfig::AdvancedConfig advanced_config = config.getAdvancedConfig();
+	uint16_t reset_reference_timer = advanced_config.correction_timer; // 重置参考角度時間器
+	uint64_t reset_reference_time = 0;								   // 重置参考角度時間
 
 	/* 抛棄前10次數據 */
 	while (read_count < 10)
@@ -832,15 +836,11 @@ void taskWitPProcessingData(void *arg)
 			xQueueSend(wit_data_relative_angle_quene, &result, 0); // 從佇列中獲取數據
 		}
 
-		/* 更新重置時間 */
-		if (xQueueReceive(correction_timer_update_quene, &is_reset_reference_timer_update, 0) == pdTRUE) // 等待時間更新信號
+		if (xQueueReceive(wit_advanced_config_update_quene, &advanced_config, 0) == pdTRUE)
 		{
-			if (is_reset_reference_timer_update == 1)
-			{
-				reset_reference_timer = config.getAdvancedConfig().correction_timer; // 更新重置参考角度時間器
-				reset_reference_time = xTaskGetTickCount();							 // 更新重置参考角度時間
-				is_reset_reference_timer_update = 0;								 // 重置重置参考角度時間器更新標誌
-			}
+			reset_reference_timer = advanced_config.correction_timer;
+			// 新週期不可沿用舊設定已累積的靜止時間
+			reset_reference_time = xTaskGetTickCount();
 		}
 
 		/* 重置参考角度 */
@@ -868,6 +868,8 @@ void taskGyroscopeTracking(void *arg)
 	witPProcessingData data_get;   // 數據接收
 	eyesMove_data angle_data_send; // 角度數據發送
 	GC9A01_data gc9a01_data;	   // GC9A01數據結構體
+	// 任務啟動後以佇列更新本地快照，避免高頻讀取NVS
+	AppConfig::AdvancedConfig advanced_config = config.getAdvancedConfig();
 
 	double eyes_x = 0;			   // x角度
 	double eyes_y = 0;			   // y角度
@@ -878,6 +880,8 @@ void taskGyroscopeTracking(void *arg)
 	{
 		if (xQueueReceive(wit_data_relative_angle_quene, &data_get, portMAX_DELAY) == pdTRUE) // 從佇列中獲取數據
 		{
+			xQueueReceive(gyroscope_advanced_config_update_quene, &advanced_config, 0);
+
 			/* x角度範圍 */
 			eyes_x = map(constrain(data_get.relative_angle.zangle, -60, 60), 60, -60, -55, 55); // z角度映射
 
@@ -885,9 +889,9 @@ void taskGyroscopeTracking(void *arg)
 			eyes_y = map(constrain(data_get.relative_angle.yangle, -30, 30), 30, -30, 35, -35); // y角度映射
 
 			/* 傳遞眼睛角度 */
-			angle_data_send.x_angle = round((int8_t)eyes_x);	  // 設置x角度
-			angle_data_send.y_angle = round((int8_t)eyes_y);	  // 設置y角度
-			angle_data_send.eyelid_angle = 45;					  // 設置眼睛張開角度
+			angle_data_send.x_angle = round((int8_t)eyes_x); // 設置x角度
+			angle_data_send.y_angle = round((int8_t)eyes_y); // 設置y角度
+			angle_data_send.eyelid_angle = advanced_config.gyroscope_eyelid_angle;
 			xQueueSend(eyesmove_data_quene, &angle_data_send, 0); // 傳遞x角度
 
 			/* 獲取角速度 */
@@ -1465,7 +1469,8 @@ void ResetModeQueues()
 	// 呼叫前必須先停止所有舊模式 producer
 	xQueueReset(wit_data_quene);
 	xQueueReset(wit_data_relative_angle_quene);
-	xQueueReset(correction_timer_update_quene);
+	xQueueReset(wit_advanced_config_update_quene);
+	xQueueReset(gyroscope_advanced_config_update_quene);
 	xQueueReset(network_control_data_quene);
 	xQueueReset(network_control_speed_data_quene);
 	xQueueReset(servoSet_data_quene);

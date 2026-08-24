@@ -5,7 +5,7 @@
 	<el-form ref="advanced_form_ref" :model="formData" :rules="advanced_rules" label-position="right" class="custom-form" novalidate @submit.prevent>
 		<div class="content">
 			<transition name="slide-toggle">
-				<div v-show="mode === 1">
+				<div v-show="mode === MODES.GYROSCOPE">
 					<el-form-item prop="correction_timer">
 						<template #label>
 							<div style="display: flex; align-items: center; gap: 4px">
@@ -30,6 +30,27 @@
 							<template #suffix> ms </template>
 						</el-input-number>
 					</el-form-item>
+					<el-form-item prop="gyroscope_eyelid_angle">
+						<template #label>
+							<div style="display: flex; align-items: center; gap: 4px">
+								<el-tooltip :content="t('advancedset.gyroscope_eyelid_angle_help')" placement="top">
+									<el-icon size="16" color="slategray">
+										<QuestionFilled />
+									</el-icon>
+								</el-tooltip>
+								{{ $t('advancedset.gyroscope_eyelid_angle') }}
+							</div>
+						</template>
+						<el-input-number
+							v-model="advanced.gyroscope_eyelid_angle.value"
+							placeholder="45"
+							:step="1"
+							:min="0"
+							:max="80"
+							:step-strictly="true"
+							:disabled="advanced.isLoading.value"
+						/>
+					</el-form-item>
 				</div>
 			</transition>
 		</div>
@@ -50,6 +71,7 @@ import { useAdvancedRules } from './validators/useAdvancedRules';
 import { useModeStore } from '@/stores/mode';
 import { useAdvancedSetting } from './composables/useAdvancedSetting';
 import { useI18n } from 'vue-i18n';
+import { MODES } from '@/config/constants';
 
 const { t } = useI18n();
 const tAdvancedErrors = (key: string) => t(`advancedset.errors.${key}`);
@@ -63,6 +85,7 @@ const { mode } = storeToRefs(useModeStore());
 // 創建表單數據對象，使用 reactive 包裝來讓 el-form 能夠正確追蹤
 const formData = reactive({
 	correction_timer: advanced.correction_timer,
+	gyroscope_eyelid_angle: advanced.gyroscope_eyelid_angle,
 });
 
 const advanced_rules = computed(() => useAdvancedRules(mode, tAdvancedErrors));

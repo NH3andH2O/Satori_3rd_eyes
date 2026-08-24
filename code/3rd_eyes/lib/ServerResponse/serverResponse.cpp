@@ -445,6 +445,7 @@ void api_advanced_config(AsyncWebServerRequest *request)
 	/* 構建JSON */
 	JsonDocument doc;
 	doc["correction_timer"] = advancedConfig.correction_timer;
+	doc["gyroscope_eyelid_angle"] = advancedConfig.gyroscope_eyelid_angle;
 
 	/* 發送響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK, "", &doc);
@@ -462,7 +463,7 @@ void api_set_advanced_config(AsyncWebServerRequest *request, uint8_t *data, size
 
 	/* 解析JSON */
 	JsonDocument doc;
-	DeserializationError error = deserializeJson(doc, data);
+	DeserializationError error = deserializeJson(doc, data, len);
 	if (error)
 	{
 		ESP_LOGE("server", "Failed to parse JSON: %s\n", error.c_str());
@@ -470,13 +471,54 @@ void api_set_advanced_config(AsyncWebServerRequest *request, uint8_t *data, size
 		return;
 	}
 
-	/* 獲取配置 */
-	uint16_t correction_timer = doc["correction_timer"] | 2000;
+	// 部分更新需區分欄位缺失與顯式null
+	bool has_correction_timer = false;
+	bool has_gyroscope_eyelid_angle = false;
+	for (JsonPairConst entry : doc.as<JsonObjectConst>())
+	{
+		if (strcmp(entry.key().c_str(), "correction_timer") == 0)
+		{
+			has_correction_timer = true;
+		}
+		else if (strcmp(entry.key().c_str(), "gyroscope_eyelid_angle") == 0)
+		{
+			has_gyroscope_eyelid_angle = true;
+		}
+	}
+	if (!has_correction_timer && !has_gyroscope_eyelid_angle)
+	{
+		sendJsonResponse(request, 400, false, ServerError::ERR_ADVANCED_CONFIG_MISSING, "Missing advanced configuration field");
+		return;
+	}
 
-	/* 存儲配置 */
-	AppConfig::AdvancedConfig advancedConfig;
-	advancedConfig.correction_timer = correction_timer;
+	// 未提交欄位保留現值以相容舊版前端
+	AppConfig::AdvancedConfig advancedConfig = config.getAdvancedConfig();
+	if (has_correction_timer)
+	{
+		if (!doc["correction_timer"].is<int>() || doc["correction_timer"].as<int>() < 0 || doc["correction_timer"].as<int>() > UINT16_MAX)
+		{
+			sendJsonResponse(request, 400, false, ServerError::ERR_ADVANCED_CONFIG_INVALID,
+							 "correction_timer must be an integer between 0 and 65535");
+			return;
+		}
+		advancedConfig.correction_timer = doc["correction_timer"].as<uint16_t>();
+	}
+
+	if (has_gyroscope_eyelid_angle)
+	{
+		if (!doc["gyroscope_eyelid_angle"].is<int>() || doc["gyroscope_eyelid_angle"].as<int>() < 0 || doc["gyroscope_eyelid_angle"].as<int>() > 80)
+		{
+			sendJsonResponse(request, 400, false, ServerError::ERR_ADVANCED_CONFIG_INVALID,
+							 "gyroscope_eyelid_angle must be an integer between 0 and 80");
+			return;
+		}
+		advancedConfig.gyroscope_eyelid_angle = doc["gyroscope_eyelid_angle"].as<uint8_t>();
+	}
+
 	config.setAdvancedConfig(advancedConfig);
+	// 各任務保留一份最新設定，避免consumer競爭同一訊息
+	xQueueOverwrite(wit_advanced_config_update_quene, &advancedConfig);
+	xQueueOverwrite(gyroscope_advanced_config_update_quene, &advancedConfig);
 
 	/* 發送成功響應 */
 	sendJsonResponse(request, 200, true, ServerError::ERR_OK);

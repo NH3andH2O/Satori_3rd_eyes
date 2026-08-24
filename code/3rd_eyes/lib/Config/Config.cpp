@@ -60,6 +60,7 @@ AdvancedConfig Config::getAdvancedConfig()
 	AdvancedConfig config;
 	this->prefs.begin("Advanced", true);
 	config.correction_timer = this->prefs.getUShort("correction", 2000);
+	config.gyroscope_eyelid_angle = this->prefs.getUChar("eye_opening", 45);
 	this->prefs.end();
 	return config;
 }
@@ -68,6 +69,7 @@ void Config::setAdvancedConfig(const AdvancedConfig &config)
 {
 	this->prefs.begin("Advanced", false);
 	this->prefs.putUShort("correction", config.correction_timer);
+	this->prefs.putUChar("eye_opening", config.gyroscope_eyelid_angle);
 	this->prefs.end();
 }
 

@@ -57,6 +57,7 @@ export interface ModeConfig {
  */
 export interface AdvancedConfig {
 	correction_timer: number;
+	gyroscope_eyelid_angle: number;
 }
 
 export interface VersionInfo {
