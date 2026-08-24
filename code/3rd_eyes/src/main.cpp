@@ -257,6 +257,8 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 					xTimerStart(wifiReconnectTimer, 0);
 					break;
 				case WIFI_REASON_AUTH_EXPIRE: // 認證過期
+					ESP_LOGW("wifi", "reconnecting in 15 seconds...");
+					xTimerStart(wifiReconnectTimer, 0);
 					break;
 				case WIFI_REASON_ASSOC_LEAVE: // 協會離開
 					break;
@@ -1063,6 +1065,8 @@ void taskServoSet(void *arg)
 /* 畫眼睛任務 */
 void taskGC9A01(void *arg)
 {
+	ESP_LOGV("GC9A01", "GC9A01 task started");
+
 	/* 初始化GC9A01 */
 	gc9a01.GC9A01_init();				 // 初始化GC9A01
 	gc9a01.GC9A01_setEyes_r(80, 1, 10);	 // 設置眼睛半徑
@@ -1095,6 +1099,8 @@ void taskGC9A01(void *arg)
 /* 眼睛移動任務 */
 void taskEyesMove(void *arg)
 {
+	ESP_LOGV("EyesMove", "EyesMove task started");
+
 	eyesMove_data data_get;				   // 眼睛數據結構體
 	uint8_t is_eyesmove_update_finish = 0; // 眼睛更新狀態
 
