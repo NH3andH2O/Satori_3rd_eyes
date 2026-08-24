@@ -80,7 +80,7 @@ class wit
 	/* 協議 */
 	static constexpr uint8_t WIT_UNLOCK[5] = {0xFF, 0xAA, 0x69, 0x88, 0xB5};		  // 解鎖
 	static constexpr uint8_t WIT_SAVE[5] = {0xFF, 0xAA, 0x00, 0x00, 0x00};			  // 保存
-	static constexpr uint8_t WIT_READ_DATA[5] = {0xFF, 0xAA, 0x27, 0x00, 0x00};		  // 讀取數據
+	static constexpr uint8_t WIT_READ_VERSION[5] = {0xFF, 0xAA, 0x27, 0x2E, 0x00};	  // 讀取版本
 	static constexpr uint8_t WIT_SET_RRATE_200HZ[5] = {0xFF, 0xAA, 0x03, 0x0B, 0x00}; // 設置速率200Hz
 	static constexpr uint8_t WIT_SET_BAUD_4800[5] = {0xFF, 0xAA, 0x04, 0x01, 0x00};	  // 設置波特率4800
 	static constexpr uint8_t WIT_SET_BAUD_9600[5] = {0xFF, 0xAA, 0x04, 0x02, 0x00};	  // 設置波特率9600
@@ -98,8 +98,8 @@ class wit
 	static constexpr uint32_t BAUD_RATES[7] = {4800, 9600, 19200, 38400, 57600, 115200, 230400}; // 測試波特率
 
 	/* 計時器 */
-	static constexpr uint16_t initTimeout = 250; // 初始化超時時間
-	static constexpr uint16_t dataTimeout = 10;	 // 數據超時時間
+	static constexpr uint16_t initTimeout = 2000; // 初始化超時時間
+	static constexpr uint16_t dataTimeout = 10;	  // 數據超時時間
 
 	/* 參數變數 */
 	uint8_t serialPort;

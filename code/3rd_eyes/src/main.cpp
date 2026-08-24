@@ -204,15 +204,21 @@ void setup()
 
 	/* 使能伺服電機 */
 	eyesmove.eyesMove_init();
-
-	/* 任務建立 */
-	xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_handle, 0);				 // 創建UART0讀取任務
-	xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_handle, 0);						 // 創建網絡任務
-	xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_handle, 1);						 // 創建GC9A01任務
-	xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_handle, 1); // 創建模式管理任務
 }
 
-void loop() { vTaskDelay(1000); }
+void loop()
+{
+	static bool tasks_created = false;
+	if (!tasks_created)
+	{
+		tasks_created = true;
+		xTaskCreatePinnedToCore(taskUART0Read, "taskUART0Read", 4096, NULL, 3, &taskUART0Read_handle, 0);				 // 創建UART0讀取任務
+		xTaskCreatePinnedToCore(taskNetwork, "taskNetwork", 8192, NULL, 1, &taskNetwork_handle, 0);						 // 創建網絡任務
+		xTaskCreatePinnedToCore(taskGC9A01, "taskGC9A01", 8192, NULL, 1, &taskGC9A01_handle, 1);						 // 創建GC9A01任務
+		xTaskCreatePinnedToCore(taskModeManagement, "taskModeManagement", 4096, NULL, 2, &taskModeManagement_handle, 1); // 創建模式管理任務
+	}
+	vTaskDelay(1000);
+}
 
 /** 事件相關函數 **/
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
