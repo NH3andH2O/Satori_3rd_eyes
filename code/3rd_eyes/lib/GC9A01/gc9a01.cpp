@@ -54,8 +54,8 @@ GC9A01::GC9A01(uint8_t MOSIPin, uint8_t SCLKPin, uint8_t CSPin, uint8_t DCPin, u
 void GC9A01::GC9A01_init()
 {
 	this->myLGFX.LGFX_GC9A01_config(this->MOSIPin, this->SCLKPin, this->CSPin, this->DCPin, this->RSTPin, this->BLPin);
-	this->myLGFX.setBrightness(255); // 設置亮度
 	this->myLGFX.init();			 // 初始化
+	this->myLGFX.setBrightness(255); // 設置亮度
 
 	this->mySprite.setColorDepth(16); // 設置顏色深度
 	this->mySprite.createSprite(240, 240);
