@@ -2,7 +2,7 @@
 东方project古明地觉的觉之瞳，目前已经可以实现陀螺仪跟踪，网页控制
 
 ## 成品展示
-https://www.bilibili.com/video/BV1CK7mzvE3U
+https://www.bilibili.com/video/BV137yHB4ERo
 
 ## 作者及协议
 
