@@ -247,6 +247,8 @@ void setup()
 
 	/* 使能伺服電機 */
 	eyesmove.eyesMove_init();
+	gc9a01.GC9A01_init();
+	gc9a01.GC9A01_setEyes_r(80, 1, 10);
 }
 
 void loop()
@@ -1208,9 +1210,6 @@ void taskGC9A01(void *arg)
 {
 	ESP_LOGV("GC9A01", "GC9A01 task started");
 
-	/* 初始化GC9A01 */
-	gc9a01.GC9A01_init();				 // 初始化GC9A01
-	gc9a01.GC9A01_setEyes_r(80, 1, 10);	 // 設置眼睛半徑
 	uint8_t is_GC9A01_update_finish = 0; // GC9A01更新狀態
 	GC9A01_data gc9a01_data;
 	while (1)
