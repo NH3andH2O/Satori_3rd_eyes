@@ -5,3 +5,5 @@ export { default as apiClient, handleApiError, handleApiSuccess } from './client
 export * from './wifi';
 export * from './mode';
 export * from './advanced';
+export * from './servo';
+export * from './version';

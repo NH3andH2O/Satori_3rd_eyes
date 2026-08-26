@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch, defineProps, defineEmits } from 'vue';
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
 
 // 注意：类型引入可选
 // @ts-ignore
@@ -109,11 +109,12 @@ function init() {
 
 	manager.on('start', () => emits('start'));
 
-	manager.on('move', (_evt: any, data: any) => {
+	manager.on('move', (event: any) => {
 		const now = performance.now();
 		if (now - lastEmit < cfg.throttle) return;
 		lastEmit = now;
 
+		const data = event.data;
 		const { x, y } = extractVector(data);
 		const { vx, vy } = applyDeadzoneAndScale(x, y);
 		emits('move', {

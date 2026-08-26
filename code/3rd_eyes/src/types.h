@@ -3,6 +3,13 @@
 #include <Arduino.h>
 #include <wit.h>
 
+enum class NetworkCommand : uint8_t
+{
+	StaConfigUpdate = 1,
+	SoftAPConfigUpdate = 2,
+	StaReconnect = 3,
+};
+
 // wit處理數據結構體
 typedef struct
 {
@@ -30,6 +37,14 @@ typedef struct
 	int8_t x_angle;		  // x角度
 	int8_t y_angle;		  // y角度
 } eyesMove_data;
+
+// 伺服馬達數據結構體
+typedef struct
+{
+	uint8_t upper_eyelid_angle; // 上眼皮角度
+	uint8_t lower_eyelid_angle; // 下眼皮角度
+	uint8_t eyeball_angle;		// 眼球角度
+} servoSet_data;
 
 // 網絡數據結構體
 typedef struct

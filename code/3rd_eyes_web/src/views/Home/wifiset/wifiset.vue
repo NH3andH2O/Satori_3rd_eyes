@@ -27,7 +27,7 @@ watch(
 		const isLoading = wifiLoading || softAPLoading;
 		updateLoadingState?.('wifiset', isLoading);
 	},
-	{ immediate: true }
+	{ immediate: true },
 );
 
 function softAP_save() {

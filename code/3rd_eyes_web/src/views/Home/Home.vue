@@ -1,15 +1,38 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { watchEffect, ref, provide, computed } from 'vue';
+import { watchEffect, ref, provide, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import wifiset from '@/views/Home/wifiset/wifiset.vue';
 import modeset from '@/views/Home/modeset/modeset.vue';
 import advancedset from '@/views/Home/advancedset/advancedset.vue';
+import { servoApi, versionApi, handleApiError } from '@/api';
+import { MODES } from '@/config';
 
 const { t } = useI18n();
+const router = useRouter();
+const setupCheckPerformed = ref(false);
 
 watchEffect(() => {
 	document.title = t('homepage.page_title');
 });
+
+async function checkVersion() {
+	try {
+		const backendVersion = await versionApi.getVersion();
+		if (backendVersion !== __APP_VERSION__) {
+			ElMessage.warning({
+				message: t('homepage.version_mismatch'),
+				duration: 5000,
+				showClose: true,
+			});
+		}
+	} catch (error: unknown) {
+		handleApiError(error, t('homepage.version_get_failed'));
+	}
+}
+
+onMounted(checkVersion);
 
 // 跟踪每个卡片的加载状态
 const loadingStates = ref({
@@ -29,6 +52,20 @@ const updateLoadingState = (component: keyof typeof loadingStates.value, isLoadi
 };
 
 provide('updateLoadingState', updateLoadingState);
+
+async function handleModeLoaded(mode: number) {
+	if (setupCheckPerformed.value || mode !== MODES.SERVO_SETUP) return;
+
+	setupCheckPerformed.value = true;
+	try {
+		const servoConfig = await servoApi.getConfig();
+		if (!servoConfig.is_setup) {
+			await router.replace({ name: 'Setup' });
+		}
+	} catch (error: unknown) {
+		handleApiError(error, t('setup.state.get_failed'));
+	}
+}
 </script>
 
 <template>
@@ -37,29 +74,17 @@ provide('updateLoadingState', updateLoadingState);
 	</div>
 	<el-row :gutter="24">
 		<el-col :sx="24" :md="8">
-			<div
-				v-loading="!isAllLoaded"
-				element-loading-background="rgba(0, 0, 0, 0.3)"
-				class="grid-content semi-transparent card-wrapper"
-			>
-				<modeset />
+			<div v-loading="!isAllLoaded" element-loading-background="rgba(0, 0, 0, 0.3)" class="grid-content semi-transparent card-wrapper">
+				<modeset @loaded="handleModeLoaded" />
 			</div>
 		</el-col>
 		<el-col :sx="24" :md="8">
-			<div
-				v-loading="!isAllLoaded"
-				element-loading-background="rgba(0, 0, 0, 0.3)"
-				class="grid-content semi-transparent card-wrapper"
-			>
+			<div v-loading="!isAllLoaded" element-loading-background="rgba(0, 0, 0, 0.3)" class="grid-content semi-transparent card-wrapper">
 				<advancedset />
 			</div>
 		</el-col>
 		<el-col :sx="24" :md="8">
-			<div
-				v-loading="!isAllLoaded"
-				element-loading-background="rgba(0, 0, 0, 0.3)"
-				class="grid-content semi-transparent card-wrapper"
-			>
+			<div v-loading="!isAllLoaded" element-loading-background="rgba(0, 0, 0, 0.3)" class="grid-content semi-transparent card-wrapper">
 				<wifiset />
 			</div>
 		</el-col>

@@ -2,6 +2,7 @@
 #define eyesMove_h
 #include <ESP32Servo.h>
 #include <Arduino.h>
+#include "Config.h"
 #include "pid.h"
 
 class eyesMove
@@ -11,15 +12,15 @@ class eyesMove
 	const uint16_t LASTCHANGEMAX = 500;
 
 	/* 伺服馬達限位 */
-	const uint8_t UPPER_EYELID_ANGLE_MAX = 150; // 上眼皮最大角度，関
-	const uint8_t UPPER_EYELID_ANGLE_MID = 85;	// 上眼皮中間角度
-	const uint8_t UPPER_EYELID_ANGLE_MIN = 50;	// 上眼皮最小角度
-	const uint8_t LOWER_EYELID_ANGLE_MAX = 65;	// 下眼皮最大角度
-	const uint8_t LOWER_EYELID_ANGLE_MID = 50;	// 下眼皮中間角度
-	const uint8_t LOWER_EYELID_ANGLE_MIN = 22;	// 下眼皮最小角度，関
-	const uint8_t EYEBALL_ANGLE_MAX = 110;		// 眼球最大角度
-	const uint8_t EYEBALL_ANGLE_MID = 75;		// 眼球中間角度
-	const uint8_t EYEBALL_ANGLE_MIN = 40;		// 眼球最小角度
+	uint8_t upper_eyelid_angle_max; // 上眼皮最大角度，関
+	uint8_t upper_eyelid_angle_mid; // 上眼皮中間角度
+	uint8_t upper_eyelid_angle_min; // 上眼皮最小角度
+	uint8_t lower_eyelid_angle_max; // 下眼皮最大角度
+	uint8_t lower_eyelid_angle_mid; // 下眼皮中間角度
+	uint8_t lower_eyelid_angle_min; // 下眼皮最小角度，関
+	uint8_t eyeball_angle_max;		// 眼球最大角度
+	uint8_t eyeball_angle_mid;		// 眼球中間角度
+	uint8_t eyeball_angle_min;		// 眼球最小角度
 
 	Servo upper_eyelid_servo; // 上眼皮伺服馬達
 	Servo lower_eyelid_servo; // 下眼皮伺服馬達
@@ -66,6 +67,8 @@ class eyesMove
 
 	void eyesMove_angle_set(int8_t eyelid_angle, int8_t x_angle, int8_t y_angle);
 	void eyesMove_angle_pid(double kp, double ki, double kd);
+	void eyesMove_servo_limit_update();
+	void eyesMove_servo_debug(uint8_t upper_eyelid_angle, uint8_t lower_eyelid_angle, uint8_t eyeball_angle);
 	uint8_t eyesMove_update();
 
 	// 初始化眼睛
