@@ -14,7 +14,6 @@
 				"esbenp.prettier-vscode",
 				"xabikos.JavaScriptSnippets",
 				"yzhang.markdown-all-in-one",
-				"vicanent.gcmp",
 				"bierner.markdown-preview-github-styles"
 			],
 			"settings": {
@@ -23,10 +22,9 @@
 		}
 	},
 	"mounts": [
-		"source=node_modules_volume,target=${containerWorkspaceFolder}/node_modules,type=volume",
-		"source=codex_config,target=/home/node/.codex,type=volume"
+		"source=node_modules_volume,target=${containerWorkspaceFolder}/node_modules,type=volume"
 	],
-	"postCreateCommand": "sudo chown -R node:node ${containerWorkspaceFolder}/node_modules && sudo chown -R node:node /workspaces/3rd_eyes/code/3rd_eyes/data && npm install && sudo npm install -g @openai/codex@latest && codex --version"
+	"postCreateCommand": "sudo chown -R node:node ${containerWorkspaceFolder}/node_modules && sudo chown -R node:node /workspaces/3rd_eyes/code/3rd_eyes/data && npm install"
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
