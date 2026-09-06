@@ -6,3 +6,12 @@
 .github/
 data/
 log/
+
+# custom_sdkconfig觸發hybrid compile後產生的檔案
+.dummy/
+managed_components/
+dependencies.lock
+CMakeLists.txt
+sdkconfig.defaults
+sdkconfig.*
+*firmware.map
