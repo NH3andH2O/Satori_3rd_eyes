@@ -26,6 +26,8 @@
 #include <esp_log.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
+#include <esp_rrm.h>
+#include <esp_wnm.h>
 #include <freertos/event_groups.h>
 #include <atomic>
 /* 自定義程式庫 */
@@ -72,7 +74,9 @@ static constexpr uint32_t WIT_STOP_TIMEOUT_MS = 1500;
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info); // WiFi事件處理函數
 
 /* 回調函數宣告 */
-void TimerReconnectWiFi(TimerHandle_t xTimer); // WiFi重連定時器回調函數
+void TimerReconnectWiFi(TimerHandle_t xTimer);									 // WiFi重連定時器回調函數
+void WiFiRssiLowEvent(void *arg, esp_event_base_t base, int32_t id, void *data); // 弱訊號漫遊事件，Arduino未暴露故直接註冊IDF事件
+void ArmRssiThreshold();
 
 /* 任務函數宣告 */
 void taskNetwork(void *pvParameters);		 // 網絡任務
@@ -154,6 +158,10 @@ static constexpr uint32_t WIFI_RECONNECT_DELAYS_MS[] = {5000, 15000, 30000, 6000
 static constexpr uint32_t WIFI_RECONNECT_JITTER_MS = 1000;
 static std::atomic_bool wifiReconnectAllowed{false};
 static std::atomic_uint32_t wifiReconnectAttempt{0};
+
+static constexpr int32_t WIFI_ROAM_RSSI_THRESHOLD_DBM = -70;
+static constexpr uint32_t WIFI_ROAM_QUERY_COOLDOWN_MS = 30000; // 邊界徘徊時避免反覆查詢
+static std::atomic_uint32_t wifiLastRoamQueryTick{0};
 
 void setup()
 {
@@ -274,6 +282,10 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 			ESP_LOGI("wifi", "STA connected: SSID='%.*s', BSSID=%s, channel=%u, auth=%d", info.wifi_sta_connected.ssid_len,
 					 reinterpret_cast<const char *>(info.wifi_sta_connected.ssid), macToString(info.wifi_sta_connected.bssid).c_str(),
 					 info.wifi_sta_connected.channel, info.wifi_sta_connected.authmode);
+			ESP_LOGI("wifi", "AP roaming capability: 802.11k(RRM)=%s, 802.11v(BTM)=%s", esp_rrm_is_rrm_supported_connection() ? "yes" : "no",
+					 esp_wnm_is_btm_supported_connection() ? "yes" : "no");
+			wifiLastRoamQueryTick.store(0);
+			ArmRssiThreshold(); // 門檻為一次性且斷線後失效
 			break;
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
 			xTimerStop(wifiReconnectTimer, 0);
@@ -310,6 +322,46 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 }
 
 /** 回調相關函數 **/
+/* 弱訊號時向AP查詢更好的BSS，由AP主導切換 */
+void ArmRssiThreshold()
+{
+	const esp_err_t error = esp_wifi_set_rssi_threshold(WIFI_ROAM_RSSI_THRESHOLD_DBM);
+	if (error != ESP_OK)
+	{
+		ESP_LOGW("wifi", "Failed to arm RSSI threshold: %s", esp_err_to_name(error));
+	}
+}
+
+void WiFiRssiLowEvent(void *arg, esp_event_base_t base, int32_t id, void *data)
+{
+	const auto *info = static_cast<wifi_event_bss_rssi_low_t *>(data);
+	ESP_LOGI("wifi", "RSSI dropped to %ld dBm", static_cast<long>(info->rssi));
+
+	if (!esp_wnm_is_btm_supported_connection())
+	{
+		ESP_LOGD("wifi", "AP lacks BTM; relying on reconnect-based AP selection");
+		return; // 避免無效事件反覆觸發
+	}
+
+	const uint32_t now = xTaskGetTickCount();
+	const uint32_t last = wifiLastRoamQueryTick.load();
+	if (last != 0 && (now - last) < pdMS_TO_TICKS(WIFI_ROAM_QUERY_COOLDOWN_MS))
+	{
+		ArmRssiThreshold();
+		return;
+	}
+	wifiLastRoamQueryTick.store(now);
+
+	// cand_list=1 讓supplicant附上快取的掃描結果，省去AP端額外探測
+	const int result = esp_wnm_send_bss_transition_mgmt_query(REASON_RSSI, nullptr, 1);
+	if (result != 0)
+	{
+		ESP_LOGW("wifi", "BTM query failed: %d", result);
+	}
+
+	ArmRssiThreshold();
+}
+
 /* WiFi重連定時器回調 */
 void TimerReconnectWiFi(TimerHandle_t xTimer)
 {
@@ -433,6 +485,7 @@ void taskNetwork(void *pvParameters)
 
 	/* WiFi初始化 */
 	WiFi.onEvent(WiFiEvent); // 註冊事件回呼
+	esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_BSS_RSSI_LOW, &WiFiRssiLowEvent, nullptr);
 	WiFi.setAutoReconnect(false);
 	WiFi.setSleep(WIFI_PS_MIN_MODEM);
 	// SoftAP 與 STA 共用頻道，STA 重連期間不得重啟 SoftAP。
