@@ -3,6 +3,10 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
+	"remoteUser": "root",
+	"mounts": [
+		"source=esp-idf-qemu-vscode-user-data,target=/root/.vscode-server/data/User,type=volume"
+	],
 	"customizations": {
 		"vscode": {
 			"settings": {
