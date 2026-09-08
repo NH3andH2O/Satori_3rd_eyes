@@ -5,7 +5,10 @@
 	},
 	"remoteUser": "root",
 	"mounts": [
-		"source=esp-idf-qemu-vscode-user-data,target=/root/.vscode-server/data/User,type=volume"
+		"source=esp-idf-qemu-vscode-user-data,target=/root/.vscode-server/data/User,type=volume",
+		"source=esp-idf-qemu-copilot-home,target=/root/.copilot,type=volume",
+		"source=${localWorkspaceFolderBasename}-build,target=${containerWorkspaceFolder}/build,type=volume",
+		"source=${localWorkspaceFolderBasename}-ccache,target=/root/.ccache,type=volume"
 	],
 	"customizations": {
 		"vscode": {

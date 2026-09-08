@@ -1,0 +1,14 @@
+{
+	"servers": {
+		"esp-idf": {
+			"type": "stdio",
+			"command": "idf.py",
+			"args": [
+				"mcp-server"
+			],
+			"env": {
+				"IDF_MCP_WORKSPACE_FOLDER": "${workspaceFolder}"
+			}
+		}
+	}
+}
