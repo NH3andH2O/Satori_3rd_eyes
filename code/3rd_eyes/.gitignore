@@ -1,3 +1,8 @@
 build/*
 sdkconfig
 sdkconfig.old
+unity-app/build/*
+unity-app/sdkconfig
+unity-app/sdkconfig.old
+test/sdkconfig
+test/sdkconfig.old

@@ -2,6 +2,7 @@
 	"idf.currentSetup": "/opt/esp/idf",
 	"idf.port": "/dev/ttyUSB0",
 	"idf.flashType": "UART",
+	"idf.unitTestFilePattern": "**/test/test_*.{c,cpp}",
 	"idf.customExtraVars": {
 		"IDF_TARGET": "esp32s3"
 	}
