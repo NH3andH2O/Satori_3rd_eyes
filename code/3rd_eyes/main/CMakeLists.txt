@@ -1,2 +1,2 @@
-idf_component_register(SRCS "3rd_eyes.cpp"
+idf_component_register(SRCS "app_main.cpp"
                     INCLUDE_DIRS ".")
