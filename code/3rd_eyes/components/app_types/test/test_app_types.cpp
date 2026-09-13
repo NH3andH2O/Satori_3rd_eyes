@@ -28,6 +28,8 @@ TEST_CASE("app enum values preserve external contracts", "[app_types]")
 TEST_CASE("IMU aggregate uses canonical math types", "[app_types]")
 {
 	static_assert(std::is_same_v<decltype(app_types::ImuSample{}.eulerDegrees), imu_angle::EulerAngles>);
+	static_assert(std::is_same_v<decltype(app_types::ImuSample{}.angularVelocity), imu_angle::AngularVelocityDps>);
+	static_assert(std::is_same_v<decltype(app_types::ImuSample{}.linearAcceleration), imu_angle::LinearAccelerationMps2>);
 	static_assert(std::is_same_v<decltype(app_types::ImuSample{}.orientation), imu_angle::Quaternion>);
 
 	app_types::ImuSample sample{};

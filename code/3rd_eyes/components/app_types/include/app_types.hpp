@@ -43,27 +43,13 @@ namespace app_types
 		Cancelled = 5,
 	};
 
-	struct AngularVelocityDps
-	{
-		double xDegreesPerSecond{};
-		double yDegreesPerSecond{};
-		double zDegreesPerSecond{};
-	};
-
-	struct LinearAccelerationMps2
-	{
-		double xMetersPerSecondSquared{};
-		double yMetersPerSecondSquared{};
-		double zMetersPerSecondSquared{};
-	};
-
 	struct ImuSample
 	{
 		ImuSensor sensor{ImuSensor::Eyes};
 		ImuSampleStatus status{ImuSampleStatus::NoData};
 		imu_angle::EulerAngles eulerDegrees{};
-		AngularVelocityDps angularVelocity{};
-		LinearAccelerationMps2 linearAcceleration{};
+		imu_angle::AngularVelocityDps angularVelocity{};
+		imu_angle::LinearAccelerationMps2 linearAcceleration{};
 		imu_angle::Quaternion orientation{};
 		double temperatureCelsius{};
 	};
@@ -71,9 +57,9 @@ namespace app_types
 	struct RelativeImuMotion
 	{
 		imu_angle::EulerAngles relativeEulerDegrees{};
-		AngularVelocityDps relativeAngularVelocity{};
-		LinearAccelerationMps2 eyesAccelerationWorld{};
-		LinearAccelerationMps2 headAccelerationWorld{};
+		imu_angle::AngularVelocityDps relativeAngularVelocity{};
+		imu_angle::LinearAccelerationMps2 eyesAccelerationWorld{};
+		imu_angle::LinearAccelerationMps2 headAccelerationWorld{};
 	};
 
 	struct EyeMotionCommand

@@ -17,6 +17,20 @@ namespace imu_angle
 		double z;
 	};
 
+	struct AngularVelocityDps
+	{
+		double xDegreesPerSecond{};
+		double yDegreesPerSecond{};
+		double zDegreesPerSecond{};
+	};
+
+	struct LinearAccelerationMps2
+	{
+		double xMetersPerSecondSquared{};
+		double yMetersPerSecondSquared{};
+		double zMetersPerSecondSquared{};
+	};
+
 	class ImuAngle
 	{
 	  public:
